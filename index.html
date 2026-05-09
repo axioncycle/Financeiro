@@ -16,7 +16,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .logo-img{width:38px;height:38px;border-radius:8px;object-fit:contain;}
 .logo-txt{font-size:17px;font-weight:900;color:#1E90FF;letter-spacing:1px;}
 .logo-sub{font-size:9px;color:#666;letter-spacing:1px;text-transform:uppercase;}
-.hdr-gear{margin-left:auto;background:none;border:none;font-size:20px;cursor:pointer;padding:4px;}
+.hdr-gear{background:none;border:none;font-size:20px;cursor:pointer;padding:4px;}
 .nav{display:flex;background:#111;border-bottom:1px solid #222;position:sticky;top:60px;z-index:50;}
 .nb{flex:1;padding:8px 2px 6px;background:none;border:none;border-bottom:2px solid transparent;color:#666;font-size:9px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;text-transform:uppercase;letter-spacing:.5px;}
 .nb.on{color:#1E90FF;border-bottom-color:#1E90FF;}
@@ -145,7 +145,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="logo-txt">AXION CYCLE</div>
     <div class="logo-sub">Gestao de Performance</div>
   </div>
-  <button class="hdr-gear" onclick="openPinConfig()">&#9881;</button>
+  <button onclick="refreshApp()" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;margin-left:auto;" title="Atualizar dados">&#8635;</button>
+  <button class="hdr-gear" onclick="openPinConfig()" style="margin-left:8px;">&#9881;</button>
 </header>
 
 <nav class="nav">
@@ -448,19 +449,29 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div class="modal">
     <div class="mhdl"></div>
     <div class="mtitle">Novo SKU</div>
-    <div class="fg"><label class="fl">Nome do Produto</label><input class="fi" id="sku-nome" type="text" placeholder="ex: Rim brake 70mm BLACK"></div>
-    <div class="fg"><label class="fl">Categoria</label>
-      <select class="fs" id="sku-cat">
+    <div class="fg"><label class="fl">Nome do Produto</label>
+      <input class="fi" id="sku-nome" type="text" placeholder="ex: Rim brake 70mm BLACK">
+    </div>
+    <div class="fg">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label class="fl" style="margin:0;">Categoria</label>
+        <button onclick="toggleNewCat()" style="background:none;border:none;color:#1E90FF;font-size:11px;font-weight:700;cursor:pointer;">+ Nova categoria</button>
+      </div>
+      <select class="fs" id="sku-cat" onchange="renderCatOptions()">
         <option value="RIM">RIM</option>
         <option value="DISC">DISC</option>
         <option value="GRAVEL">GRAVEL</option>
         <option value="MTB">MTB</option>
       </select>
+      <div id="new-cat-wrap" style="display:none;margin-top:6px;">
+        <input class="fi" id="sku-cat-new" type="text" placeholder="Nova categoria (ex: TRIATHLON)">
+      </div>
     </div>
     <div class="r2">
-      <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="sku-custo" type="number" placeholder="2000" step="0.01"></div>
-      <div class="fg"><label class="fl">Preco Venda (R$)</label><input class="fi" id="sku-pix" type="number" placeholder="4699" step="0.01"></div>
+      <div class="fg"><label class="fl">Preco USD</label><input class="fi" id="sku-usd" type="number" placeholder="0" step="0.01"></div>
+      <div class="fg"><label class="fl">Preco Venda (R$)</label><input class="fi" id="sku-pix" type="number" placeholder="0" step="0.01"></div>
     </div>
+    <div class="fg"><label class="fl">Custo BRL (opcional)</label><input class="fi" id="sku-custo" type="number" placeholder="0" step="0.01"></div>
     <button class="btn" onclick="confirmarAddSKU()" style="margin-top:4px;">ADICIONAR SKU</button>
     <button class="btn btn-s" onclick="closeModal('m-add-sku')" style="margin-top:8px;">Cancelar</button>
   </div>
@@ -772,7 +783,7 @@ function saveContainersDB(cs){
       hasData=(sk.custoQty&&sk.custoQty>0);
       if(!hasData&&sk.un){totalQty=0;for(loc in sk.un)totalQty+=sk.un[loc]||0;if(totalQty>0)hasData=true;}
       if(!hasData) continue;
-      dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||2000,custo_qty:sk.custoQty||0});
+      dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||0,custo_qty:sk.custoQty||0});
       if(sk.un){for(loc in sk.un){if(sk.un[loc]>0)dbUpsert("estoque_distribuicao",{container_id:c.id,sku_id:parseInt(sid),local:loc,qty:sk.un[loc]});}}
     }
   }
@@ -945,6 +956,22 @@ function badgeCanal(c){
 // ── PIN ──────────────────────────────────────────────────────────────────
 var pinBuf='';
 var pinMode='check';
+
+function refreshApp(){
+  var btn=document.querySelector('[onclick="refreshApp()"]');
+  if(btn){btn.style.color='#1E90FF';btn.style.transform='rotate(360deg)';btn.style.transition='transform .5s';}
+  initDB(function(){
+    renderDash();
+    if(curPage==='vend') renderHist();
+    if(curPage==='est') renderEst();
+    if(curPage==='res') renderRes();
+    if(curPage==='custo') initCustoPage();
+    toast('Dados atualizados!');
+    setTimeout(function(){
+      if(btn){btn.style.color='#666';btn.style.transform='';}
+    },600);
+  });
+}
 
 function pinInit(){
   var pin=sg('ax_pin','');
@@ -2299,7 +2326,7 @@ function renderEst(){
     var cLbl=document.createElement('span');cLbl.style.cssText='font-size:9px;color:#666;';cLbl.textContent='Custo:';
     var cInp=document.createElement('input');cInp.type='number';cInp.value=sk.custo||2000;cInp.style.cssText='width:80px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;outline:none;';
     var cBtn=document.createElement('button');cBtn.textContent='OK';cBtn.style.cssText='background:#1E90FF;border:none;border-radius:5px;color:#fff;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;';
-    cBtn.onclick=(function(cid,sid,inp){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:2000,un:{}};cs2[ci2].skus[sid].custo=parseFloat(inp.value)||2000;saveContainers(cs2);toast('Custo salvo');renderEst();break;}};};})(cont.id,s.id,cInp);
+    cBtn.onclick=(function(cid,sid,inp){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,un:{}};cs2[ci2].skus[sid].custo=parseFloat(inp.value)||0;saveContainers(cs2);toast('Custo salvo');renderEst();break;}};};})(cont.id,s.id,cInp);
     crow.appendChild(cLbl);crow.appendChild(cInp);crow.appendChild(cBtn);item.appendChild(crow);
     // Visual qty from Custo Conteiner — shows used vs planned
     if(sk.custoQty){
@@ -2376,7 +2403,7 @@ function confirmarNovoContainer(){
   var id='c'+Date.now();
   var skus=getAllSKUs();
   var sobj={},i;
-  for(i=0;i<skus.length;i++) sobj[skus[i].id]={custo:2000,un:{}};
+  for(i=0;i<skus.length;i++) sobj[skus[i].id]={custo:0,un:{}};
   var cs=loadContainers();
   cs.push({id:id,nome:nome,data:data,skus:sobj});
   saveContainers(cs);closeModal('m-cont');
@@ -2561,24 +2588,51 @@ function openAddSKUFromEntrada(){
 
 function confirmarAddSKU(){
   var nome=document.getElementById('sku-nome').value.trim();
-  var cat=document.getElementById('sku-cat').value;
-  var custo=parseFloat(document.getElementById('sku-custo').value)||2000;
-  var pix=parseFloat(document.getElementById('sku-pix').value)||4699;
+  var catSel=document.getElementById('sku-cat').value;
+  var catNew=document.getElementById('sku-cat-new')?document.getElementById('sku-cat-new').value.trim():'';
+  var cat=catNew||catSel;
+  var custo=parseFloat(document.getElementById('sku-custo').value)||0;
+  var pix=parseFloat(document.getElementById('sku-pix').value)||0;
+  var usd=parseFloat(document.getElementById('sku-usd').value)||0;
   if(!nome){toast('Informe o nome do produto',true);return;}
-  // Add to custom SKUs
+  // Save new category if typed
+  if(catNew){
+    var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB']);
+    if(cats.indexOf(catNew)<0){cats.push(catNew);ss('ax_v6_cats',cats);}
+    renderCatOptions();
+  }
   var custom=sg('ax_v6_cskus',[]);
   var newId=9000+Date.now()%100000;
-  custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,custom:true});
+  custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,usd:usd,custom:true});
   ss('ax_v6_cskus',custom);
-  // Also add to all containers
+  // Add to all containers
   var cs=loadContainers();var i;
   for(i=0;i<cs.length;i++){
-    if(!cs[i].skus[newId]) cs[i].skus[newId]={custo:custo,un:{}};
+    if(!cs[i].skus[newId]) cs[i].skus[newId]={custo:0,un:{}};
   }
   saveContainers(cs);
   closeModal('m-add-sku');
   toast('SKU "'+nome+'" adicionado!');
   renderEst();
+}
+
+function renderCatOptions(){
+  var sel=document.getElementById('sku-cat');
+  if(!sel) return;
+  var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB']);
+  var i, cur=sel.value;
+  sel.innerHTML='';
+  for(i=0;i<cats.length;i++){
+    var o=document.createElement('option');
+    o.value=cats[i];o.textContent=cats[i];
+    if(cats[i]===cur) o.selected=true;
+    sel.appendChild(o);
+  }
+}
+
+function toggleNewCat(){
+  var wrap=document.getElementById('new-cat-wrap');
+  if(wrap) wrap.style.display=wrap.style.display==='none'?'block':'none';
 }
 
 // Override getAllSKUs to include custom
@@ -2643,7 +2697,30 @@ var skuRows=[];
 function loadCustoData(cid){
   return sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});
 }
-function saveCustoData(cid,data){ss('ax_custo_'+cid,data);}
+function loadCustoDataDB(cid,cb){
+  dbGet('container_pagamentos','container_id=eq.'+cid+'&order=data').then(function(rows){
+    if(!Array.isArray(rows)||!rows.length){cb(sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]}));return;}
+    var pags=rows.map(function(r){return{data:r.data||'',valor:+r.valor||0};});
+    var cached=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});
+    cached.pagamentos=pags;
+    ss('ax_custo_'+cid,cached);
+    cb(cached);
+  }).catch(function(){cb(sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]}));});
+}
+function saveCustoData(cid,data){
+  ss('ax_custo_'+cid,data);
+  // Save pagamentos to Supabase
+  if(cid && data && data.pagamentos){
+    dbDel('container_pagamentos','container_id=eq.'+cid).then(function(){
+      var rows=[],i,p;
+      for(i=0;i<data.pagamentos.length;i++){
+        p=data.pagamentos[i];
+        rows.push({container_id:cid,data:p.data||null,valor:p.valor||0});
+      }
+      if(rows.length) dbPost('container_pagamentos',rows);
+    });
+  }
+}
 
 function initCustoPage(){
   var cs=loadContainers();
@@ -2788,9 +2865,9 @@ function onSkuChange(i,field,val){
   if(!skuRows[i]) return;
   if(field==='sku'){
     skuRows[i].skuNome=val;
-    var found=false,j;
-    for(j=0;j<CUSTO_SKUS.length;j++){
-      if(CUSTO_SKUS[j].nome===val){skuRows[i].usd=CUSTO_SKUS[j].usd;found=true;break;}
+    var found=false,j,allSkus=getAllCustoSKUs();
+    for(j=0;j<allSkus.length;j++){
+      if(allSkus[j].nome===val){skuRows[i].usd=allSkus[j].usd;found=true;break;}
     }
     if(!found) skuRows[i].usd=0;
     renderSkuRows();
@@ -2802,17 +2879,25 @@ function onSkuChange(i,field,val){
   calcResumo();
 }
 
+function getAllCustoSKUs(){
+  var all=[];var i;
+  for(i=0;i<CUSTO_SKUS.length;i++) all.push(CUSTO_SKUS[i]);
+  var custom=sg('ax_v6_cskus',[]);
+  for(i=0;i<custom.length;i++) all.push({nome:custom[i].nome,usd:custom[i].usd||0,custom:true});
+  return all;
+}
+
 function buildSkuOptions(selected){
+  var all=getAllCustoSKUs();
   var opts='<option value="">Selecionar SKU...</option>';
   var i;
-  for(i=0;i<CUSTO_SKUS.length;i++){
-    var s=CUSTO_SKUS[i];
-    opts+='<option value="'+s.nome+'"'+(s.nome===selected?' selected':'')+'>'+'($'+s.usd+') '+s.nome+'</option>';
+  for(i=0;i<all.length;i++){
+    var s=all[i];
+    opts+='<option value="'+s.nome+'"'+(s.nome===selected?' selected':'')+'>'+(s.usd>0?'($'+s.usd+') ':'')+s.nome+'</option>';
   }
   opts+='<option value="__outro__"'+('__outro__'===selected?' selected':'')+'>+ Outros / Custo Extra</option>';
   return opts;
 }
-
 function renderSkuRows(){
   var el=document.getElementById('sku-rows');
   if(!el) return;
