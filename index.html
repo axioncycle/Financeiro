@@ -717,17 +717,31 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 <script>
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
+var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_READY=false;
+function supaFetch(method,table,body,query){try{var url=SUPA_URL+"/rest/v1/"+table+(query?"?"+query:"");var h={"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=representation"};var opts={method:method,headers:h};if(body)opts.body=JSON.stringify(body);return fetch(url,opts).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("fe",e.message);return[];});}catch(e){return Promise.resolve([]);}}
+function dbGet(t,q){return supaFetch("GET",t,null,q);}
+function dbPost(t,b){return supaFetch("POST",t,b);}
+function dbDel(t,q){return supaFetch("DELETE",t,null,q);}
+function dbUpsert(t,b){try{return fetch(SUPA_URL+"/rest/v1/"+t,{method:"POST",headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)}).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("ue",e.message);return[];});}catch(e){return Promise.resolve([]);}}
+function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
+function saveVendaDB(v){var row={id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,prod_id:v.prodId,origem:v.origem,container_id:v.containerId,venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa};dbUpsert("vendas",row).then(function(r){if(Array.isArray(r)&&r.length)console.log("DB OK",r[0].id);else console.warn("DB?",JSON.stringify(r).slice(0,80));});}
+function deleteVendaDB(id){dbDel("vendas","id=eq."+id);}
+function loadContainersDB(cb){dbGet("containers","order=data.desc").then(function(rows){if(!Array.isArray(rows)||!rows.length){cb([]);return;}var cs=rows.map(function(r){return{id:r.id,nome:r.nome,data:r.data,skus:{}};});dbGet("container_skus","select=*").then(function(skRows){if(!Array.isArray(skRows))skRows=[];dbGet("estoque_distribuicao","select=*").then(function(dRows){if(!Array.isArray(dRows))dRows=[];var i,j;for(i=0;i<cs.length;i++){var c=cs[i];for(j=0;j<skRows.length;j++){var s=skRows[j];if(s.container_id===c.id){if(!c.skus[s.sku_id])c.skus[s.sku_id]={custo:+s.custo||2000,custoQty:s.custo_qty||0,un:{}};}}for(j=0;j<dRows.length;j++){var d=dRows[j];if(d.container_id===c.id){if(!c.skus[d.sku_id])c.skus[d.sku_id]={custo:2000,custoQty:0,un:{}};c.skus[d.sku_id].un[d.local]=d.qty||0;}}}cb(cs);});});}).catch(function(){cb(sg("ax_v6_containers",[]));});}
+function saveContainersDB(cs){var i,sid;for(i=0;i<cs.length;i++){var c=cs[i];dbUpsert("containers",{id:c.id,nome:c.nome,data:c.data||null});for(sid in c.skus){var sk=c.skus[sid];dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||2000,custo_qty:sk.custoQty||0});if(sk.un){var loc;for(loc in sk.un)dbUpsert("estoque_distribuicao",{container_id:c.id,sku_id:parseInt(sid),local:loc,qty:sk.un[loc]||0});}}}ss("ax_v6_containers",cs);}
+function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
+function saveDespDB(mk,data){dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});var d=sg("ax_v6_desp",{});d[mk]=data;ss("ax_v6_desp",d);}
+function initDB(cb){var done=0;function chk(){done++;if(done>=3){DB_READY=true;if(cb)cb();}}loadVendasDB(function(v){DB_VENDAS=v;ss("ax_v6_vendas",v);chk();});loadContainersDB(function(c){DB_CONTAINERS=c;ss("ax_v6_containers",c);chk();});loadLocaisDB(function(l){DB_LOCAIS=l;ss("ax_v6_locais",l);chk();});}
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
 function sg(k,d){try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch(e){return d;}}
 function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
-function loadVendas(){return sg('ax_v6_vendas',[]);}
-function saveVendas(v){ss('ax_v6_vendas',v);}
-function loadLocais(){return sg('ax_v6_locais',['Brasilia','Full','Alphaville','Ribeirao Preto']);}
-function saveLocais(v){ss('ax_v6_locais',v);}
-function loadContainers(){return sg('ax_v6_containers',[]);}
-function saveContainers(v){ss('ax_v6_containers',v);}
+function loadVendas(){return DB_READY?DB_VENDAS:sg("ax_v6_vendas",[]);}
+function saveVendas(v){DB_VENDAS=v;ss("ax_v6_vendas",v);if(v.length>0)saveVendaDB(v[0]);}
+function loadLocais(){return DB_READY?DB_LOCAIS:sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]);}
+function saveLocais(v){DB_LOCAIS=v;ss("ax_v6_locais",v);if(v.length)dbUpsert("locais",{nome:v[v.length-1]});}
+function loadContainers(){return DB_READY?DB_CONTAINERS:sg("ax_v6_containers",[]);}
+function saveContainers(v){DB_CONTAINERS=v;saveContainersDB(v);}
 function loadDesp(){return sg('ax_v6_desp',{});}
 function saveDesp(v){ss('ax_v6_desp',v);}
 function loadSkuOver(){return sg('ax_v6_sover',{});}
@@ -1920,7 +1934,7 @@ function confirmarDelVenda(){
   var vendas=loadVendas();
   var nv=[],i;
   for(i=0;i<vendas.length;i++){if(vendas[i].id!==delId) nv.push(vendas[i]);}
-  saveVendas(nv);
+  DB_VENDAS=nv;ss('ax_v6_vendas',nv);deleteVendaDB(id);
   closeModal('m-del-v');delId=null;
   toast('Venda removida');renderHist();
 }
@@ -2391,7 +2405,7 @@ function getMDesp(mk){
   }
   return d[mk];
 }
-function setMDesp(mk,data){var d=loadDesp();d[mk]=data;saveDesp(d);}
+function setMDesp(mk,data){var d=loadDesp();d[mk]=data;saveDesp(d);saveDespDB(mk,data);}
 
 function renderRes(){
   var vendas=loadVendas();
@@ -3162,7 +3176,7 @@ document.getElementById('v-data').value=today();
 fillOrigSelect();
 initModalClose();
 pinInit();
-renderDash();
+initDB(function(){renderDash();onPagChange();});
 
 </script>
 </body>
