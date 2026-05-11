@@ -812,14 +812,21 @@ function dbDel(t,q){return supaFetch("DELETE",t,null,q);}
 function dbUpsert(t,b){try{return fetch(SUPA_URL+"/rest/v1/"+t,{method:"POST",headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)}).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("ue",e.message);return[];});}catch(e){return Promise.resolve([]);}}
 
 function saveEstoque(containerId,skuId,local,qty){
-  // Delete existing row then insert fresh - guaranteed to work regardless of constraints
-  var q="container_id=eq."+containerId+"&sku_id=eq."+parseInt(skuId)+"&local=eq."+encodeURIComponent(local);
-  return dbDel("estoque_distribuicao",q).then(function(){
-    if(qty>0){
-      return dbPost("estoque_distribuicao",{container_id:containerId,sku_id:parseInt(skuId),local:local,qty:qty});
-    }
-    return Promise.resolve([]);
-  });
+  var sid=parseInt(skuId);
+  var q="container_id=eq."+containerId+"&sku_id=eq."+sid+"&local=eq."+encodeURIComponent(local);
+  return fetch(SUPA_URL+"/rest/v1/estoque_distribuicao?"+q,{
+    method:"DELETE",
+    headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=minimal"}
+  }).then(function(){
+    if(qty<=0) return Promise.resolve();
+    return fetch(SUPA_URL+"/rest/v1/estoque_distribuicao",{
+      method:"POST",
+      headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+      body:JSON.stringify({container_id:containerId,sku_id:sid,local:local,qty:qty})
+    });
+  }).then(function(r){
+    if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque error:",t);});
+  }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
 function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){var row={id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,prod_id:v.prodId,origem:v.origem,container_id:v.containerId,venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa};dbUpsert("vendas",row).then(function(r){if(Array.isArray(r)&&r.length)console.log("DB OK",r[0].id);else console.warn("DB?",JSON.stringify(r).slice(0,80));});}
@@ -2597,72 +2604,102 @@ function renderEst(){
     crow.appendChild(cLbl);crow.appendChild(cInp);crow.appendChild(cBtn);item.appendChild(crow);
     // Visual qty from Custo Conteiner — shows used vs planned
     if(sk.custoQty){
-      var locais2=loadLocais();
-      // distributed = stock still available in units (not yet sold)
-      var distributed=0,li2;
-      for(li2=0;li2<locais2.length;li2++) distributed+=(sk.un&&sk.un[locais2[li2]])||0;
-      // sold = count vendas with this SKU in this container
-      var soldQty=0,vsi;
-      var allVendas=DB_VENDAS;
-      for(vsi=0;vsi<allVendas.length;vsi++){
-        var vv=allVendas[vsi];
-        // Match by SKU id - count all sales of this SKU from any local of this container
-        if(String(vv.prodId)===String(skus[si].id)){
+      // ── CÁLCULOS ──────────────────────────────────────────
+      var planned=sk.custoQty;
+
+      // Vendido = vendas desse SKU nesse contêiner
+      var soldQty=0;
+      for(var vsi=0;vsi<DB_VENDAS.length;vsi++){
+        var vv=DB_VENDAS[vsi];
+        if(String(vv.prodId)===String(skus[si].id) &&
+           (vv.containerId===cont.id||vv.origem===cont.id)){
           soldQty++;
         }
       }
-      var planned=sk.custoQty;
-      var totalUsed=distributed+soldQty;
-      var notDistributed=planned-totalUsed;
-      // Color: green=all distributed/sold, yellow=almost, blue=pending
-      var pctColor=totalUsed>=planned?'#22c55e':notDistributed<=2?'#f59e0b':'#1E90FF';
+
+      // Em estoque = planejado - vendido
+      var inStock=Math.max(0, planned-soldQty);
+
+      // Distribuído = soma das unidades físicas
+      var distributed=0;
+      var locais2=loadLocais();
+      for(var li2=0;li2<locais2.length;li2++){
+        distributed+=(sk.un&&sk.un[locais2[li2]])||0;
+      }
+
+      // A distribuir = em estoque - distribuído
+      var toDistribute=Math.max(0, inStock-distributed);
+
+      // ── CORES ──────────────────────────────────────────────
+      var pctColor = inStock===0 ? '#22c55e'
+                   : toDistribute===0 ? '#1E90FF'
+                   : toDistribute<=2  ? '#f59e0b'
+                   : '#888';
+
+      // ── CONTAINER DO BLOCO ────────────────────────────────
       var vrow=document.createElement('div');
-      vrow.style.cssText='background:var(--bg3);border:1px solid '+pctColor+'33;border-radius:8px;padding:7px 10px;';
-      // Progress bar: distributed(blue) + sold(green) / planned
-      var pctDist=planned>0?Math.min(100,Math.round(distributed/planned*100)):0;
-      var pctSold=planned>0?Math.min(100,Math.round(soldQty/planned*100)):0;
-      var barBg=document.createElement('div');
-      barBg.style.cssText='background:var(--bg2);border-radius:4px;height:8px;margin-bottom:6px;overflow:hidden;display:flex;';
-      var barSold=document.createElement('div');
-      barSold.style.cssText='background:#22c55e;height:100%;width:'+pctSold+'%;transition:width .3s;';
-      var barDist=document.createElement('div');
-      barDist.style.cssText='background:#1E90FF;height:100%;width:'+pctDist+'%;transition:width .3s;';
-      barBg.appendChild(barSold);barBg.appendChild(barDist);
-      // Info row
-      var vInfo=document.createElement('div');
-      vInfo.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;';
-      var vLeft=document.createElement('div');
-      var vIcon=document.createElement('span');vIcon.innerHTML='&#128667; ';vIcon.style.cssText='font-size:10px;color:'+pctColor+';';
-      var vLbl=document.createElement('span');vLbl.style.cssText='font-size:10px;color:var(--text2);';
-      vLbl.textContent='Planejado: '+planned+' un';
-      vLeft.appendChild(vIcon);vLeft.appendChild(vLbl);
-      var vRight=document.createElement('div');
-      vRight.style.cssText='font-size:10px;font-weight:700;color:'+pctColor+';';
-      vRight.textContent=totalUsed+'/'+planned+(totalUsed>=planned?' ✓':'');
-      vInfo.appendChild(vLeft);vInfo.appendChild(vRight);
-      vrow.appendChild(barBg);vrow.appendChild(vInfo);
-      // Detail row: sold + in stock
-      var vDetail=document.createElement('div');
-      vDetail.style.cssText='display:flex;gap:8px;font-size:9px;';
+      vrow.style.cssText='background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:4px;';
+
+      // ── BARRA DE PROGRESSO ────────────────────────────────
+      // verde=vendido | azul=distribuído | cinza=a distribuir
+      var barWrap=document.createElement('div');
+      barWrap.style.cssText='background:var(--bg2);border-radius:4px;height:8px;margin-bottom:7px;overflow:hidden;display:flex;';
+      var pSold=planned>0?Math.min(100,Math.round(soldQty/planned*100)):0;
+      var pDist=planned>0?Math.min(100,Math.round(distributed/planned*100)):0;
+      var bSold=document.createElement('div');
+      bSold.style.cssText='background:#22c55e;height:100%;width:'+pSold+'%;';
+      var bDist=document.createElement('div');
+      bDist.style.cssText='background:#1E90FF;height:100%;width:'+pDist+'%;';
+      barWrap.appendChild(bSold);
+      barWrap.appendChild(bDist);
+      vrow.appendChild(barWrap);
+
+      // ── LINHA PRINCIPAL: Planejado / contador ─────────────
+      var rowMain=document.createElement('div');
+      rowMain.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+      var lblMain=document.createElement('span');
+      lblMain.style.cssText='font-size:10px;color:var(--text2);';
+      lblMain.textContent='🚛 Planejado: '+planned+' un';
+      var cntMain=document.createElement('span');
+      cntMain.style.cssText='font-size:11px;font-weight:700;color:'+pctColor+';';
+      cntMain.textContent=(distributed+soldQty)+'/'+planned+(inStock===0?' ✓':'');
+      rowMain.appendChild(lblMain);
+      rowMain.appendChild(cntMain);
+      vrow.appendChild(rowMain);
+
+      // ── LINHA: Em estoque + A distribuir ──────────────────
+      var rowSub=document.createElement('div');
+      rowSub.style.cssText='display:flex;gap:10px;flex-wrap:wrap;';
+
       if(soldQty>0){
-        var vs=document.createElement('span');
-        vs.style.cssText='color:#22c55e;font-weight:700;';
-        vs.textContent=soldQty+' vendido'+(soldQty>1?'s':'');
-        vDetail.appendChild(vs);
+        var spSold=document.createElement('span');
+        spSold.style.cssText='font-size:9px;color:#22c55e;font-weight:700;';
+        spSold.textContent=soldQty+' vendido'+(soldQty>1?'s':'');
+        rowSub.appendChild(spSold);
       }
-      if(distributed>0){
-        var vd=document.createElement('span');
-        vd.style.cssText='color:#1E90FF;font-weight:700;';
-        vd.textContent=distributed+' em estoque';
-        vDetail.appendChild(vd);
+
+      if(inStock>0){
+        var spStock=document.createElement('span');
+        spStock.style.cssText='font-size:9px;color:#1E90FF;font-weight:700;';
+        spStock.textContent=inStock+' em estoque';
+        rowSub.appendChild(spStock);
       }
-      if(notDistributed>0){
-        var vnd=document.createElement('span');
-        vnd.style.cssText='color:var(--text3);';
-        vnd.textContent=notDistributed+' a distribuir';
-        vDetail.appendChild(vnd);
+
+      if(toDistribute>0){
+        var spDist=document.createElement('span');
+        spDist.style.cssText='font-size:9px;color:var(--text3);';
+        spDist.textContent=toDistribute+' a distribuir';
+        rowSub.appendChild(spDist);
       }
-      if(vDetail.childNodes.length>0) vrow.appendChild(vDetail);
+
+      if(inStock===0&&soldQty>0){
+        var spDone=document.createElement('span');
+        spDone.style.cssText='font-size:9px;color:#22c55e;';
+        spDone.textContent='Tudo vendido ✓';
+        rowSub.appendChild(spDone);
+      }
+
+      if(rowSub.childNodes.length>0) vrow.appendChild(rowSub);
       item.appendChild(vrow);
     }
     var lrow=document.createElement('div');lrow.style.cssText='display:flex;flex-wrap:wrap;gap:5px;';
@@ -2681,15 +2718,7 @@ function renderEst(){
     cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
     var newQtyM=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
-    dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(sid),custo:cs2[ci2].skus[sid].custo||0,custo_qty:cs2[ci2].skus[sid].custoQty||0}).then(function(){
-      if(newQtyM>0){return saveEstoque(cid,sid,loc,newQtyM);}
-      else{return dbDel("estoque_distribuicao","container_id=eq."+cid+"&sku_id=eq."+parseInt(sid)+"&local=eq."+encodeURIComponent(loc));}
-    }).then(function(){
-      renderEst();fillProdSelect();
-    }).catch(function(e){
-      console.warn("Save error:",e);
-      renderEst();fillProdSelect();
-    });
+    saveEstoque(cid,sid,loc,newQtyM).then(function(){renderEst();fillProdSelect();}).catch(function(e){console.warn("Save error:",e);renderEst();fillProdSelect();});
     break;
   }
 };})(cont.id,s.id,l);
@@ -2705,14 +2734,7 @@ function renderEst(){
     var newQty=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
     // Save container_skus first, then estoque_distribuicao
-    dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(sid),custo:cs2[ci2].skus[sid].custo||0,custo_qty:cs2[ci2].skus[sid].custoQty||0}).then(function(){
-      return saveEstoque(cid,sid,loc,newQty);
-    }).then(function(){
-      renderEst();fillProdSelect();
-    }).catch(function(e){
-      console.warn("Save error:",e);
-      renderEst();fillProdSelect();
-    });
+    saveEstoque(cid,sid,loc,newQty).then(function(){renderEst();fillProdSelect();}).catch(function(e){console.warn("Save error:",e);renderEst();fillProdSelect();});
     break;
   }
 };})(cont.id,s.id,l);
