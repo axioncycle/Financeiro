@@ -873,23 +873,22 @@ function saveContainersDB(cs){
       }
     }
   }
-  ss("ax_v6_containers",cs);
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
-function saveDespDB(mk,data){dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});var d=sg("ax_v6_desp",{});d[mk]=data;ss("ax_v6_desp",d);}
+function saveDespDB(mk,data){dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});var d=sg("ax_v6_desp",{});d[mk]=data;}
 function loadCustomSKUsDB(cb){
   // Load both custom SKUs and SKU overrides
   var done=0;
   function chk(){done++;if(done>=2&&cb)cb();}
   dbGet("configuracoes","chave=eq.ax_v6_cskus").then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{var cskus=JSON.parse(rows[0].valor);ss("ax_v6_cskus",cskus);}catch(e){}
+      try{var cskus=JSON.parse(rows[0].valor);}catch(e){}
     }
     chk();
   }).catch(function(){chk();});
   dbGet("configuracoes","chave=eq.ax_v6_sover").then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{var sover=JSON.parse(rows[0].valor);ss("ax_v6_sover",sover);}catch(e){}
+      try{var sover=JSON.parse(rows[0].valor);}catch(e){}
     }
     chk();
   }).catch(function(){chk();});
@@ -912,9 +911,9 @@ function loadSkuRowsForCont(cid,cb){
 function initDB(cb){
   var done=0;
   function chk(){done++;if(done>=4){DB_READY=true;if(cb)cb();}}
-  loadVendasDB(function(v){DB_VENDAS=v;ss("ax_v6_vendas",v);chk();});
-  loadContainersDB(function(c){DB_CONTAINERS=c;ss("ax_v6_containers",c);chk();});
-  loadLocaisDB(function(l){DB_LOCAIS=l;ss("ax_v6_locais",l);chk();});
+  loadVendasDB(function(v){DB_VENDAS=v;chk();});
+  loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
+  loadLocaisDB(function(l){DB_LOCAIS=l;chk();});
   loadCustomSKUsDB(chk);
 }
 
@@ -922,26 +921,23 @@ function initDB(cb){
 function sg(k,d){try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch(e){return d;}}
 function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
-function loadVendas(){return DB_READY?DB_VENDAS:sg("ax_v6_vendas",[]);}
+function loadVendas(){return DB_READY?DB_VENDAS:(sg("ax_v6_vendas",[]));}
 function saveVendas(v,changed){
   DB_VENDAS=v;
-  ss("ax_v6_vendas",v);
-  // Save the changed/newest venda to DB
+  // Save the changed/newest venda to Supabase
   if(changed) saveVendaDB(changed);
   else if(v.length>0) saveVendaDB(v[0]);
 }
 function loadLocais(){return DB_READY?DB_LOCAIS:sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]);}
-function saveLocais(v){DB_LOCAIS=v;ss("ax_v6_locais",v);if(v.length)dbUpsert("locais",{nome:v[v.length-1]});}
-function loadContainers(){return DB_READY?DB_CONTAINERS:sg("ax_v6_containers",[]);}
+function saveLocais(v){DB_LOCAIS=v;if(v.length)dbUpsert("locais",{nome:v[v.length-1]});}
+function loadContainers(){return DB_CONTAINERS.length>0?DB_CONTAINERS:sg("ax_v6_containers",[]);}
 function saveContainers(v){DB_CONTAINERS=v;saveContainersDB(v);}
 function loadDesp(){return sg('ax_v6_desp',{});}
 function saveDesp(v){
-  ss('ax_v6_desp',v);
-  // saveDespDB is called separately by setMDesp
+  // data saved via saveDespDB
 }
 function loadSkuOver(){return sg('ax_v6_sover',{});}
 function saveSkuOver(v){
-  ss('ax_v6_sover',v);
   dbUpsert('configuracoes',{chave:'ax_v6_sover',valor:JSON.stringify(v)});
 }
 
@@ -1050,8 +1046,7 @@ function consumeFIFO(local,skuId,qty){
     }
   }
   DB_CONTAINERS=cs;
-  ss("ax_v6_containers",cs);
-}
+  }
 
 function getOldestContIdForLocal(local,skuId){
   var cs=loadContainers().slice();
@@ -2103,15 +2098,19 @@ function salvarVenda(){
     for(oi=0;oi<vendas.length;oi++){if(vendas[oi].id===editId){oldVend=vendas[oi];break;}}
     // Restore old stock if had origin and product
     if(oldVend&&oldVend.origem&&oldVend.prodId){
-      var csR=loadContainers();var ci2;
+      var csR=loadContainers();var ci2,sid3=String(oldVend.prodId);
       for(ci2=0;ci2<csR.length;ci2++){
-        if(csR[ci2].id===oldVend.origem&&csR[ci2].skus[oldVend.prodId]){
-          var locR=Object.keys(csR[ci2].skus[oldVend.prodId].un||{});
-          if(locR.length>0) csR[ci2].skus[oldVend.prodId].un[locR[0]]=(csR[ci2].skus[oldVend.prodId].un[locR[0]]||0)+1;
+        if(csR[ci2].id===oldVend.origem){
+          if(!csR[ci2].skus[sid3]) csR[ci2].skus[sid3]={custo:0,custoQty:0,un:{}};
+          if(!csR[ci2].skus[sid3].un) csR[ci2].skus[sid3].un={};
+          var locaisR=Object.keys(csR[ci2].skus[sid3].un);
+          var locR=locaisR.length>0?locaisR[0]:(loadLocais()[0]||'Brasilia');
+          csR[ci2].skus[sid3].un[locR]=(csR[ci2].skus[sid3].un[locR]||0)+1;
+          DB_CONTAINERS=csR;
+          dbUpsert("estoque_distribuicao",{container_id:csR[ci2].id,sku_id:parseInt(sid3),local:locR,qty:csR[ci2].skus[sid3].un[locR]});
           break;
         }
       }
-      saveContainers(csR);
     }
     // Update venda
     for(i=0;i<vendas.length;i++){if(vendas[i].id===editId){vendas[i]=vend;break;}}
@@ -2203,24 +2202,21 @@ function confirmarDelVenda(){
   }
   // Restore estoque if venda had stock origin
   if(removedVend&&removedVend.origem&&removedVend.prodId){
-    var cs=loadContainers(),ci,sid2=removedVend.prodId;
+    var cs=loadContainers(),ci,sid2=String(removedVend.prodId);
     for(ci=0;ci<cs.length;ci++){
       if(cs[ci].id===removedVend.origem){
         if(!cs[ci].skus[sid2]) cs[ci].skus[sid2]={custo:0,custoQty:0,un:{}};
         if(!cs[ci].skus[sid2].un) cs[ci].skus[sid2].un={};
-        // Find first local with stock or any local
         var locais=loadLocais();
         var loc2=locais.length>0?locais[0]:'Brasilia';
         cs[ci].skus[sid2].un[loc2]=(cs[ci].skus[sid2].un[loc2]||0)+1;
-        // Direct DB update
+        DB_CONTAINERS=cs;
         dbUpsert('estoque_distribuicao',{container_id:cs[ci].id,sku_id:parseInt(sid2),local:loc2,qty:cs[ci].skus[sid2].un[loc2]});
         break;
       }
     }
-    saveContainers(cs);
   }
   DB_VENDAS=nv;
-  ss('ax_v6_vendas',nv);
   deleteVendaDB(id);
   closeModal('m-del-v');
   delId=null;
@@ -2349,7 +2345,7 @@ function importCSV(input){
         var canal2=ps(row,cols.canal)||( taxa2>0?'Mercado Livre':'WhatsApp');
         var txPct2=venda2>0?parseFloat((taxa2/venda2*100).toFixed(2)):0;
         var impPct2=venda2>0?parseFloat((nf2/venda2*100).toFixed(2)):0;
-        vlist.push({id:Date.now()+Math.random(),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:null,origem:'',containerId:'',venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
+        vlist.push({id:Date.now()+(Math.floor(Math.random()*1000)),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:null,origem:'',containerId:'',venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
       }
       if(!vlist.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada.';return;}
       importPending=vlist;
@@ -2357,7 +2353,7 @@ function importCSV(input){
       for(j3=0;j3<vlist.length;j3++){tF+=vlist[j3].venda;tL+=vlist[j3].lucroLL;tLSI+=vlist[j3].lucroSI;}
       status.style.color='#22c55e';status.textContent=vlist.length+' vendas encontradas.';
       preview.style.display='block';
-      preview.innerHTML='<div style="background:#1a1a1a;border-radius:8px;padding:10px;margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><div style="font-size:9px;color:#666;font-weight:600;">VENDAS</div><div style="font-size:18px;font-weight:800;color:#1E90FF;">'+vlist.length+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">FATURAMENTO</div><div style="font-size:14px;font-weight:700;">'+fmt(tF)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO S/ IMP</div><div style="font-size:14px;font-weight:700;color:#f59e0b;">'+fmt(tLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO LIQ</div><div style="font-size:14px;font-weight:700;color:#22c55e;">'+fmt(tL)+'</div></div></div>';
+      preview.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><div style="font-size:9px;color:var(--text2);font-weight:600;">VENDAS</div><div style="font-size:18px;font-weight:800;color:#1E90FF;">'+vlist.length+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">FATURAMENTO</div><div style="font-size:14px;font-weight:700;">'+fmt(tF)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO S/ IMP</div><div style="font-size:14px;font-weight:700;color:#f59e0b;">'+fmt(tLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO LIQ</div><div style="font-size:14px;font-weight:700;color:#22c55e;">'+fmt(tL)+'</div></div></div>';
       okBtn.style.display='block';
     }catch(err){status.style.color='#ef4444';status.textContent='Erro: '+err.message;}
   };
@@ -2370,7 +2366,6 @@ function confirmarImport(){
   var i, pending=importPending.slice();
   for(i=0;i<pending.length;i++) vendas.push(pending[i]);
   DB_VENDAS=vendas;
-  ss('ax_v6_vendas',vendas);
   // Save to Supabase - use upsert for each
   var saved=0;
   var total=pending.length;
@@ -2378,13 +2373,16 @@ function confirmarImport(){
     saved++;
     if(saved>=total){
       // All saved - reload from DB to confirm
-      setTimeout(function(){
-        loadVendasDB(function(v){
-          if(Array.isArray(v)&&v.length){DB_VENDAS=v;ss('ax_v6_vendas',v);}
-          renderHist();renderDash();
-          toast(total+' vendas importadas!');
-        });
-      },1000);
+      loadVendasDB(function(v){
+        if(Array.isArray(v)&&v.length) DB_VENDAS=v;
+        renderHist();
+        renderDash();
+        var impSt=document.getElementById('imp-status');
+        var impPv=document.getElementById('imp-preview');
+        if(impSt){impSt.style.color='#22c55e';impSt.textContent=total+' vendas salvas com sucesso!';}
+        if(impPv) impPv.style.display='none';
+        toast(total+' vendas importadas!');
+      });
     }
   }
   for(i=0;i<pending.length;i++){
@@ -2401,11 +2399,10 @@ function confirmarImport(){
     })(pending[i]);
   }
   importPending=[];
+  var impStatus=document.getElementById('imp-status');
+  if(impStatus){impStatus.style.display='block';impStatus.style.color='#f59e0b';impStatus.textContent='Salvando '+total+' vendas no banco...';}
   document.getElementById('imp-ok').style.display='none';
-  document.getElementById('imp-preview').style.display='none';
-  document.getElementById('imp-status').textContent='';
   document.getElementById('imp-file').value='';
-  toast('Salvando '+total+' vendas...');
 }
 
 function exportCSV(){
@@ -2617,9 +2614,10 @@ function renderEst(){
       var bm=document.createElement('button');bm.className='sbtn';bm.textContent='-';
       bm.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
     var newQtyM=cs2[ci2].skus[sid].un[loc];
+    DB_CONTAINERS=cs2;
     if(newQtyM>0){dbUpsert("estoque_distribuicao",{container_id:cs2[ci2].id,sku_id:parseInt(sid),local:loc,qty:newQtyM});}
     else{dbDel("estoque_distribuicao","container_id=eq."+cs2[ci2].id+"&sku_id=eq."+parseInt(sid)+"&local=eq."+encodeURIComponent(loc));}
-    saveContainers(cs2);renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
+    renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
       var qEl=document.createElement('div');qEl.className='sqty';qEl.textContent=q;
       var bp=document.createElement('button');bp.className='sbtn';bp.textContent='+';
       bp.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};
@@ -2630,8 +2628,9 @@ function renderEst(){
             if(planned>0&&usedTotal>=planned){toast('Limite planejado: '+planned+' un',true);return;}
             cs2[ci2].skus[sid].un[loc]=(cs2[ci2].skus[sid].un[loc]||0)+1;
     var newQty=cs2[ci2].skus[sid].un[loc];
+    DB_CONTAINERS=cs2;
     dbUpsert("estoque_distribuicao",{container_id:cs2[ci2].id,sku_id:parseInt(sid),local:loc,qty:newQty});
-    saveContainers(cs2);renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
+    renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
       brow.appendChild(bm);brow.appendChild(qEl);brow.appendChild(bp);
       cell.appendChild(ln);cell.appendChild(brow);lrow.appendChild(cell);
     }
@@ -2747,7 +2746,6 @@ function syncDespesasFromDB(cb){
     var local=sg('ax_v6_desp',{});
     var mk2;
     for(mk2 in d) local[mk2]=d[mk2];
-    ss('ax_v6_desp',local);
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
@@ -2763,8 +2761,7 @@ function loadDespesasFromDB(mk,cb){
       else d.extras.push({nome:r.nome,valor:+r.valor||0});
     }
     // Update localStorage cache
-    var all=sg('ax_v6_desp',{});all[mk]=d;ss('ax_v6_desp',all);
-    cb(d);
+    var all=sg('ax_v6_desp',{});all[mk]=d;cb(d);
   }).catch(function(){cb(null);});
 }
 
@@ -2882,14 +2879,12 @@ function confirmarAddSKU(){
   // Save new category if typed
   if(catNew){
     var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB']);
-    if(cats.indexOf(catNew)<0){cats.push(catNew);ss('ax_v6_cats',cats);}
+    if(cats.indexOf(catNew)<0){cats.push(catNew);dbUpsert('configuracoes',{chave:'ax_v6_cats',valor:JSON.stringify(cats)});}
     renderCatOptions();
   }
   var custom=sg('ax_v6_cskus',[]);
   var newId=9000+Date.now()%100000;
   custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,usd:usd,custom:true});
-  ss('ax_v6_cskus',custom);
-  // Sync custom SKUs to Supabase configuracoes
   dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
   // Add to all containers
   var cs=loadContainers();var i;
@@ -2989,12 +2984,10 @@ function loadCustoDataDB(cid,cb){
     var pags=rows.map(function(r){return{data:r.data||'',valor:+r.valor||0};});
     var cached=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});
     cached.pagamentos=pags;
-    ss('ax_custo_'+cid,cached);
     cb(cached);
   }).catch(function(){cb(sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]}));});
 }
 function saveCustoData(cid,data){
-  ss('ax_custo_'+cid,data);
   if(!cid) return;
   // Save pagamentos
   if(data&&data.pagamentos){
@@ -3052,8 +3045,7 @@ function onCustoContChange(){
       // Update localStorage cache
       var cached=sg("ax_custo_"+custoContId,{pagamentos:[],skuRows:[]});
       cached.pagamentos=pagamentos;
-      ss("ax_custo_"+custoContId,cached);
-    } else {
+      } else {
       // Fallback to localStorage
       var cached2=sg("ax_custo_"+custoContId,{pagamentos:[],skuRows:[]});
       pagamentos=cached2.pagamentos||[];
@@ -3070,8 +3062,7 @@ function onCustoContChange(){
       skuRows=rows.map(function(r){return{skuNome:r.sku_nome||"",usd:+r.usd||0,qty:+r.qty||1,brl:+r.brl||0};});
       var cached4=sg("ax_custo_"+custoContId,{pagamentos:[],skuRows:[]});
       cached4.skuRows=skuRows;
-      ss("ax_custo_"+custoContId,cached4);
-    } else {
+      } else {
       // Fallback: rebuild from container custoQty
       var cs=loadContainers(),ci,allS=getAllSKUs();
       for(ci=0;ci<cs.length;ci++){
@@ -3619,7 +3610,6 @@ function confirmarApagarContainer(){
   var cid=delContId;
   var cs=loadContainers().filter(function(c){return c.id!==cid;});
   DB_CONTAINERS=cs;
-  ss('ax_v6_containers',cs);
   // Delete from Supabase
   dbDel('containers','id=eq.'+cid);
   dbDel('container_skus','container_id=eq.'+cid);
