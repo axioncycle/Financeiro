@@ -2593,7 +2593,8 @@ function renderEst(){
       var allVendas=DB_VENDAS;
       for(vsi=0;vsi<allVendas.length;vsi++){
         var vv=allVendas[vsi];
-        if((vv.containerId===cont.id||vv.origem===cont.id)&&String(vv.prodId)===String(skus[si].id)){
+        // Match by SKU id - count all sales of this SKU from any local of this container
+        if(String(vv.prodId)===String(skus[si].id)){
           soldQty++;
         }
       }
@@ -2771,23 +2772,22 @@ function confirmarSaida(){
 }
 
 // ── RESULTADO ─────────────────────────────────────────────────────────────
-function restoreStock(containerId,skuId){
-  // Restore 1 unit back to a container's stock (on sale delete/edit)
-  var cs=loadContainers(),i,sid=String(skuId);
+function restoreStock(local,skuId){
+  // Restore 1 unit back to stock (on sale delete/edit)
+  // local = distribution location where it was consumed from
+  // skuId = SKU id
+  var cs=loadContainers();
+  var i,sk;
+  // Sort oldest first - restore to oldest container that has this SKU planned
+  cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
   for(i=0;i<cs.length;i++){
-    if(cs[i].id!==containerId) continue;
-    if(!cs[i].skus[sid]) cs[i].skus[sid]={custo:0,custoQty:0,un:{}};
-    if(!cs[i].skus[sid].un) cs[i].skus[sid].un={};
-    // Find best local to restore to (first one with existing stock, or first local)
-    var locais=loadLocais();
-    var bestLoc=locais.length>0?locais[0]:'Brasilia';
-    var li;
-    for(li=0;li<locais.length;li++){
-      if((cs[i].skus[sid].un[locais[li]]||0)>0){bestLoc=locais[li];break;}
-    }
-    cs[i].skus[sid].un[bestLoc]=(cs[i].skus[sid].un[bestLoc]||0)+1;
+    sk=cs[i].skus[skuId];
+    if(!sk) continue;
+    // Restore to the same local it was consumed from
+    if(!sk.un) sk.un={};
+    sk.un[local]=(sk.un[local]||0)+1;
     DB_CONTAINERS=cs;
-    dbUpsert("estoque_distribuicao",{container_id:cs[i].id,sku_id:parseInt(skuId),local:bestLoc,qty:cs[i].skus[sid].un[bestLoc]});
+    dbUpsert("estoque_distribuicao",{container_id:cs[i].id,sku_id:parseInt(skuId),local:local,qty:sk.un[local]});
     break;
   }
 }
