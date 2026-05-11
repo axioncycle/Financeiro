@@ -1057,27 +1057,34 @@ function getQtyLocal(local,skuId){
   return tot;
 }
 
-function consumeFIFO(local,skuId,qty){
+function consumeFIFO(containerId,skuId,qty){
+  // containerId = specific container to consume from (from venda.origem)
   var cs=loadContainers();
   var rem=qty;
-  var i;
-  cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+  var i,j,loc,sk,take,newQ;
+  var locais=loadLocais();
   for(i=0;i<cs.length&&rem>0;i++){
-    var sk=cs[i].skus[skuId];
-    if(!sk||!sk.un||!(sk.un[local]>0)) continue;
-    var take=Math.min(sk.un[local],rem);
-    sk.un[local]-=take;
-    rem-=take;
-    // Direct Supabase update
-    var newQ=sk.un[local];
-    if(newQ>0){
-      dbUpsert("estoque_distribuicao",{container_id:cs[i].id,sku_id:parseInt(skuId),local:local,qty:newQ});
-    } else {
-      dbDel("estoque_distribuicao","container_id=eq."+cs[i].id+"&sku_id=eq."+parseInt(skuId)+"&local=eq."+encodeURIComponent(local));
+    // Only consume from the specific container if containerId provided
+    if(containerId&&cs[i].id!==containerId) continue;
+    sk=cs[i].skus[skuId];
+    if(!sk||!sk.un) continue;
+    // Consume from each local until rem=0 (FIFO within container)
+    for(j=0;j<locais.length&&rem>0;j++){
+      loc=locais[j];
+      if(!(sk.un[loc]>0)) continue;
+      take=Math.min(sk.un[loc],rem);
+      sk.un[loc]-=take;
+      rem-=take;
+      newQ=sk.un[loc];
+      if(newQ>0){
+        dbUpsert("estoque_distribuicao",{container_id:cs[i].id,sku_id:parseInt(skuId),local:loc,qty:newQ});
+      } else {
+        dbDel("estoque_distribuicao","container_id=eq."+cs[i].id+"&sku_id=eq."+parseInt(skuId)+"&local=eq."+encodeURIComponent(loc));
+      }
     }
   }
   DB_CONTAINERS=cs;
-  }
+}
 
 function getOldestContIdForLocal(local,skuId){
   var cs=loadContainers().slice();
@@ -2129,19 +2136,7 @@ function salvarVenda(){
     for(oi=0;oi<vendas.length;oi++){if(vendas[oi].id===editId){oldVend=vendas[oi];break;}}
     // Restore old stock if had origin and product
     if(oldVend&&oldVend.origem&&oldVend.prodId){
-      var csR=loadContainers();var ci2,sid3=String(oldVend.prodId);
-      for(ci2=0;ci2<csR.length;ci2++){
-        if(csR[ci2].id===oldVend.origem){
-          if(!csR[ci2].skus[sid3]) csR[ci2].skus[sid3]={custo:0,custoQty:0,un:{}};
-          if(!csR[ci2].skus[sid3].un) csR[ci2].skus[sid3].un={};
-          var locaisR=Object.keys(csR[ci2].skus[sid3].un);
-          var locR=locaisR.length>0?locaisR[0]:(loadLocais()[0]||'Brasilia');
-          csR[ci2].skus[sid3].un[locR]=(csR[ci2].skus[sid3].un[locR]||0)+1;
-          DB_CONTAINERS=csR;
-          dbUpsert("estoque_distribuicao",{container_id:csR[ci2].id,sku_id:parseInt(sid3),local:locR,qty:csR[ci2].skus[sid3].un[locR]});
-          break;
-        }
-      }
+      restoreStock(oldVend.origem,oldVend.prodId);
     }
     // Update venda
     for(i=0;i<vendas.length;i++){if(vendas[i].id===editId){vendas[i]=vend;break;}}
@@ -2233,19 +2228,7 @@ function confirmarDelVenda(){
   }
   // Restore estoque if venda had stock origin
   if(removedVend&&removedVend.origem&&removedVend.prodId){
-    var cs=loadContainers(),ci,sid2=String(removedVend.prodId);
-    for(ci=0;ci<cs.length;ci++){
-      if(cs[ci].id===removedVend.origem){
-        if(!cs[ci].skus[sid2]) cs[ci].skus[sid2]={custo:0,custoQty:0,un:{}};
-        if(!cs[ci].skus[sid2].un) cs[ci].skus[sid2].un={};
-        var locais=loadLocais();
-        var loc2=locais.length>0?locais[0]:'Brasilia';
-        cs[ci].skus[sid2].un[loc2]=(cs[ci].skus[sid2].un[loc2]||0)+1;
-        DB_CONTAINERS=cs;
-        dbUpsert('estoque_distribuicao',{container_id:cs[ci].id,sku_id:parseInt(sid2),local:loc2,qty:cs[ci].skus[sid2].un[loc2]});
-        break;
-      }
-    }
+    restoreStock(removedVend.origem, removedVend.prodId);
   }
   DB_VENDAS=nv;
   deleteVendaDB(id);
@@ -2602,38 +2585,70 @@ function renderEst(){
     // Visual qty from Custo Conteiner — shows used vs planned
     if(sk.custoQty){
       var locais2=loadLocais();
-      var usedTot=0,li2;
-      for(li2=0;li2<locais2.length;li2++) usedTot+=(sk.un&&sk.un[locais2[li2]])||0;
+      // distributed = stock still available in units (not yet sold)
+      var distributed=0,li2;
+      for(li2=0;li2<locais2.length;li2++) distributed+=(sk.un&&sk.un[locais2[li2]])||0;
+      // sold = count vendas with this SKU in this container
+      var soldQty=0,vsi;
+      var allVendas=DB_VENDAS;
+      for(vsi=0;vsi<allVendas.length;vsi++){
+        var vv=allVendas[vsi];
+        if((vv.containerId===cont.id||vv.origem===cont.id)&&String(vv.prodId)===String(skus[si].id)){
+          soldQty++;
+        }
+      }
       var planned=sk.custoQty;
-      var remaining=planned-usedTot;
-      var pctColor=usedTot>=planned?'#22c55e':remaining<=2?'#f59e0b':'#1E90FF';
+      var totalUsed=distributed+soldQty;
+      var notDistributed=planned-totalUsed;
+      // Color: green=all distributed/sold, yellow=almost, blue=pending
+      var pctColor=totalUsed>=planned?'#22c55e':notDistributed<=2?'#f59e0b':'#1E90FF';
       var vrow=document.createElement('div');
-      vrow.style.cssText='background:#0a0a0a;border:1px solid '+pctColor+'33;border-radius:8px;padding:7px 10px;';
-      // Progress bar
-      var pct=planned>0?Math.min(100,Math.round(usedTot/planned*100)):0;
+      vrow.style.cssText='background:var(--bg3);border:1px solid '+pctColor+'33;border-radius:8px;padding:7px 10px;';
+      // Progress bar: distributed(blue) + sold(green) / planned
+      var pctDist=planned>0?Math.min(100,Math.round(distributed/planned*100)):0;
+      var pctSold=planned>0?Math.min(100,Math.round(soldQty/planned*100)):0;
       var barBg=document.createElement('div');
-      barBg.style.cssText='background:#1a1a1a;border-radius:4px;height:6px;margin-bottom:6px;overflow:hidden;';
-      var barFill=document.createElement('div');
-      barFill.style.cssText='background:'+pctColor+';height:100%;border-radius:4px;width:'+pct+'%;transition:width .3s;';
-      barBg.appendChild(barFill);
+      barBg.style.cssText='background:var(--bg2);border-radius:4px;height:8px;margin-bottom:6px;overflow:hidden;display:flex;';
+      var barSold=document.createElement('div');
+      barSold.style.cssText='background:#22c55e;height:100%;width:'+pctSold+'%;transition:width .3s;';
+      var barDist=document.createElement('div');
+      barDist.style.cssText='background:#1E90FF;height:100%;width:'+pctDist+'%;transition:width .3s;';
+      barBg.appendChild(barSold);barBg.appendChild(barDist);
+      // Info row
       var vInfo=document.createElement('div');
-      vInfo.style.cssText='display:flex;align-items:center;justify-content:space-between;';
+      vInfo.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;';
       var vLeft=document.createElement('div');
       var vIcon=document.createElement('span');vIcon.innerHTML='&#128667; ';vIcon.style.cssText='font-size:10px;color:'+pctColor+';';
-      var vLbl=document.createElement('span');vLbl.style.cssText='font-size:10px;color:#666;';
+      var vLbl=document.createElement('span');vLbl.style.cssText='font-size:10px;color:var(--text2);';
       vLbl.textContent='Planejado: '+planned+' un';
       vLeft.appendChild(vIcon);vLeft.appendChild(vLbl);
       var vRight=document.createElement('div');
       vRight.style.cssText='font-size:10px;font-weight:700;color:'+pctColor+';';
-      vRight.textContent=usedTot+'/'+planned+(usedTot>=planned?' ✓':'');
+      vRight.textContent=totalUsed+'/'+planned+(totalUsed>=planned?' ✓':'');
       vInfo.appendChild(vLeft);vInfo.appendChild(vRight);
       vrow.appendChild(barBg);vrow.appendChild(vInfo);
-      if(remaining>0){
-        var vSub=document.createElement('div');
-        vSub.style.cssText='font-size:9px;color:#444;margin-top:3px;';
-        vSub.textContent='Faltam '+remaining+' un para distribuir';
-        vrow.appendChild(vSub);
+      // Detail row: sold + in stock
+      var vDetail=document.createElement('div');
+      vDetail.style.cssText='display:flex;gap:8px;font-size:9px;';
+      if(soldQty>0){
+        var vs=document.createElement('span');
+        vs.style.cssText='color:#22c55e;font-weight:700;';
+        vs.textContent=soldQty+' vendido'+(soldQty>1?'s':'');
+        vDetail.appendChild(vs);
       }
+      if(distributed>0){
+        var vd=document.createElement('span');
+        vd.style.cssText='color:#1E90FF;font-weight:700;';
+        vd.textContent=distributed+' em estoque';
+        vDetail.appendChild(vd);
+      }
+      if(notDistributed>0){
+        var vnd=document.createElement('span');
+        vnd.style.cssText='color:var(--text3);';
+        vnd.textContent=notDistributed+' a distribuir';
+        vDetail.appendChild(vnd);
+      }
+      if(vDetail.childNodes.length>0) vrow.appendChild(vDetail);
       item.appendChild(vrow);
     }
     var lrow=document.createElement('div');lrow.style.cssText='display:flex;flex-wrap:wrap;gap:5px;';
@@ -2756,6 +2771,27 @@ function confirmarSaida(){
 }
 
 // ── RESULTADO ─────────────────────────────────────────────────────────────
+function restoreStock(containerId,skuId){
+  // Restore 1 unit back to a container's stock (on sale delete/edit)
+  var cs=loadContainers(),i,sid=String(skuId);
+  for(i=0;i<cs.length;i++){
+    if(cs[i].id!==containerId) continue;
+    if(!cs[i].skus[sid]) cs[i].skus[sid]={custo:0,custoQty:0,un:{}};
+    if(!cs[i].skus[sid].un) cs[i].skus[sid].un={};
+    // Find best local to restore to (first one with existing stock, or first local)
+    var locais=loadLocais();
+    var bestLoc=locais.length>0?locais[0]:'Brasilia';
+    var li;
+    for(li=0;li<locais.length;li++){
+      if((cs[i].skus[sid].un[locais[li]]||0)>0){bestLoc=locais[li];break;}
+    }
+    cs[i].skus[sid].un[bestLoc]=(cs[i].skus[sid].un[bestLoc]||0)+1;
+    DB_CONTAINERS=cs;
+    dbUpsert("estoque_distribuicao",{container_id:cs[i].id,sku_id:parseInt(skuId),local:bestLoc,qty:cs[i].skus[sid].un[bestLoc]});
+    break;
+  }
+}
+
 function getMDesp(mk){
   var d=loadDesp();
   if(!d[mk]){
@@ -3562,10 +3598,13 @@ function confirmarAddLocal(){
   var cs=loadContainers();var ci;
   for(ci=0;ci<cs.length;ci++){
     if(cs[ci].id===addLocalContId){
-      if(!cs[ci].skus[addLocalSkuId]) cs[ci].skus[addLocalSkuId]={custo:2000,un:{}};
+      if(!cs[ci].skus[addLocalSkuId]) cs[ci].skus[addLocalSkuId]={custo:0,custoQty:0,un:{}};
       if(!cs[ci].skus[addLocalSkuId].un) cs[ci].skus[addLocalSkuId].un={};
       if(!cs[ci].skus[addLocalSkuId].un[nome]) cs[ci].skus[addLocalSkuId].un[nome]=0;
-      saveContainers(cs);break;
+      DB_CONTAINERS=cs;
+      // Direct DB upsert for this specific entry
+      dbUpsert('estoque_distribuicao',{container_id:addLocalContId,sku_id:parseInt(addLocalSkuId),local:nome,qty:0});
+      break;
     }
   }
   closeModal('m-add-local');
