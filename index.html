@@ -804,7 +804,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 <script>
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
-var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_READY=false;
+var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
 function supaFetch(method,table,body,query){try{var url=SUPA_URL+"/rest/v1/"+table+(query?"?"+query:"");var h={"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=representation"};var opts={method:method,headers:h};if(body)opts.body=JSON.stringify(body);return fetch(url,opts).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("fe",e.message);return[];});}catch(e){return Promise.resolve([]);}}
 function dbGet(t,q){return supaFetch("GET",t,null,q);}
 function dbPost(t,b){return supaFetch("POST",t,b);}
@@ -827,8 +827,8 @@ function loadContainersDB(cb){
           for(j=0;j<skRows.length;j++){
             s=skRows[j];
             if(s.container_id===c.id){
-              if(!c.skus[s.sku_id])c.skus[s.sku_id]={custo:+s.custo||2000,custoQty:+s.custo_qty||0,un:{}};
-              else{c.skus[s.sku_id].custo=+s.custo||2000;c.skus[s.sku_id].custoQty=+s.custo_qty||0;}
+              if(!c.skus[s.sku_id])c.skus[s.sku_id]={custo:+s.custo||0,custoQty:+s.custo_qty||0,un:{}};
+              else{c.skus[s.sku_id].custo=+s.custo||0;c.skus[s.sku_id].custoQty=+s.custo_qty||0;}
             }
           }
           for(j=0;j<dRows.length;j++){
@@ -875,7 +875,7 @@ function saveContainersDB(cs){
   }
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
-function saveDespDB(mk,data){dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});var d=sg("ax_v6_desp",{});d[mk]=data;}
+function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
 function loadCustomSKUsDB(cb){
   // Load both custom SKUs and SKU overrides
   var done=0;
@@ -910,11 +910,12 @@ function loadSkuRowsForCont(cid,cb){
 
 function initDB(cb){
   var done=0;
-  function chk(){done++;if(done>=4){DB_READY=true;if(cb)cb();}}
+  function chk(){done++;if(done>=5){DB_READY=true;if(cb)cb();}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
   loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
   loadLocaisDB(function(l){DB_LOCAIS=l;chk();});
   loadCustomSKUsDB(chk);
+  syncDespesasFromDB(chk);
 }
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
@@ -931,8 +932,38 @@ function saveVendas(v,changed){
 function loadLocais(){return DB_READY?DB_LOCAIS:sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]);}
 function saveLocais(v){DB_LOCAIS=v;if(v.length)dbUpsert("locais",{nome:v[v.length-1]});}
 function loadContainers(){return DB_CONTAINERS.length>0?DB_CONTAINERS:sg("ax_v6_containers",[]);}
-function saveContainers(v){DB_CONTAINERS=v;saveContainersDB(v);}
-function loadDesp(){return sg('ax_v6_desp',{});}
+function saveContainers(v){
+  DB_CONTAINERS=v;
+  // Save all containers to DB (called after bulk operations)
+  saveContainersDB(v);
+}
+
+function saveContainer(cid){
+  // Save only ONE specific container - avoids overwriting other containers
+  var cs=DB_CONTAINERS,i;
+  for(i=0;i<cs.length;i++){
+    if(cs[i].id===cid){
+      var c=cs[i],sid,sk,loc,qty;
+      dbUpsert("containers",{id:c.id,nome:c.nome,data:c.data||null});
+      for(sid in c.skus){
+        sk=c.skus[sid];
+        if(!sk) continue;
+        if(sk.custoQty>0){
+          dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||0,custo_qty:sk.custoQty||0});
+        }
+        if(sk.un){
+          for(loc in sk.un){
+            qty=sk.un[loc]||0;
+            if(qty>0) dbUpsert("estoque_distribuicao",{container_id:c.id,sku_id:parseInt(sid),local:loc,qty:qty});
+            else dbDel("estoque_distribuicao","container_id=eq."+c.id+"&sku_id=eq."+parseInt(sid)+"&local=eq."+encodeURIComponent(loc));
+          }
+        }
+      }
+      break;
+    }
+  }
+}
+function loadDesp(){return DB_DESP;}
 function saveDesp(v){
   // data saved via saveDespDB
 }
@@ -2630,6 +2661,9 @@ function renderEst(){
     var newQty=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
     dbUpsert("estoque_distribuicao",{container_id:cs2[ci2].id,sku_id:parseInt(sid),local:loc,qty:newQty});
+    // Also update container_skus record
+    var skU=cs2[ci2].skus[sid];
+    if(skU&&skU.custoQty>0) dbUpsert("container_skus",{container_id:cs2[ci2].id,sku_id:parseInt(sid),custo:skU.custo||0,custo_qty:skU.custoQty||0});
     renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
       brow.appendChild(bm);brow.appendChild(qEl);brow.appendChild(bp);
       cell.appendChild(ln);cell.appendChild(brow);lrow.appendChild(cell);
@@ -2743,9 +2777,8 @@ function syncDespesasFromDB(cb){
       else d[r.mes].extras.push({nome:r.nome,valor:+r.valor||0});
     }
     // Merge with localStorage (DB wins)
-    var local=sg('ax_v6_desp',{});
     var mk2;
-    for(mk2 in d) local[mk2]=d[mk2];
+    for(mk2 in d) DB_DESP[mk2]=d[mk2];
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
@@ -3372,19 +3405,10 @@ function salvarCustoConteiner(){
   for(ci=0;ci<cs.length;ci++){
     if(cs[ci].id!==custoContId) continue;
     var cont=cs[ci];
-    // Step 1: Clear ALL custoQty AND un[] in this container (full reset)
+    // Step 1: Reset only custoQty (NOT stock distribution)
     var sk;
-    var locaisAll=loadLocais();
     for(sk in cont.skus){
-      if(cont.skus[sk]){
-        cont.skus[sk].custoQty=0;
-        // Also zero all real stock distribution
-        if(!cont.skus[sk].un) cont.skus[sk].un={};
-        var lai;
-        for(lai=0;lai<locaisAll.length;lai++){
-          cont.skus[sk].un[locaisAll[lai]]=0;
-        }
-      }
+      if(cont.skus[sk]) cont.skus[sk].custoQty=0;
     }
     // Step 2: Apply current skuRows
     for(i=0;i<skuRows.length;i++){
@@ -3399,26 +3423,17 @@ function salvarCustoConteiner(){
           if(!cont.skus[sid]) cont.skus[sid]={custo:brl,un:{}};
           cont.skus[sid].custo=parseFloat(brl.toFixed(2));
           cont.skus[sid].custoQty=qty;
-          // Step 3: Cap real stock to new planned qty
+          // Step 3: preserve existing stock distribution
           if(!cont.skus[sid].un) cont.skus[sid].un={};
-          var locais2=loadLocais();
-          var usedTot=0,li;
-          for(li=0;li<locais2.length;li++) usedTot+=(cont.skus[sid].un[locais2[li]]||0);
-          if(qty===0){
-            // Clear all real stock
-            for(li=0;li<locais2.length;li++) cont.skus[sid].un[locais2[li]]=0;
-          } else if(usedTot>qty){
-            // Reset distribution - user must re-distribute
-            for(li=0;li<locais2.length;li++) cont.skus[sid].un[locais2[li]]=0;
-          }
           break;
         }
       }
     }
     break;
   }
-  saveContainers(cs);
-  toast('Salvo! Custos e quantidades sincronizados com o Estoque.');
+  DB_CONTAINERS=cs;
+  saveContainer(custoContId);
+  toast('Salvo! Custos sincronizados com o Estoque.');
 }
 // ── BREAK-EVEN ───────────────────────────────────────────────────────────
 function calcBreakEven(){
