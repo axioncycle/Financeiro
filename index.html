@@ -810,6 +810,17 @@ function dbGet(t,q){return supaFetch("GET",t,null,q);}
 function dbPost(t,b){return supaFetch("POST",t,b);}
 function dbDel(t,q){return supaFetch("DELETE",t,null,q);}
 function dbUpsert(t,b){try{return fetch(SUPA_URL+"/rest/v1/"+t,{method:"POST",headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)}).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("ue",e.message);return[];});}catch(e){return Promise.resolve([]);}}
+
+function saveEstoque(containerId,skuId,local,qty){
+  // Delete existing row then insert fresh - guaranteed to work regardless of constraints
+  var q="container_id=eq."+containerId+"&sku_id=eq."+parseInt(skuId)+"&local=eq."+encodeURIComponent(local);
+  return dbDel("estoque_distribuicao",q).then(function(){
+    if(qty>0){
+      return dbPost("estoque_distribuicao",{container_id:containerId,sku_id:parseInt(skuId),local:local,qty:qty});
+    }
+    return Promise.resolve([]);
+  });
+}
 function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){var row={id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,prod_id:v.prodId,origem:v.origem,container_id:v.containerId,venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa};dbUpsert("vendas",row).then(function(r){if(Array.isArray(r)&&r.length)console.log("DB OK",r[0].id);else console.warn("DB?",JSON.stringify(r).slice(0,80));});}
 function deleteVendaDB(id){dbDel("vendas","id=eq."+id);}
@@ -1078,7 +1089,7 @@ function consumeFIFO(local,skuId,qty){
     (function(containerId,qty2,skData){
       dbUpsert("container_skus",{container_id:containerId,sku_id:parseInt(skuId),custo:skData.custo||0,custo_qty:skData.custoQty||0}).then(function(){
         if(qty2>0){
-          return dbUpsert("estoque_distribuicao",{container_id:containerId,sku_id:parseInt(skuId),local:local,qty:qty2});
+          return saveEstoque(containerId,skuId,local,qty2);
         } else {
           return dbDel("estoque_distribuicao","container_id=eq."+containerId+"&sku_id=eq."+parseInt(skuId)+"&local=eq."+encodeURIComponent(local));
         }
@@ -2671,7 +2682,7 @@ function renderEst(){
     var newQtyM=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
     dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(sid),custo:cs2[ci2].skus[sid].custo||0,custo_qty:cs2[ci2].skus[sid].custoQty||0}).then(function(){
-      if(newQtyM>0){return dbUpsert("estoque_distribuicao",{container_id:cid,sku_id:parseInt(sid),local:loc,qty:newQtyM});}
+      if(newQtyM>0){return saveEstoque(cid,sid,loc,newQtyM);}
       else{return dbDel("estoque_distribuicao","container_id=eq."+cid+"&sku_id=eq."+parseInt(sid)+"&local=eq."+encodeURIComponent(loc));}
     }).then(function(){
       renderEst();fillProdSelect();
@@ -2695,7 +2706,7 @@ function renderEst(){
     DB_CONTAINERS=cs2;
     // Save container_skus first, then estoque_distribuicao
     dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(sid),custo:cs2[ci2].skus[sid].custo||0,custo_qty:cs2[ci2].skus[sid].custoQty||0}).then(function(){
-      return dbUpsert("estoque_distribuicao",{container_id:cid,sku_id:parseInt(sid),local:loc,qty:newQty});
+      return saveEstoque(cid,sid,loc,newQty);
     }).then(function(){
       renderEst();fillProdSelect();
     }).catch(function(e){
@@ -2808,7 +2819,7 @@ function restoreStock(local,skuId){
     DB_CONTAINERS=cs;
     var cid=cs[i].id, newQ=sk.un[local];
     dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(skuId),custo:sk.custo||0,custo_qty:sk.custoQty||0}).then(function(){
-      return dbUpsert("estoque_distribuicao",{container_id:cid,sku_id:parseInt(skuId),local:local,qty:newQ});
+      return saveEstoque(cid,skuId,local,newQ);
     }).catch(function(e){console.warn("restoreStock error:",e);});
     break;
   }
@@ -3625,7 +3636,7 @@ function confirmarAddLocal(){
       if(!cs[ci].skus[addLocalSkuId].un[nome]) cs[ci].skus[addLocalSkuId].un[nome]=0;
       DB_CONTAINERS=cs;
       // Direct DB upsert for this specific entry
-      dbUpsert('estoque_distribuicao',{container_id:addLocalContId,sku_id:parseInt(addLocalSkuId),local:nome,qty:0});
+      saveEstoque(addLocalContId,addLocalSkuId,nome,0);
       break;
     }
   }
