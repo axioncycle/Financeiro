@@ -2659,7 +2659,7 @@ function renderEst(){
       var ln=document.createElement('div');ln.style.cssText='font-size:8px;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:3px;';ln.textContent=l;
       var brow=document.createElement('div');brow.style.cssText='display:flex;gap:3px;align-items:center;';
       var bm=document.createElement('button');bm.className='sbtn';bm.textContent='-';
-      bm.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
+      bm.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid]){cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};dbUpsert("container_skus",{container_id:cs2[ci2].id,sku_id:parseInt(sid),custo:0,custo_qty:0});}if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
     var newQtyM=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
     if(newQtyM>0){dbUpsert("estoque_distribuicao",{container_id:cs2[ci2].id,sku_id:parseInt(sid),local:loc,qty:newQtyM});}
@@ -2667,12 +2667,7 @@ function renderEst(){
     renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
       var qEl=document.createElement('div');qEl.className='sqty';qEl.textContent=q;
       var bp=document.createElement('button');bp.className='sbtn';bp.textContent='+';
-      bp.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};
-            // Cap at custoQty (planned quantity)
-            var planned=cs2[ci2].skus[sid].custoQty||0;
-            var allLocs=loadLocais();var usedTotal=0,li;
-            for(li=0;li<allLocs.length;li++) usedTotal+=(cs2[ci2].skus[sid].un[allLocs[li]]||0);
-            if(planned>0&&usedTotal>=planned){toast('Limite planejado: '+planned+' un',true);return;}
+      bp.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid]){cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};dbUpsert("container_skus",{container_id:cs2[ci2].id,sku_id:parseInt(sid),custo:0,custo_qty:0});}if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};
             cs2[ci2].skus[sid].un[loc]=(cs2[ci2].skus[sid].un[loc]||0)+1;
     var newQty=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
