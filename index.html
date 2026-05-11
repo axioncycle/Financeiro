@@ -1246,14 +1246,8 @@ function goTo(p){
   if(p==='vend'){fillOrigSelect();renderHist();}
   if(p==='est') renderEst();
   if(p==='res'){
-    // Load latest despesas from Supabase before rendering
-    var mk2=mkey(new Date().toISOString());
-    loadDespesasFromDB(mk2,function(d){
-      if(d){var all=sg('ax_v6_desp',{});all[mk2]=d;ss('ax_v6_desp',all);}
-      renderRes();
-    });
-  } else if(false) {void 0;}// placeholder
-  if(p==='custo') initCustoPage();
+    syncDespesasFromDB(function(){renderRes();});
+  } else if(p==='custo') initCustoPage();
 }
 
 function initModalClose(){
@@ -2171,8 +2165,30 @@ function confirmarDelVenda(){
   if(!delId) return;
   var id=delId;
   var vendas=loadVendas();
+  var removedVend=null;
   var nv=[],i;
-  for(i=0;i<vendas.length;i++){if(vendas[i].id!==id) nv.push(vendas[i]);}
+  for(i=0;i<vendas.length;i++){
+    if(vendas[i].id!==id) nv.push(vendas[i]);
+    else removedVend=vendas[i];
+  }
+  // Restore estoque if venda had stock origin
+  if(removedVend&&removedVend.origem&&removedVend.prodId){
+    var cs=loadContainers(),ci,sid2=removedVend.prodId;
+    for(ci=0;ci<cs.length;ci++){
+      if(cs[ci].id===removedVend.origem){
+        if(!cs[ci].skus[sid2]) cs[ci].skus[sid2]={custo:0,custoQty:0,un:{}};
+        if(!cs[ci].skus[sid2].un) cs[ci].skus[sid2].un={};
+        // Find first local with stock or any local
+        var locais=loadLocais();
+        var loc2=locais.length>0?locais[0]:'Brasilia';
+        cs[ci].skus[sid2].un[loc2]=(cs[ci].skus[sid2].un[loc2]||0)+1;
+        // Direct DB update
+        dbUpsert('estoque_distribuicao',{container_id:cs[ci].id,sku_id:parseInt(sid2),local:loc2,qty:cs[ci].skus[sid2].un[loc2]});
+        break;
+      }
+    }
+    saveContainers(cs);
+  }
   DB_VENDAS=nv;
   ss('ax_v6_vendas',nv);
   deleteVendaDB(id);
@@ -2333,7 +2349,7 @@ function confirmarImport(){
   document.getElementById('imp-preview').style.display='none';
   document.getElementById('imp-status').textContent='';
   document.getElementById('imp-file').value='';
-  toast('Importacao concluida!');renderHist();
+  setTimeout(function(){loadVendasDB(function(v){if(v.length){DB_VENDAS=v;ss('ax_v6_vendas',v);}renderHist();renderDash();toast('Importacao concluida!');});},2000);
 }
 
 function exportCSV(){
@@ -2543,14 +2559,14 @@ function renderEst(){
       var ln=document.createElement('div');ln.style.cssText='font-size:8px;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:3px;';ln.textContent=l;
       var brow=document.createElement('div');brow.style.cssText='display:flex;gap:3px;align-items:center;';
       var bm=document.createElement('button');bm.className='sbtn';bm.textContent='-';
-      bm.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:2000,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
+      bm.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
     var newQtyM=cs2[ci2].skus[sid].un[loc];
     if(newQtyM>0){dbUpsert("estoque_distribuicao",{container_id:cs2[ci2].id,sku_id:parseInt(sid),local:loc,qty:newQtyM});}
     else{dbDel("estoque_distribuicao","container_id=eq."+cs2[ci2].id+"&sku_id=eq."+parseInt(sid)+"&local=eq."+encodeURIComponent(loc));}
     saveContainers(cs2);renderEst();fillProdSelect();break;}};};})(cont.id,s.id,l);
       var qEl=document.createElement('div');qEl.className='sqty';qEl.textContent=q;
       var bp=document.createElement('button');bp.className='sbtn';bp.textContent='+';
-      bp.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:2000,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};
+      bp.onclick=(function(cid,sid,loc){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};if(!cs2[ci2].skus[sid].un)cs2[ci2].skus[sid].un={};
             // Cap at custoQty (planned quantity)
             var planned=cs2[ci2].skus[sid].custoQty||0;
             var allLocs=loadLocais();var usedTotal=0,li;
@@ -2659,6 +2675,25 @@ function getMDesp(mk){
     d[mk]={fixas:fixas,extras:[]};
   }
   return d[mk];
+}
+
+function syncDespesasFromDB(cb){
+  dbGet('despesas','order=mes').then(function(rows){
+    if(!Array.isArray(rows)||!rows.length){if(cb)cb();return;}
+    var d={},i,r;
+    for(i=0;i<rows.length;i++){
+      r=rows[i];
+      if(!d[r.mes]) d[r.mes]={fixas:[],extras:[]};
+      if(r.tipo==='fixa') d[r.mes].fixas.push({nome:r.nome,valor:+r.valor||0});
+      else d[r.mes].extras.push({nome:r.nome,valor:+r.valor||0});
+    }
+    // Merge with localStorage (DB wins)
+    var local=sg('ax_v6_desp',{});
+    var mk2;
+    for(mk2 in d) local[mk2]=d[mk2];
+    ss('ax_v6_desp',local);
+    if(cb)cb();
+  }).catch(function(){if(cb)cb();});
 }
 function setMDesp(mk,data){var d=loadDesp();d[mk]=data;saveDesp(d);saveDespDB(mk,data);}
 
