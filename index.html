@@ -548,8 +548,14 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="fg"><label class="fl">Preco Venda (R$)</label><input class="fi" id="sku-pix" type="number" placeholder="0" step="0.01"></div>
     </div>
     <div class="fg"><label class="fl">Custo BRL (opcional)</label><input class="fi" id="sku-custo" type="number" placeholder="0" step="0.01"></div>
-    <button class="btn" onclick="confirmarAddSKU()" style="margin-top:4px;">ADICIONAR SKU</button>
-    <button class="btn btn-s" onclick="closeModal('m-add-sku')" style="margin-top:8px;">Cancelar</button>
+    <button class="btn" onclick="confirmarAddSKU()" style="margin-top:4px;">SALVAR SKU</button>
+    <div style="margin:10px 0;border-top:1px solid var(--border);padding-top:10px;">
+      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;font-weight:700;">EDITAR SKU EXISTENTE</div>
+      <select class="fs" id="sku-edit-sel" onchange="if(this.value)openEditSku(this.value);" style="font-size:12px;">
+        <option value="">Selecionar SKU para editar...</option>
+      </select>
+    </div>
+    <button class="btn btn-s" onclick="editSkuId=null;closeModal('m-add-sku');document.querySelector('#m-add-sku .mtitle').textContent='Novo SKU';" style="margin-top:4px;">Cancelar</button>
   </div>
 </div>
 <div class="ovl" id="m-edit-cont">
@@ -710,26 +716,26 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="r2" style="margin-bottom:8px;">
         <div>
           <label class="fl">Preco de Venda (R$)</label>
-          <input class="fi" id="roi-preco-venda" type="number" value="4699" placeholder="4699" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="number" value="4699" placeholder="4699" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
         <div>
           <label class="fl">Taxa de Venda %</label>
-          <input class="fi" id="roi-taxa" type="number" value="15" placeholder="15" step="0.1" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-taxa" onchange="saveROIParams();calcROI();" type="number" value="15" placeholder="15" step="0.1" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
       </div>
       <div class="r2">
         <div>
           <label class="fl">Frete (R$)</label>
-          <input class="fi" id="roi-frete" type="number" value="100" placeholder="100" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-frete" onchange="saveROIParams();calcROI();" type="number" value="100" placeholder="100" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
         <div>
           <label class="fl">Imposto %</label>
-          <input class="fi" id="roi-imp" type="number" value="8" placeholder="8" step="0.1" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-imp" onchange="saveROIParams();calcROI();" type="number" value="8" placeholder="8" step="0.1" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
       </div>
       <div style="margin-top:8px;">
         <label class="fl">Comissao %</label>
-        <input class="fi" id="roi-com" type="number" value="0" placeholder="0" step="0.1" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+        <input class="fi" id="roi-com" onchange="saveROIParams();calcROI();" type="number" value="0" placeholder="0" step="0.1" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
       </div>
     </div>
   </div>
@@ -805,6 +811,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
 var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
+var editSkuId=null;
 function supaFetch(method,table,body,query){try{var url=SUPA_URL+"/rest/v1/"+table+(query?"?"+query:"");var h={"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=representation"};var opts={method:method,headers:h};if(body)opts.body=JSON.stringify(body);return fetch(url,opts).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("fe",e.message);return[];});}catch(e){return Promise.resolve([]);}}
 function dbGet(t,q){return supaFetch("GET",t,null,q);}
 function dbPost(t,b){return supaFetch("POST",t,b);}
@@ -928,12 +935,20 @@ function loadSkuRowsForCont(cid,cb){
 
 function initDB(cb){
   var done=0;
-  function chk(){done++;if(done>=5){DB_READY=true;if(cb)cb();}}
+  function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
   loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
   loadLocaisDB(function(l){DB_LOCAIS=l;chk();});
   loadCustomSKUsDB(chk);
   syncDespesasFromDB(chk);
+  // Load meta from Supabase
+  dbGet('configuracoes','chave=eq.ax_meta').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      var m=parseFloat(rows[0].valor)||0;
+      if(m>0){ss('ax_meta',m);}
+    }
+    chk();
+  }).catch(function(){chk();});
 }
 
 // ── STORAGE ──────────────────────────────────────────────────────────────
@@ -1365,7 +1380,10 @@ function setMonth(m){selMonth=m;renderDash();}
 function renderMetaBar(){
   var metaInput=document.getElementById('meta-input');
   var meta=parseFloat((metaInput&&metaInput.value)||sg('ax_meta',0))||0;
-  if(metaInput&&metaInput.value) ss('ax_meta',meta);
+  if(metaInput&&metaInput.value){
+    ss('ax_meta',meta);
+    dbUpsert('configuracoes',{chave:'ax_meta',valor:String(meta)});
+  }
   else if(!metaInput) meta=sg('ax_meta',0)||0;
   // Get current month faturamento
   var vendas=loadVendas();
@@ -2166,7 +2184,7 @@ function salvarVenda(){
     for(oi=0;oi<vendas.length;oi++){if(vendas[oi].id===editId){oldVend=vendas[oi];break;}}
     // Restore old stock if had origin and product
     if(oldVend&&oldVend.origem&&oldVend.prodId){
-      restoreStock(oldVend.origem,oldVend.prodId);
+      restoreStock(oldVend.origem,oldVend.prodId,oldVend.containerId);
     }
     // Update venda
     for(i=0;i<vendas.length;i++){if(vendas[i].id===editId){vendas[i]=vend;break;}}
@@ -2258,7 +2276,7 @@ function confirmarDelVenda(){
   }
   // Restore estoque if venda had stock origin
   if(removedVend&&removedVend.origem&&removedVend.prodId){
-    restoreStock(removedVend.origem, removedVend.prodId);
+    restoreStock(removedVend.origem, removedVend.prodId, removedVend.containerId);
   }
   DB_VENDAS=nv;
   deleteVendaDB(id);
@@ -2416,14 +2434,23 @@ function confirmarImport(){
   function onSaved(){
     saved++;
     if(saved>=total){
-      // All saved - reload from DB to confirm
+      // Consume stock for imported vendas (if containers exist)
+      if(DB_CONTAINERS.length>0){
+        var pi;
+        for(pi=0;pi<pending.length;pi++){
+          var pv=pending[pi];
+          if(pv.prodId&&pv.origem){
+            consumeFIFO(pv.origem,pv.prodId,1);
+          }
+        }
+      }
       loadVendasDB(function(v){
         if(Array.isArray(v)&&v.length) DB_VENDAS=v;
-        renderHist();
-        renderDash();
+        renderHist();renderDash();
+        if(curPage==='est') renderEst();
         var impSt=document.getElementById('imp-status');
         var impPv=document.getElementById('imp-preview');
-        if(impSt){impSt.style.color='#22c55e';impSt.textContent=total+' vendas salvas com sucesso!';}
+        if(impSt){impSt.style.color='#22c55e';impSt.textContent=total+' vendas salvas!';}
         if(impPv) impPv.style.display='none';
         toast(total+' vendas importadas!');
       });
@@ -2859,22 +2886,31 @@ function confirmarSaida(){
 }
 
 // ── RESULTADO ─────────────────────────────────────────────────────────────
-function restoreStock(local,skuId){
+function restoreStock(local,skuId,containerId){
+  // containerId = specific container to restore to (from venda.containerId)
   var cs=loadContainers();
-  var i,sk;
-  cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
-  for(i=0;i<cs.length;i++){
-    sk=cs[i].skus[skuId];
-    if(!sk) continue;
-    if(!sk.un) sk.un={};
-    sk.un[local]=(sk.un[local]||0)+1;
-    DB_CONTAINERS=cs;
-    var cid=cs[i].id, newQ=sk.un[local];
-    dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(skuId),custo:sk.custo||0,custo_qty:sk.custoQty||0}).then(function(){
-      return saveEstoque(cid,skuId,local,newQ);
-    }).catch(function(e){console.warn("restoreStock error:",e);});
-    break;
+  var i,sk,targetId;
+  // If containerId provided, use it directly
+  if(containerId){
+    for(i=0;i<cs.length;i++){
+      if(cs[i].id===containerId){targetId=i;break;}
+    }
   }
+  // Fallback: oldest container with this SKU
+  if(targetId===undefined){
+    cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+    for(i=0;i<cs.length;i++){
+      if(cs[i].skus[skuId]){targetId=i;break;}
+    }
+  }
+  if(targetId===undefined) return;
+  sk=cs[targetId].skus[skuId];
+  if(!sk){cs[targetId].skus[skuId]={custo:0,custoQty:0,un:{}};sk=cs[targetId].skus[skuId];}
+  if(!sk.un) sk.un={};
+  sk.un[local]=(sk.un[local]||0)+1;
+  DB_CONTAINERS=cs;
+  var cid=cs[targetId].id, newQ=sk.un[local];
+  saveEstoque(cid,skuId,local,newQ).catch(function(e){console.warn("restoreStock error:",e);});
 }
 
 function getMDesp(mk){
@@ -3021,6 +3057,27 @@ function openAddSKUFromEntrada(){
   openModal('m-add-sku');
 }
 
+function openEditSku(skuId){
+  editSkuId=skuId;
+  var allSkus=getAllSKUs();
+  var custom=sg('ax_v6_cskus',[]);
+  // Find in custom list
+  var found=null,i;
+  for(i=0;i<custom.length;i++){if(String(custom[i].id)===String(skuId)){found=custom[i];break;}}
+  if(!found){for(i=0;i<allSkus.length;i++){if(String(allSkus[i].id)===String(skuId)){found=allSkus[i];break;}}}
+  if(!found){toast('SKU não encontrado',true);return;}
+  document.getElementById('sku-nome').value=found.nome||'';
+  document.getElementById('sku-usd').value=found.usd||'';
+  document.getElementById('sku-pix').value=found.pix||'';
+  document.getElementById('sku-custo').value=found.custo||'';
+  var titleEl=document.querySelector('#m-add-sku .mtitle');
+  if(titleEl) titleEl.textContent='Editar SKU';
+  renderCatOptions();
+  var catEl=document.getElementById('sku-cat');
+  if(catEl&&found.cat) catEl.value=found.cat;
+  document.getElementById('m-add-sku').style.display='flex';
+}
+
 function confirmarAddSKU(){
   var nome=document.getElementById('sku-nome').value.trim();
   var catSel=document.getElementById('sku-cat').value;
@@ -3030,24 +3087,46 @@ function confirmarAddSKU(){
   var pix=parseFloat(document.getElementById('sku-pix').value)||0;
   var usd=parseFloat(document.getElementById('sku-usd').value)||0;
   if(!nome){toast('Informe o nome do produto',true);return;}
-  // Save new category if typed
   if(catNew){
     var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB']);
     if(cats.indexOf(catNew)<0){cats.push(catNew);dbUpsert('configuracoes',{chave:'ax_v6_cats',valor:JSON.stringify(cats)});}
     renderCatOptions();
   }
   var custom=sg('ax_v6_cskus',[]);
-  var newId=9000+Date.now()%100000;
-  custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,usd:usd,custom:true});
-  dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
-  // Add to all containers
-  var cs=loadContainers();var i;
-  for(i=0;i<cs.length;i++){
-    if(!cs[i].skus[newId]) cs[i].skus[newId]={custo:0,un:{}};
+  if(editSkuId){
+    // EDIT existing SKU
+    var found=false,i;
+    for(i=0;i<custom.length;i++){
+      if(String(custom[i].id)===String(editSkuId)){
+        custom[i].nome=nome;custom[i].cat=cat;custom[i].custo=custo;
+        custom[i].pix=pix;custom[i].usd=usd;found=true;break;
+      }
+    }
+    if(!found){
+      // It's a built-in SKU - save override
+      var over=loadSkuOver();
+      over[editSkuId]={nome:nome,cat:cat,custo:custo,pix:pix,usd:usd};
+      saveSkuOver(over);
+    }
+    dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+    editSkuId=null;
+    closeModal('m-add-sku');
+    var titleEl2=document.querySelector('#m-add-sku .mtitle');
+    if(titleEl2) titleEl2.textContent='Novo SKU';
+    toast('SKU "'+nome+'" atualizado!');
+  } else {
+    // NEW SKU
+    var newId=9000+Date.now()%100000;
+    custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,usd:usd,custom:true});
+    dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+    var cs=loadContainers();var ci;
+    for(ci=0;ci<cs.length;ci++){
+      if(!cs[ci].skus[newId]) cs[ci].skus[newId]={custo:0,custoQty:0,un:{}};
+    }
+    saveContainers(cs);
+    closeModal('m-add-sku');
+    toast('SKU "'+nome+'" adicionado!');
   }
-  saveContainers(cs);
-  closeModal('m-add-sku');
-  toast('SKU "'+nome+'" adicionado!');
   renderEst();
 }
 
@@ -3190,6 +3269,18 @@ function onCustoContChange(){
   // Show loading state
   pagamentos=[];skuRows=[];
   renderCustoPage();
+  if(custoContId){
+    loadROIParams(custoContId,function(p){
+      if(!p||!p.preco) return;
+      var fields=['preco-venda','taxa','frete','imp','com'];
+      var vals=[p.preco,p.taxa,p.frete,p.imp,p.com];
+      for(var fi=0;fi<fields.length;fi++){
+        var el=document.getElementById('roi-'+fields[fi]);
+        if(el&&vals[fi]) el.value=vals[fi];
+      }
+      calcROI();
+    });
+  }
   // Load pagamentos from Supabase
   var done=0;
   function checkDone(){done++;if(done>=2) renderCustoPage();}
@@ -3510,6 +3601,27 @@ function calcROI(){
     elROI.style.color=roi>=0?'#a855f7':'#ef4444';
   }
   calcBreakEven();
+}
+
+function saveROIParams(){
+  if(!custoContId) return;
+  var params={
+    preco:parseFloat(document.getElementById('roi-preco-venda').value)||0,
+    taxa:parseFloat(document.getElementById('roi-taxa').value)||0,
+    frete:parseFloat(document.getElementById('roi-frete').value)||0,
+    imp:parseFloat(document.getElementById('roi-imp').value)||0,
+    com:parseFloat(document.getElementById('roi-com').value)||0
+  };
+  dbUpsert('configuracoes',{chave:'roi_'+custoContId,valor:JSON.stringify(params)});
+}
+
+function loadROIParams(cid,cb){
+  if(!cid){if(cb)cb({});return;}
+  dbGet('configuracoes','chave=eq.roi_'+cid).then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{cb(JSON.parse(rows[0].valor));}catch(e){cb({});}
+    } else cb({});
+  }).catch(function(){cb({});});
 }
 
 // ── SALVAR ────────────────────────────────────────────────────────────────
