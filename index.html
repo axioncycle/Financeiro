@@ -1110,9 +1110,19 @@ function getOldestContIdForLocal(local,skuId){
   var cs=loadContainers().slice();
   cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
   var i;
+  // First: find container with stock in this local
   for(i=0;i<cs.length;i++){
     var sk=cs[i].skus[skuId];
     if(sk&&sk.un&&(sk.un[local]||0)>0) return cs[i].id;
+  }
+  // Fallback: find any container that has this SKU planned
+  for(i=0;i<cs.length;i++){
+    var sk2=cs[i].skus[skuId];
+    if(sk2&&sk2.custoQty>0) return cs[i].id;
+  }
+  // Last resort: first container with this SKU at all
+  for(i=0;i<cs.length;i++){
+    if(cs[i].skus[skuId]) return cs[i].id;
   }
   return '';
 }
@@ -2607,14 +2617,16 @@ function renderEst(){
       // ── CÁLCULOS ──────────────────────────────────────────
       var planned=sk.custoQty;
 
-      // Vendido = vendas desse SKU nesse contêiner
+      // Vendido = vendas desse SKU (match por containerId OU prodId sem containerId)
       var soldQty=0;
       for(var vsi=0;vsi<DB_VENDAS.length;vsi++){
         var vv=DB_VENDAS[vsi];
-        if(String(vv.prodId)===String(skus[si].id) &&
-           (vv.containerId===cont.id||vv.origem===cont.id)){
-          soldQty++;
-        }
+        var skuMatch=String(vv.prodId)===String(skus[si].id);
+        if(!skuMatch) continue;
+        // Match por containerId direto
+        if(vv.containerId&&vv.containerId===cont.id){soldQty++;continue;}
+        // Fallback: se containerId vazio, conta por SKU (assume esse contêiner)
+        if(!vv.containerId&&skuMatch) soldQty++;
       }
 
       // Em estoque = planejado - vendido
@@ -2730,6 +2742,24 @@ function renderEst(){
     if(cs2[ci2].id!==cid) continue;
     if(!cs2[ci2].skus[sid]) cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};
     if(!cs2[ci2].skus[sid].un) cs2[ci2].skus[sid].un={};
+    // Check limit: distributed + soldQty cannot exceed planned
+    var skNow=cs2[ci2].skus[sid];
+    var plannedNow=skNow.custoQty||0;
+    if(plannedNow>0){
+      var allLocs=loadLocais();
+      var distNow=0;
+      for(var li=0;li<allLocs.length;li++) distNow+=(skNow.un[allLocs[li]]||0);
+      // Count sold for this SKU in this container
+      var soldNow=0;
+      for(var vi=0;vi<DB_VENDAS.length;vi++){
+        var vx=DB_VENDAS[vi];
+        if(String(vx.prodId)===String(sid)&&(vx.containerId===cid||!vx.containerId)) soldNow++;
+      }
+      if(distNow+soldNow>=plannedNow){
+        toast('Limite: '+plannedNow+' un planejadas',true);
+        break;
+      }
+    }
     cs2[ci2].skus[sid].un[loc]=(cs2[ci2].skus[sid].un[loc]||0)+1;
     var newQty=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
