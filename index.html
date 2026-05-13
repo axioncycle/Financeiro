@@ -2445,7 +2445,33 @@ function importCSV(input){
         var canal2=ps(row,cols.canal)||( taxa2>0?'Mercado Livre':'WhatsApp');
         var txPct2=venda2>0?parseFloat((taxa2/venda2*100).toFixed(2)):0;
         var impPct2=venda2>0?parseFloat((nf2/venda2*100).toFixed(2)):0;
-        vlist.push({id:Date.now()+(Math.floor(Math.random()*1000)),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:null,origem:'',containerId:'',venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
+        // Resolve prodId from SKU name
+        var resolvedProdId=null,resolvedLocal='',resolvedContId='';
+        var allSKUsImp=getAllCustoSKUs();
+        var ski;
+        for(ski=0;ski<allSKUsImp.length;ski++){
+          if(allSKUsImp[ski].nome&&allSKUsImp[ski].nome.toLowerCase()===prod.toLowerCase()){
+            resolvedProdId=allSKUsImp[ski].id;break;
+          }
+        }
+        // Find which container/local has this SKU in stock
+        if(resolvedProdId){
+          var csImp=loadContainers();
+          csImp.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+          var csI,locI,locsI=loadLocais();
+          outer: for(csI=0;csI<csImp.length;csI++){
+            var skImp=csImp[csI].skus[resolvedProdId];
+            if(!skImp||!skImp.un) continue;
+            for(locI=0;locI<locsI.length;locI++){
+              if((skImp.un[locsI[locI]]||0)>0){
+                resolvedLocal=locsI[locI];
+                resolvedContId=csImp[csI].id;
+                break outer;
+              }
+            }
+          }
+        }
+        vlist.push({id:Date.now()+(Math.floor(Math.random()*1000)),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:resolvedProdId,origem:resolvedLocal,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
       }
       if(!vlist.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada.';return;}
       importPending=vlist;
@@ -2472,12 +2498,13 @@ function confirmarImport(){
   function onSaved(){
     saved++;
     if(saved>=total){
-      // Consume stock for imported vendas (if containers exist)
+      // Consume stock for each imported venda that has a resolved SKU+local
       if(DB_CONTAINERS.length>0){
         var pi;
         for(pi=0;pi<pending.length;pi++){
           var pv=pending[pi];
           if(pv.prodId&&pv.origem){
+            // consumeFIFO(local, skuId, qty)
             consumeFIFO(pv.origem,pv.prodId,1);
           }
         }
@@ -3688,15 +3715,10 @@ function renderSkuRows(){
     usdInp.type='number';usdInp.value=r.usd||'';usdInp.placeholder='USD';
     usdInp.className='fi';usdInp.style.cssText='padding:6px 8px;font-size:12px;text-align:center;';
     usdInp.oninput=(function(idx){return function(){onSkuChange(idx,'usd',this.value);};})(i);
-    var qtyInp=document.createElement('select');
-    qtyInp.className='fs';qtyInp.style.cssText='padding:6px 8px;font-size:12px;text-align:center;';
-    var qi;
-    for(qi=0;qi<=99;qi++){
-      var qo=document.createElement('option');
-      qo.value=qi;qo.textContent=qi;
-      if(qi===(r.qty||1)) qo.selected=true;
-      qtyInp.appendChild(qo);
-    }
+    var qtyInp=document.createElement('input');
+    qtyInp.type='number';qtyInp.min='1';qtyInp.max='999';
+    qtyInp.value=r.qty||1;
+    qtyInp.className='fi';qtyInp.style.cssText='padding:6px 8px;font-size:12px;text-align:center;width:64px;';
     qtyInp.onchange=(function(idx){return function(){onSkuChange(idx,'qty',this.value);};})(i);
     var brlDiv=document.createElement('div');
     brlDiv.style.cssText='background:#0a1a0a;border:1px solid #22c55e33;border-radius:6px;padding:6px 6px;font-size:11px;font-weight:800;color:#22c55e;text-align:center;';
