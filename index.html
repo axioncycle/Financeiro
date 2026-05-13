@@ -240,7 +240,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Meta do Mes</div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <input id="meta-input" type="number" placeholder="Ex: 50000" oninput="renderMetaBar()" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:4px 8px;color:#f0f0f0;font-size:12px;font-weight:700;width:100px;outline:none;text-align:right;">
+        <input id="meta-input" type="number" placeholder="Ex: 50000" oninput="renderMetaBar(true)" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:4px 8px;color:#f0f0f0;font-size:12px;font-weight:700;width:100px;outline:none;text-align:right;">
         <span style="font-size:10px;color:#666;">R$</span>
       </div>
     </div>
@@ -462,7 +462,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
   <div style="display:flex;gap:8px;margin-bottom:8px;">
     <button class="btn btn-o" style="flex:1;" onclick="openNovoContainer()">+ Conteiner</button>
-    <button class="btn btn-g" style="flex:1;" onclick="openAddSKU()">+ SKU</button>
+    
   </div>
   <div style="background:#111;border:1px solid #1E90FF22;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
     <span style="font-size:14px;">&#128667;</span>
@@ -1387,13 +1387,19 @@ function saveMeta(val){
   }
 }
 
-function renderMetaBar(){
+function renderMetaBar(userTyped){
   var metaInput=document.getElementById('meta-input');
-  // Always prefer DB_META global if available
   var meta=window.DB_META||0;
   if(metaInput&&metaInput.value){
-    meta=parseFloat(metaInput.value)||meta;
-    saveMeta(meta);
+    var typed=parseFloat(metaInput.value)||0;
+    if(userTyped&&typed>0){
+      // Only save when user explicitly typed
+      window.DB_META=typed;
+      meta=typed;
+      saveMeta(typed);
+    } else {
+      meta=typed||meta;
+    }
   } else if(meta&&metaInput&&!metaInput.value){
     metaInput.value=meta;
   }
@@ -3053,10 +3059,9 @@ function delExtra(mk,idx){var md=getMDesp(mk);md.extras.splice(idx,1);setMDesp(m
 
 // ── SKU MANAGEMENT ───────────────────────────────────────────────────────
 function openAddSKU(){
-  document.getElementById('sku-nome').value='';
-  document.getElementById('sku-cat').value='RIM';
-  document.getElementById('sku-custo').value='2000';
-  document.getElementById('sku-pix').value='4699';
+  resetSkuForm();
+  renderCatOptions();
+  renderSkuList();
   openModal('m-add-sku');
 }
 
@@ -3108,6 +3113,7 @@ function deleteCustomSku(skuId){
   dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
   renderSkuList();
   renderEst();
+  if(curPage==='custo') renderSkuRows();
   toast('SKU removido!');
 }
 
@@ -3182,6 +3188,8 @@ function confirmarAddSKU(){
   resetSkuForm();
   renderSkuList();
   renderEst();
+  // If in custo page, refresh SKU dropdowns
+  if(curPage==='custo') renderSkuRows();
 }
 
 function renderCatOptions(){
@@ -3476,6 +3484,13 @@ function removeSkuRow(i){
 function onSkuChange(i,field,val){
   if(!skuRows[i]) return;
   if(field==='sku'){
+    if(val==='__manage__'){
+      // Open SKU management modal, restore previous selection
+      skuRows[i].skuNome='';
+      resetSkuForm();renderSkuList();openModal('m-add-sku');
+      renderSkuRows();
+      return;
+    }
     skuRows[i].skuNome=val;
     var found=false,j,allSkus=getAllCustoSKUs();
     for(j=0;j<allSkus.length;j++){
@@ -3507,7 +3522,7 @@ function buildSkuOptions(selected){
     var s=all[i];
     opts+='<option value="'+s.nome+'"'+(s.nome===selected?' selected':'')+'>'+(s.usd>0?'($'+s.usd+') ':'')+s.nome+'</option>';
   }
-  opts+='<option value="__outro__"'+('__outro__'===selected?' selected':'')+'>+ Outros / Custo Extra</option>';
+  opts+='<option value="__manage__">⚙ Gerenciar SKUs (add/editar/apagar)...</option>';
   return opts;
 }
 function renderSkuRows(){
