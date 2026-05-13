@@ -522,36 +522,51 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
 </div>
 <div class="ovl" id="m-add-sku">
-  <div class="modal" style="max-height:85vh;overflow-y:auto;">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="mhdl"></div>
-    <div class="mtitle" id="m-add-sku-title">Gerenciar SKUs</div>
-    <div id="sku-form-wrap">
-      <div class="fg"><label class="fl">Nome do Produto</label>
-        <input class="fi" id="sku-nome" type="text" placeholder="ex: Rim brake 70mm BLACK">
-      </div>
-      <div class="fg">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="fl" style="margin:0;">Categoria</label>
-          <button onclick="toggleNewCat()" style="background:none;border:none;color:#1E90FF;font-size:11px;font-weight:700;cursor:pointer;">+ Nova</button>
-        </div>
-        <select class="fs" id="sku-cat"><option value="RIM">RIM</option><option value="DISC">DISC</option><option value="GRAVEL">GRAVEL</option><option value="MTB">MTB</option></select>
-        <div id="new-cat-wrap" style="display:none;margin-top:6px;">
-          <input class="fi" id="sku-cat-new" type="text" placeholder="Nova categoria (ex: TRIATHLON)">
-        </div>
-      </div>
-      <div class="r2">
-        <div class="fg"><label class="fl">Preço USD</label><input class="fi" id="sku-usd" type="number" placeholder="0" step="0.01"></div>
-        <div class="fg"><label class="fl">Preço Venda R$</label><input class="fi" id="sku-pix" type="number" placeholder="0" step="0.01"></div>
-      </div>
-      <div class="fg"><label class="fl">Custo BRL (opcional)</label><input class="fi" id="sku-custo" type="number" placeholder="0" step="0.01"></div>
-      <button class="btn" id="sku-save-btn" onclick="confirmarAddSKU()" style="margin-top:6px;">+ ADICIONAR SKU</button>
-      <button class="btn btn-s" id="sku-cancel-edit-btn" onclick="resetSkuForm();" style="display:none;margin-top:4px;">Cancelar edição</button>
+    <div class="mtitle">Gerenciar SKUs</div>
+
+    <!-- SEARCH / NAME with live suggestions -->
+    <div class="fg" style="position:relative;">
+      <label class="fl">Nome do produto</label>
+      <input class="fi" id="sku-nome" type="text" placeholder="Digite para buscar ou criar..."
+        oninput="onSkuNomeInput(this.value)" autocomplete="off">
+      <div id="sku-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--modal-bg);border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto;margin-top:2px;"></div>
     </div>
-    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
-      <div style="font-size:10px;color:var(--text2);font-weight:700;margin-bottom:6px;">SKUs CADASTRADOS</div>
+
+    <!-- FORM shown when adding/editing -->
+    <div id="sku-fields" style="display:none;">
+      <!-- Categoria -->
+      <div class="fg" id="sku-cat-wrap">
+        <label class="fl">Categoria</label>
+        <select class="fs" id="sku-cat"></select>
+      </div>
+      <div class="fg" id="sku-newcat-wrap" style="display:none;">
+        <label class="fl">Nome da nova categoria</label>
+        <input class="fi" id="sku-cat-new" type="text" placeholder="ex: TRIATHLON">
+      </div>
+      <button onclick="toggleNewCat()" style="background:none;border:none;color:#1E90FF;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:8px;" id="sku-newcat-btn">+ Adicionar nova categoria</button>
+
+      <!-- Preço USD only -->
+      <div class="fg">
+        <label class="fl">Preço USD</label>
+        <input class="fi" id="sku-usd" type="number" placeholder="ex: 193.50" step="0.01">
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" id="sku-save-btn" onclick="confirmarAddSKU()" style="flex:1;">SALVAR SKU</button>
+        <button class="btn btn-s" onclick="cancelSkuEdit()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- List of all custom SKUs -->
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;margin-bottom:6px;">TODOS OS SKUs CADASTRADOS</div>
       <div id="sku-custom-list"></div>
     </div>
-    <button class="btn btn-s" onclick="resetSkuForm();closeModal('m-add-sku');" style="margin-top:10px;">Fechar</button>
+
+    <button class="btn btn-s" onclick="cancelSkuEdit();closeModal('m-add-sku');" style="margin-top:10px;width:100%;">Fechar</button>
   </div>
 </div>
 <div class="ovl" id="m-edit-cont">
@@ -899,18 +914,23 @@ function saveContainersDB(cs){
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
 function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
 function loadCustomSKUsDB(cb){
-  // Load both custom SKUs and SKU overrides
   var done=0;
-  function chk(){done++;if(done>=2&&cb)cb();}
+  function chk(){done++;if(done>=3&&cb)cb();}
   dbGet("configuracoes","chave=eq.ax_v6_cskus").then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{var cskus=JSON.parse(rows[0].valor);}catch(e){}
+      try{var cskus=JSON.parse(rows[0].valor);ss("ax_v6_cskus",cskus);}catch(e){}
     }
     chk();
   }).catch(function(){chk();});
   dbGet("configuracoes","chave=eq.ax_v6_sover").then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{var sover=JSON.parse(rows[0].valor);}catch(e){}
+      try{var sover=JSON.parse(rows[0].valor);ss("ax_v6_sover",sover);}catch(e){}
+    }
+    chk();
+  }).catch(function(){chk();});
+  dbGet("configuracoes","chave=eq.ax_v6_cats").then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{var cats=JSON.parse(rows[0].valor);ss("ax_v6_cats",cats);}catch(e){}
     }
     chk();
   }).catch(function(){chk();});
@@ -3059,7 +3079,7 @@ function delExtra(mk,idx){var md=getMDesp(mk);md.extras.splice(idx,1);setMDesp(m
 
 // ── SKU MANAGEMENT ───────────────────────────────────────────────────────
 function openAddSKU(){
-  resetSkuForm();
+  cancelSkuEdit();
   renderCatOptions();
   renderSkuList();
   openModal('m-add-sku');
@@ -3074,43 +3094,137 @@ function openAddSKUFromEntrada(){
   openModal('m-add-sku');
 }
 
-function resetSkuForm(){
+function cancelSkuEdit(){
   editSkuId=null;
-  document.getElementById('sku-nome').value='';
-  document.getElementById('sku-usd').value='';
-  document.getElementById('sku-pix').value='';
-  document.getElementById('sku-custo').value='';
-  var nc=document.getElementById('sku-cat-new');if(nc)nc.value='';
-  var ncw=document.getElementById('new-cat-wrap');if(ncw)ncw.style.display='none';
-  var btn=document.getElementById('sku-save-btn');if(btn)btn.textContent='+ ADICIONAR SKU';
-  var cb=document.getElementById('sku-cancel-edit-btn');if(cb)cb.style.display='none';
-  var title=document.getElementById('m-add-sku-title');if(title)title.textContent='Gerenciar SKUs';
+  var nome=document.getElementById('sku-nome');if(nome)nome.value='';
+  var usd=document.getElementById('sku-usd');if(usd)usd.value='';
+  var fields=document.getElementById('sku-fields');if(fields)fields.style.display='none';
+  var sugg=document.getElementById('sku-suggestions');if(sugg)sugg.style.display='none';
+  var btn=document.getElementById('sku-save-btn');if(btn)btn.textContent='SALVAR SKU';
 }
 
-function openEditSku(skuId){
+function resetSkuForm(){cancelSkuEdit();}
+
+function toggleNewCat(){
+  var wrap=document.getElementById('sku-newcat-wrap');
+  var btn=document.getElementById('sku-newcat-btn');
+  var catWrap=document.getElementById('sku-cat-wrap');
+  if(!wrap) return;
+  var isOpen=wrap.style.display!=='none';
+  wrap.style.display=isOpen?'none':'block';
+  if(catWrap) catWrap.style.display=isOpen?'block':'none';
+  if(btn) btn.textContent=isOpen?'+ Adicionar nova categoria':'Usar categoria existente';
+}
+
+function onSkuNomeInput(val){
+  val=val.trim();
+  var sugg=document.getElementById('sku-suggestions');
+  var fields=document.getElementById('sku-fields');
+  if(!val){sugg.style.display='none';if(fields)fields.style.display='none';return;}
+
+  // Search in all SKUs (built-in + custom)
+  var all=getAllCustoSKUs();
+  var matches=[];
+  var vl=val.toLowerCase();
+  for(var i=0;i<all.length;i++){
+    if(all[i].nome.toLowerCase().indexOf(vl)>=0) matches.push(all[i]);
+  }
+
+  sugg.innerHTML='';
+  var exactMatch=false;
+
+  // Show matches
+  for(var j=0;j<matches.length;j++){
+    (function(s){
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;';
+      row.onmouseenter=function(){row.style.background='var(--bg3)';}
+      row.onmouseleave=function(){row.style.background='';}
+
+      var info=document.createElement('div');
+      var nm=document.createElement('div');nm.style.cssText='font-size:12px;font-weight:700;color:var(--text);';
+      nm.textContent=s.nome;
+      var sub=document.createElement('div');sub.style.cssText='font-size:10px;color:var(--text2);';
+      sub.textContent=(s.cat||'')+(s.usd?' · $'+s.usd:'');
+      info.appendChild(nm);info.appendChild(sub);
+
+      var btns=document.createElement('div');
+      btns.style.cssText='display:flex;gap:4px;flex-shrink:0;margin-left:8px;';
+
+      // All SKUs can be edited; only custom can be deleted
+      var bE=document.createElement('button');
+      bE.style.cssText='padding:3px 8px;border-radius:5px;border:none;background:#1E90FF22;color:#1E90FF;font-size:10px;font-weight:700;cursor:pointer;';
+      bE.textContent='Editar';
+      bE.onclick=function(e){e.stopPropagation();openEditSku(s.id,s.builtin);};
+      btns.appendChild(bE);
+
+      if(s.custom){
+        var bD=document.createElement('button');
+        bD.style.cssText='padding:3px 8px;border-radius:5px;border:none;background:#ef444422;color:#ef4444;font-size:10px;font-weight:700;cursor:pointer;';
+        bD.textContent='Apagar';
+        bD.onclick=function(e){e.stopPropagation();deleteCustomSku(s.id);};
+        btns.appendChild(bD);
+      }
+
+      row.onclick=function(){
+        document.getElementById('sku-nome').value=s.nome;
+        sugg.style.display='none';
+        if(fields) fields.style.display='none';
+      };
+      row.appendChild(info);row.appendChild(btns);
+      sugg.appendChild(row);
+
+      if(s.nome.toLowerCase()===vl) exactMatch=true;
+    })(matches[j]);
+  }
+
+  // If no exact match, offer to add as new SKU
+  if(!exactMatch&&val.length>=2){
+    var addRow=document.createElement('div');
+    addRow.style.cssText='padding:8px 10px;cursor:pointer;color:#1E90FF;font-size:12px;font-weight:700;';
+    addRow.textContent='+ Adicionar "'+val+'" como novo SKU';
+    addRow.onmouseenter=function(){addRow.style.background='var(--bg3)';}
+    addRow.onmouseleave=function(){addRow.style.background='';}
+    addRow.onclick=function(){
+      sugg.style.display='none';
+      editSkuId=null;
+      renderCatOptions();
+      var usdEl=document.getElementById('sku-usd');if(usdEl)usdEl.value='';
+      if(fields){fields.style.display='block';}
+      var btn=document.getElementById('sku-save-btn');if(btn)btn.textContent='+ ADICIONAR SKU';
+    };
+    sugg.appendChild(addRow);
+  }
+
+  sugg.style.display=sugg.children.length>0?'block':'none';
+}
+
+function openEditSku(skuId,isBuiltin){
   editSkuId=skuId;
-  var custom=sg('ax_v6_cskus',[]);
-  var allS=getAllSKUs();
+  // Find in custom first, then builtin
+  var all=getAllCustoSKUs();
   var found=null,i;
-  for(i=0;i<custom.length;i++){if(String(custom[i].id)===String(skuId)){found=custom[i];break;}}
-  if(!found){for(i=0;i<allS.length;i++){if(String(allS[i].id)===String(skuId)){found=allS[i];break;}}}
+  for(i=0;i<all.length;i++){if(String(all[i].id)===String(skuId)){found=all[i];break;}}
   if(!found){toast('SKU não encontrado',true);return;}
   document.getElementById('sku-nome').value=found.nome||'';
   document.getElementById('sku-usd').value=found.usd||'';
-  document.getElementById('sku-pix').value=found.pix||'';
-  document.getElementById('sku-custo').value=found.custo||'';
   renderCatOptions();
   var catEl=document.getElementById('sku-cat');if(catEl&&found.cat)catEl.value=found.cat;
+  var sugg=document.getElementById('sku-suggestions');if(sugg)sugg.style.display='none';
+  var fields=document.getElementById('sku-fields');if(fields)fields.style.display='block';
   var btn=document.getElementById('sku-save-btn');if(btn)btn.textContent='SALVAR EDIÇÃO';
-  var cb=document.getElementById('sku-cancel-edit-btn');if(cb)cb.style.display='block';
-  var title=document.getElementById('m-add-sku-title');if(title)title.textContent='Editar: '+found.nome;
+  if(isBuiltin){
+    var info=document.createElement('div');
+    // Show note that builtin edits are saved as overrides
+  }
 }
 
 function deleteCustomSku(skuId){
-  if(!confirm('Apagar este SKU?')) return;
+  if(!confirm('Apagar este SKU? Esta ação não pode ser desfeita.')) return;
   var custom=sg('ax_v6_cskus',[]);
   custom=custom.filter(function(s){return String(s.id)!==String(skuId);});
   dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+  cancelSkuEdit();
   renderSkuList();
   renderEst();
   if(curPage==='custo') renderSkuRows();
@@ -3122,12 +3236,11 @@ function renderSkuList(){
   if(!el) return;
   var custom=sg('ax_v6_cskus',[]);
   if(!custom.length){
-    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">Nenhum SKU cadastrado ainda</div>';
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px;">Nenhum SKU customizado. SKUs padrão estão disponíveis no dropdown.</div>';
     return;
   }
   el.innerHTML='';
-  var i;
-  for(i=0;i<custom.length;i++){
+  for(var i=0;i<custom.length;i++){
     (function(sk){
       var row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;margin-bottom:4px;background:var(--bg2);';
@@ -3135,7 +3248,7 @@ function renderSkuList(){
       var nm=document.createElement('div');nm.style.cssText='font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
       nm.textContent=sk.nome;
       var sub=document.createElement('div');sub.style.cssText='font-size:10px;color:var(--text2);margin-top:1px;';
-      sub.textContent=(sk.cat||'')+( sk.usd?' · $'+sk.usd:'')+( sk.pix?' · R$'+Number(sk.pix).toLocaleString('pt-BR'):'');
+      sub.textContent=(sk.cat||'')+(sk.usd?' · $'+sk.usd:'');
       info.appendChild(nm);info.appendChild(sub);
       var btns=document.createElement('div');btns.style.cssText='display:flex;gap:4px;flex-shrink:0;';
       var bE=document.createElement('button');
@@ -3153,42 +3266,49 @@ function renderSkuList(){
 
 function confirmarAddSKU(){
   var nome=document.getElementById('sku-nome').value.trim();
-  var catSel=document.getElementById('sku-cat').value;
-  var catNew=document.getElementById('sku-cat-new')?document.getElementById('sku-cat-new').value.trim():'';
-  var cat=catNew||catSel;
-  var custo=parseFloat(document.getElementById('sku-custo').value)||0;
-  var pix=parseFloat(document.getElementById('sku-pix').value)||0;
   var usd=parseFloat(document.getElementById('sku-usd').value)||0;
+  // Category
+  var catNewEl=document.getElementById('sku-cat-new');
+  var catNew=catNewEl?catNewEl.value.trim():'';
+  var cat=catNew||(document.getElementById('sku-cat')?document.getElementById('sku-cat').value:'RIM');
   if(!nome){toast('Informe o nome do produto',true);return;}
+  // Save new category
   if(catNew){
     var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB']);
     if(cats.indexOf(catNew)<0){cats.push(catNew);dbUpsert('configuracoes',{chave:'ax_v6_cats',valor:JSON.stringify(cats)});}
-    renderCatOptions();
   }
   var custom=sg('ax_v6_cskus',[]);
   if(editSkuId){
-    var found=false,i;
+    // Check if it's a custom SKU or builtin
+    var isCustom=false,i;
     for(i=0;i<custom.length;i++){
       if(String(custom[i].id)===String(editSkuId)){
-        custom[i].nome=nome;custom[i].cat=cat;custom[i].custo=custo;custom[i].pix=pix;custom[i].usd=usd;found=true;break;
+        custom[i].nome=nome;custom[i].cat=cat;custom[i].usd=usd;isCustom=true;break;
       }
     }
-    if(!found){var over=loadSkuOver();over[editSkuId]={nome:nome,cat:cat,custo:custo,pix:pix,usd:usd};saveSkuOver(over);}
-    dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+    if(isCustom){
+      dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+    } else {
+      // Builtin SKU: save as override
+      var over=loadSkuOver();
+      over[editSkuId]={nome:nome,cat:cat,usd:usd,pix:0,custo:0};
+      saveSkuOver(over);
+    }
     toast('SKU "'+nome+'" atualizado!');
   } else {
+    // Add new
     var newId=9000+Date.now()%100000;
-    custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,usd:usd,custom:true});
+    custom.push({id:newId,nome:nome,cat:cat,usd:usd,custom:true});
     dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+    // Add to all containers
     var cs=loadContainers();var ci;
     for(ci=0;ci<cs.length;ci++){if(!cs[ci].skus[newId])cs[ci].skus[newId]={custo:0,custoQty:0,un:{}};}
     saveContainers(cs);
     toast('SKU "'+nome+'" adicionado!');
   }
-  resetSkuForm();
+  cancelSkuEdit();
   renderSkuList();
   renderEst();
-  // If in custo page, refresh SKU dropdowns
   if(curPage==='custo') renderSkuRows();
 }
 
@@ -3504,13 +3624,27 @@ function onSkuChange(i,field,val){
     skuRows[i].qty=parseInt(val)||1;
   }
   calcResumo();
+  // Auto-save bloco2 changes to Supabase
+  if(custoContId) saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
 }
 
 function getAllCustoSKUs(){
   var all=[];var i;
-  for(i=0;i<CUSTO_SKUS.length;i++) all.push(CUSTO_SKUS[i]);
+  // Built-in SKUs from SKUS array (have id)
+  for(i=0;i<SKUS.length;i++){
+    all.push({id:SKUS[i].id,nome:SKUS[i].nome,cat:SKUS[i].cat,usd:0,builtin:true});
+  }
+  // Merge USD prices from CUSTO_SKUS
+  for(i=0;i<all.length;i++){
+    for(var j=0;j<CUSTO_SKUS.length;j++){
+      if(CUSTO_SKUS[j].nome===all[i].nome){all[i].usd=CUSTO_SKUS[j].usd||0;break;}
+    }
+  }
+  // Custom SKUs from Supabase
   var custom=sg('ax_v6_cskus',[]);
-  for(i=0;i<custom.length;i++) all.push({nome:custom[i].nome,usd:custom[i].usd||0,custom:true});
+  for(i=0;i<custom.length;i++){
+    all.push({id:custom[i].id,nome:custom[i].nome,cat:custom[i].cat||'',usd:custom[i].usd||0,custom:true});
+  }
   return all;
 }
 
