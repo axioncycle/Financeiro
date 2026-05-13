@@ -522,40 +522,36 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
 </div>
 <div class="ovl" id="m-add-sku">
-  <div class="modal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto;">
     <div class="mhdl"></div>
-    <div class="mtitle">Novo SKU</div>
-    <div class="fg"><label class="fl">Nome do Produto</label>
-      <input class="fi" id="sku-nome" type="text" placeholder="ex: Rim brake 70mm BLACK">
-    </div>
-    <div class="fg">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <label class="fl" style="margin:0;">Categoria</label>
-        <button onclick="toggleNewCat()" style="background:none;border:none;color:#1E90FF;font-size:11px;font-weight:700;cursor:pointer;">+ Nova categoria</button>
+    <div class="mtitle" id="m-add-sku-title">Gerenciar SKUs</div>
+    <div id="sku-form-wrap">
+      <div class="fg"><label class="fl">Nome do Produto</label>
+        <input class="fi" id="sku-nome" type="text" placeholder="ex: Rim brake 70mm BLACK">
       </div>
-      <select class="fs" id="sku-cat" onchange="renderCatOptions()">
-        <option value="RIM">RIM</option>
-        <option value="DISC">DISC</option>
-        <option value="GRAVEL">GRAVEL</option>
-        <option value="MTB">MTB</option>
-      </select>
-      <div id="new-cat-wrap" style="display:none;margin-top:6px;">
-        <input class="fi" id="sku-cat-new" type="text" placeholder="Nova categoria (ex: TRIATHLON)">
+      <div class="fg">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label class="fl" style="margin:0;">Categoria</label>
+          <button onclick="toggleNewCat()" style="background:none;border:none;color:#1E90FF;font-size:11px;font-weight:700;cursor:pointer;">+ Nova</button>
+        </div>
+        <select class="fs" id="sku-cat"><option value="RIM">RIM</option><option value="DISC">DISC</option><option value="GRAVEL">GRAVEL</option><option value="MTB">MTB</option></select>
+        <div id="new-cat-wrap" style="display:none;margin-top:6px;">
+          <input class="fi" id="sku-cat-new" type="text" placeholder="Nova categoria (ex: TRIATHLON)">
+        </div>
       </div>
+      <div class="r2">
+        <div class="fg"><label class="fl">Preço USD</label><input class="fi" id="sku-usd" type="number" placeholder="0" step="0.01"></div>
+        <div class="fg"><label class="fl">Preço Venda R$</label><input class="fi" id="sku-pix" type="number" placeholder="0" step="0.01"></div>
+      </div>
+      <div class="fg"><label class="fl">Custo BRL (opcional)</label><input class="fi" id="sku-custo" type="number" placeholder="0" step="0.01"></div>
+      <button class="btn" id="sku-save-btn" onclick="confirmarAddSKU()" style="margin-top:6px;">+ ADICIONAR SKU</button>
+      <button class="btn btn-s" id="sku-cancel-edit-btn" onclick="resetSkuForm();" style="display:none;margin-top:4px;">Cancelar edição</button>
     </div>
-    <div class="r2">
-      <div class="fg"><label class="fl">Preco USD</label><input class="fi" id="sku-usd" type="number" placeholder="0" step="0.01"></div>
-      <div class="fg"><label class="fl">Preco Venda (R$)</label><input class="fi" id="sku-pix" type="number" placeholder="0" step="0.01"></div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+      <div style="font-size:10px;color:var(--text2);font-weight:700;margin-bottom:6px;">SKUs CADASTRADOS</div>
+      <div id="sku-custom-list"></div>
     </div>
-    <div class="fg"><label class="fl">Custo BRL (opcional)</label><input class="fi" id="sku-custo" type="number" placeholder="0" step="0.01"></div>
-    <button class="btn" onclick="confirmarAddSKU()" style="margin-top:4px;">SALVAR SKU</button>
-    <div style="margin:10px 0;border-top:1px solid var(--border);padding-top:10px;">
-      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;font-weight:700;">EDITAR SKU EXISTENTE</div>
-      <select class="fs" id="sku-edit-sel" onchange="if(this.value)openEditSku(this.value);" style="font-size:12px;">
-        <option value="">Selecionar SKU para editar...</option>
-      </select>
-    </div>
-    <button class="btn btn-s" onclick="editSkuId=null;closeModal('m-add-sku');document.querySelector('#m-add-sku .mtitle').textContent='Novo SKU';" style="margin-top:4px;">Cancelar</button>
+    <button class="btn btn-s" onclick="resetSkuForm();closeModal('m-add-sku');" style="margin-top:10px;">Fechar</button>
   </div>
 </div>
 <div class="ovl" id="m-edit-cont">
@@ -812,6 +808,7 @@ var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
 var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
 var editSkuId=null;
+window.DB_META=0;
 function supaFetch(method,table,body,query){try{var url=SUPA_URL+"/rest/v1/"+table+(query?"?"+query:"");var h={"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=representation"};var opts={method:method,headers:h};if(body)opts.body=JSON.stringify(body);return fetch(url,opts).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("fe",e.message);return[];});}catch(e){return Promise.resolve([]);}}
 function dbGet(t,q){return supaFetch("GET",t,null,q);}
 function dbPost(t,b){return supaFetch("POST",t,b);}
@@ -945,7 +942,12 @@ function initDB(cb){
   dbGet('configuracoes','chave=eq.ax_meta').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
       var m=parseFloat(rows[0].valor)||0;
-      if(m>0){ss('ax_meta',m);}
+      if(m>0){
+        window.DB_META=m;
+        ss('ax_meta',m);
+        var inp=document.getElementById('meta-input');
+        if(inp&&!inp.value) inp.value=m;
+      }
     }
     chk();
   }).catch(function(){chk();});
@@ -1377,14 +1379,24 @@ var tipIdx=-1;
 
 function setMonth(m){selMonth=m;renderDash();}
 
+function saveMeta(val){
+  var m=parseFloat(val)||0;
+  if(m>0){
+    ss('ax_meta',m);
+    dbUpsert('configuracoes',{chave:'ax_meta',valor:String(m)});
+  }
+}
+
 function renderMetaBar(){
   var metaInput=document.getElementById('meta-input');
-  var meta=parseFloat((metaInput&&metaInput.value)||sg('ax_meta',0))||0;
+  // Always prefer DB_META global if available
+  var meta=window.DB_META||0;
   if(metaInput&&metaInput.value){
-    ss('ax_meta',meta);
-    dbUpsert('configuracoes',{chave:'ax_meta',valor:String(meta)});
+    meta=parseFloat(metaInput.value)||meta;
+    saveMeta(meta);
+  } else if(meta&&metaInput&&!metaInput.value){
+    metaInput.value=meta;
   }
-  else if(!metaInput) meta=sg('ax_meta',0)||0;
   // Get current month faturamento
   var vendas=loadVendas();
   var hoje=new Date();
@@ -3057,25 +3069,80 @@ function openAddSKUFromEntrada(){
   openModal('m-add-sku');
 }
 
+function resetSkuForm(){
+  editSkuId=null;
+  document.getElementById('sku-nome').value='';
+  document.getElementById('sku-usd').value='';
+  document.getElementById('sku-pix').value='';
+  document.getElementById('sku-custo').value='';
+  var nc=document.getElementById('sku-cat-new');if(nc)nc.value='';
+  var ncw=document.getElementById('new-cat-wrap');if(ncw)ncw.style.display='none';
+  var btn=document.getElementById('sku-save-btn');if(btn)btn.textContent='+ ADICIONAR SKU';
+  var cb=document.getElementById('sku-cancel-edit-btn');if(cb)cb.style.display='none';
+  var title=document.getElementById('m-add-sku-title');if(title)title.textContent='Gerenciar SKUs';
+}
+
 function openEditSku(skuId){
   editSkuId=skuId;
-  var allSkus=getAllSKUs();
   var custom=sg('ax_v6_cskus',[]);
-  // Find in custom list
+  var allS=getAllSKUs();
   var found=null,i;
   for(i=0;i<custom.length;i++){if(String(custom[i].id)===String(skuId)){found=custom[i];break;}}
-  if(!found){for(i=0;i<allSkus.length;i++){if(String(allSkus[i].id)===String(skuId)){found=allSkus[i];break;}}}
+  if(!found){for(i=0;i<allS.length;i++){if(String(allS[i].id)===String(skuId)){found=allS[i];break;}}}
   if(!found){toast('SKU não encontrado',true);return;}
   document.getElementById('sku-nome').value=found.nome||'';
   document.getElementById('sku-usd').value=found.usd||'';
   document.getElementById('sku-pix').value=found.pix||'';
   document.getElementById('sku-custo').value=found.custo||'';
-  var titleEl=document.querySelector('#m-add-sku .mtitle');
-  if(titleEl) titleEl.textContent='Editar SKU';
   renderCatOptions();
-  var catEl=document.getElementById('sku-cat');
-  if(catEl&&found.cat) catEl.value=found.cat;
-  document.getElementById('m-add-sku').style.display='flex';
+  var catEl=document.getElementById('sku-cat');if(catEl&&found.cat)catEl.value=found.cat;
+  var btn=document.getElementById('sku-save-btn');if(btn)btn.textContent='SALVAR EDIÇÃO';
+  var cb=document.getElementById('sku-cancel-edit-btn');if(cb)cb.style.display='block';
+  var title=document.getElementById('m-add-sku-title');if(title)title.textContent='Editar: '+found.nome;
+}
+
+function deleteCustomSku(skuId){
+  if(!confirm('Apagar este SKU?')) return;
+  var custom=sg('ax_v6_cskus',[]);
+  custom=custom.filter(function(s){return String(s.id)!==String(skuId);});
+  dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+  renderSkuList();
+  renderEst();
+  toast('SKU removido!');
+}
+
+function renderSkuList(){
+  var el=document.getElementById('sku-custom-list');
+  if(!el) return;
+  var custom=sg('ax_v6_cskus',[]);
+  if(!custom.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">Nenhum SKU cadastrado ainda</div>';
+    return;
+  }
+  el.innerHTML='';
+  var i;
+  for(i=0;i<custom.length;i++){
+    (function(sk){
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;margin-bottom:4px;background:var(--bg2);';
+      var info=document.createElement('div');info.style.cssText='flex:1;min-width:0;';
+      var nm=document.createElement('div');nm.style.cssText='font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      nm.textContent=sk.nome;
+      var sub=document.createElement('div');sub.style.cssText='font-size:10px;color:var(--text2);margin-top:1px;';
+      sub.textContent=(sk.cat||'')+( sk.usd?' · $'+sk.usd:'')+( sk.pix?' · R$'+Number(sk.pix).toLocaleString('pt-BR'):'');
+      info.appendChild(nm);info.appendChild(sub);
+      var btns=document.createElement('div');btns.style.cssText='display:flex;gap:4px;flex-shrink:0;';
+      var bE=document.createElement('button');
+      bE.className='ebtn ebtn-e';bE.textContent='Editar';
+      bE.onclick=function(){openEditSku(sk.id);};
+      var bD=document.createElement('button');
+      bD.className='ebtn ebtn-d';bD.textContent='Apagar';
+      bD.onclick=function(){deleteCustomSku(sk.id);};
+      btns.appendChild(bE);btns.appendChild(bD);
+      row.appendChild(info);row.appendChild(btns);
+      el.appendChild(row);
+    })(custom[i]);
+  }
 }
 
 function confirmarAddSKU(){
@@ -3094,39 +3161,26 @@ function confirmarAddSKU(){
   }
   var custom=sg('ax_v6_cskus',[]);
   if(editSkuId){
-    // EDIT existing SKU
     var found=false,i;
     for(i=0;i<custom.length;i++){
       if(String(custom[i].id)===String(editSkuId)){
-        custom[i].nome=nome;custom[i].cat=cat;custom[i].custo=custo;
-        custom[i].pix=pix;custom[i].usd=usd;found=true;break;
+        custom[i].nome=nome;custom[i].cat=cat;custom[i].custo=custo;custom[i].pix=pix;custom[i].usd=usd;found=true;break;
       }
     }
-    if(!found){
-      // It's a built-in SKU - save override
-      var over=loadSkuOver();
-      over[editSkuId]={nome:nome,cat:cat,custo:custo,pix:pix,usd:usd};
-      saveSkuOver(over);
-    }
+    if(!found){var over=loadSkuOver();over[editSkuId]={nome:nome,cat:cat,custo:custo,pix:pix,usd:usd};saveSkuOver(over);}
     dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
-    editSkuId=null;
-    closeModal('m-add-sku');
-    var titleEl2=document.querySelector('#m-add-sku .mtitle');
-    if(titleEl2) titleEl2.textContent='Novo SKU';
     toast('SKU "'+nome+'" atualizado!');
   } else {
-    // NEW SKU
     var newId=9000+Date.now()%100000;
     custom.push({id:newId,nome:nome,cat:cat,custo:custo,pix:pix,usd:usd,custom:true});
     dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
     var cs=loadContainers();var ci;
-    for(ci=0;ci<cs.length;ci++){
-      if(!cs[ci].skus[newId]) cs[ci].skus[newId]={custo:0,custoQty:0,un:{}};
-    }
+    for(ci=0;ci<cs.length;ci++){if(!cs[ci].skus[newId])cs[ci].skus[newId]={custo:0,custoQty:0,un:{}};}
     saveContainers(cs);
-    closeModal('m-add-sku');
     toast('SKU "'+nome+'" adicionado!');
   }
+  resetSkuForm();
+  renderSkuList();
   renderEst();
 }
 
