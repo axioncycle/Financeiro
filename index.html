@@ -797,11 +797,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:14px;">Simulação de Compra</div>
 
     <!-- Header -->
-    <div style="display:grid;grid-template-columns:2fr 70px 90px 90px 28px;gap:6px;margin-bottom:4px;">
+    <div style="display:grid;grid-template-columns:2fr 55px 80px 80px 80px 28px;gap:5px;margin-bottom:4px;">
       <span style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;">SKU</span>
       <span style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;">Qtd</span>
-      <span style="font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;">$ USD</span>
-      <span style="font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;">R$ BRL</span>
+      <span style="font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;">$ USD/un</span>
+      <span style="font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;">R$ BRL/un</span>
+      <span style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">R$ c/ Fator</span>
       <span></span>
     </div>
 
@@ -809,15 +810,24 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
     <button onclick="addSimRow()" style="width:100%;padding:10px;border-radius:8px;border:1px dashed #1E90FF44;background:transparent;color:#1E90FF;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;">+ Adicionar SKU</button>
 
-    <!-- Totais -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div>
-        <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total USD</div>
-        <div id="sim-total-usd" style="font-size:20px;font-weight:800;color:#1E90FF;">$0,00</div>
+    <!-- Fator de Conversão -->
+    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Fator de Conversão</div>
+          <div style="font-size:9px;color:var(--text3);">Total USD ÷ Total BRL</div>
+        </div>
+        <div id="sim-fator" style="font-size:22px;font-weight:800;color:#f59e0b;">0,00</div>
       </div>
-      <div>
-        <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total BRL</div>
-        <div id="sim-total-brl" style="font-size:20px;font-weight:800;color:#22c55e;">R$ 0,00</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total USD</div>
+          <div id="sim-total-usd" style="font-size:18px;font-weight:800;color:#1E90FF;">$0,00</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total BRL</div>
+          <div id="sim-total-brl" style="font-size:18px;font-weight:800;color:#22c55e;">R$ 0,00</div>
+        </div>
       </div>
     </div>
   </div>
@@ -3975,6 +3985,17 @@ function onSimChange(i,field,val){
   saveSimRows();
 }
 
+function calcSimFator(){
+  var totUSD=0,totBRL=0,i;
+  for(i=0;i<simRows.length;i++){
+    var r=simRows[i];
+    var q=r.qty||1;
+    totUSD+=(r.usd||0)*q;
+    totBRL+=(r.brl||0)*q;
+  }
+  return totBRL>0?(totUSD/totBRL):0;
+}
+
 function calcSimTotals(){
   var totUSD=0,totBRL=0,i;
   for(i=0;i<simRows.length;i++){
@@ -3985,25 +4006,39 @@ function calcSimTotals(){
   }
   var elU=document.getElementById('sim-total-usd');
   var elB=document.getElementById('sim-total-brl');
+  var elF=document.getElementById('sim-fator');
   if(elU) elU.textContent='$'+totUSD.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   if(elB) elB.textContent=fmt(totBRL);
+  // Fator = total USD / total BRL (quantos dólares por real)
+  var fator=totBRL>0?(totUSD/totBRL):0;
+  if(elF) elF.textContent=fator>0?fator.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4}):'-';
+  // Update calc column for each row
+  for(i=0;i<simRows.length;i++){
+    var calcEl=document.getElementById('sim-calc-'+i);
+    if(calcEl){
+      var brlC=fator>0?((simRows[i].usd||0)*fator):0;
+      calcEl.textContent=brlC>0?fmt(brlC):'-';
+    }
+  }
 }
 
 function renderSimRows(){
   var el=document.getElementById('sim-list');
   if(!el) return;
   el.innerHTML='';
+  // Calculate current fator for display
+  var fator=calcSimFator();
   var i;
   for(i=0;i<simRows.length;i++){
     (function(idx){
       var r=simRows[idx];
       var row=document.createElement('div');
-      row.style.cssText='display:grid;grid-template-columns:2fr 70px 90px 90px 28px;gap:6px;margin-bottom:6px;align-items:center;';
+      row.style.cssText='display:grid;grid-template-columns:2fr 55px 80px 80px 80px 28px;gap:5px;margin-bottom:6px;align-items:center;';
 
       // SKU select
       var skuSel=document.createElement('select');
       skuSel.className='fs';
-      skuSel.style.cssText='padding:7px 8px;font-size:12px;';
+      skuSel.style.cssText='padding:6px 6px;font-size:11px;';
       skuSel.innerHTML='<option value="">SKU...</option>';
       var all=getAllCustoSKUs(),j;
       for(j=0;j<all.length;j++){
@@ -4018,20 +4053,28 @@ function renderSimRows(){
       // Qty
       var qInp=document.createElement('input');
       qInp.type='number';qInp.min='1';qInp.max='999';qInp.value=r.qty||1;
-      qInp.className='fi';qInp.style.cssText='padding:7px 8px;font-size:13px;font-weight:700;text-align:center;';
+      qInp.className='fi';qInp.style.cssText='padding:6px 6px;font-size:13px;font-weight:700;text-align:center;';
       qInp.oninput=function(){onSimChange(idx,'qty',this.value);};
 
-      // USD
+      // USD/unidade (editável)
       var uInp=document.createElement('input');
       uInp.type='number';uInp.value=r.usd||'';uInp.placeholder='0';
-      uInp.className='fi';uInp.style.cssText='padding:7px 8px;font-size:13px;font-weight:600;color:#1E90FF;text-align:right;';
+      uInp.className='fi';uInp.style.cssText='padding:6px 6px;font-size:12px;font-weight:600;color:#1E90FF;text-align:right;';
       uInp.oninput=function(){onSimChange(idx,'usd',this.value);};
 
-      // BRL
+      // BRL/unidade (editável)
       var bInp=document.createElement('input');
       bInp.type='number';bInp.value=r.brl||'';bInp.placeholder='0';
-      bInp.className='fi';bInp.style.cssText='padding:7px 8px;font-size:13px;font-weight:600;color:#22c55e;text-align:right;';
+      bInp.className='fi';bInp.style.cssText='padding:6px 6px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;';
       bInp.oninput=function(){onSimChange(idx,'brl',this.value);};
+
+      // BRL calculado com fator (USD * fator) - read only
+      var usdVal=r.usd||0;
+      var brlCalc=fator>0?(usdVal*fator):0;
+      var calcEl=document.createElement('div');
+      calcEl.style.cssText='padding:6px 8px;font-size:12px;font-weight:700;color:#f59e0b;text-align:right;background:var(--bg3);border-radius:8px;border:1px solid var(--border);';
+      calcEl.textContent=brlCalc>0?fmt(brlCalc):'-';
+      calcEl.id='sim-calc-'+idx;
 
       // Delete
       var dBtn=document.createElement('button');
@@ -4039,7 +4082,7 @@ function renderSimRows(){
       dBtn.style.cssText='width:26px;height:26px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;';
       dBtn.onclick=function(){removeSimRow(idx);};
 
-      row.appendChild(skuSel);row.appendChild(qInp);row.appendChild(uInp);row.appendChild(bInp);row.appendChild(dBtn);
+      row.appendChild(skuSel);row.appendChild(qInp);row.appendChild(uInp);row.appendChild(bInp);row.appendChild(calcEl);row.appendChild(dBtn);
       el.appendChild(row);
     })(i);
   }
