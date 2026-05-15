@@ -797,11 +797,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:14px;">Simulação de Compra</div>
 
     <!-- Header -->
-    <div style="display:grid;grid-template-columns:2fr 55px 80px 80px 80px 28px;gap:5px;margin-bottom:4px;">
+    <div style="display:grid;grid-template-columns:2fr 55px 90px 90px 28px;gap:5px;margin-bottom:4px;">
       <span style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;">SKU</span>
       <span style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;">Qtd</span>
       <span style="font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;">$ USD/un</span>
-      <span style="font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;">R$ BRL/un</span>
       <span style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">R$ c/ Fator</span>
       <span></span>
     </div>
@@ -812,20 +811,32 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
     <!-- Fator de Conversão -->
     <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-top:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+
+      <!-- Custo total BRL input -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Custo Total em R$ (BRL)</div>
+        <input id="sim-custo-brl" type="number" class="fi" placeholder="Ex: 125000"
+          style="font-size:16px;font-weight:700;color:#22c55e;"
+          oninput="onSimCustoBRL(this.value)">
+      </div>
+
+      <!-- Fator calculado -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--bg3);border-radius:8px;padding:10px 12px;">
         <div>
           <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Fator de Conversão</div>
-          <div style="font-size:9px;color:var(--text3);">Total USD ÷ Total BRL</div>
+          <div style="font-size:9px;color:var(--text3);">Custo BRL ÷ Total USD</div>
         </div>
-        <div id="sim-fator" style="font-size:22px;font-weight:800;color:#f59e0b;">0,00</div>
+        <div id="sim-fator" style="font-size:24px;font-weight:800;color:#f59e0b;">-</div>
       </div>
+
+      <!-- Totais -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div>
           <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total USD</div>
           <div id="sim-total-usd" style="font-size:18px;font-weight:800;color:#1E90FF;">$0,00</div>
         </div>
         <div>
-          <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total BRL</div>
+          <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;">Total BRL (calculado)</div>
           <div id="sim-total-brl" style="font-size:18px;font-weight:800;color:#22c55e;">R$ 0,00</div>
         </div>
       </div>
@@ -3985,34 +3996,36 @@ function onSimChange(i,field,val){
   saveSimRows();
 }
 
+var simCustoBRL=0;
+
+function onSimCustoBRL(val){
+  simCustoBRL=parseFloat(String(val).replace(',','.'))||0;
+  calcSimTotals();
+  saveSimRows();
+}
+
 function calcSimFator(){
-  var totUSD=0,totBRL=0,i;
-  for(i=0;i<simRows.length;i++){
-    var r=simRows[i];
-    var q=r.qty||1;
-    totUSD+=(r.usd||0)*q;
-    totBRL+=(r.brl||0)*q;
-  }
-  return totBRL>0?(totUSD/totBRL):0;
+  var totUSD=0,i;
+  for(i=0;i<simRows.length;i++){totUSD+=(simRows[i].usd||0)*(simRows[i].qty||1);}
+  return (simCustoBRL>0&&totUSD>0)?(simCustoBRL/totUSD):0;
 }
 
 function calcSimTotals(){
-  var totUSD=0,totBRL=0,i;
+  var totUSD=0,i;
   for(i=0;i<simRows.length;i++){
-    var r=simRows[i];
-    var q=r.qty||1;
-    totUSD+=(r.usd||0)*q;
-    totBRL+=(r.brl||0)*q;
+    totUSD+=(simRows[i].usd||0)*(simRows[i].qty||1);
   }
+  var fator=calcSimFator();
+  var totBRLcalc=totUSD*fator;
+
   var elU=document.getElementById('sim-total-usd');
   var elB=document.getElementById('sim-total-brl');
   var elF=document.getElementById('sim-fator');
   if(elU) elU.textContent='$'+totUSD.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(elB) elB.textContent=fmt(totBRL);
-  // Fator = total USD / total BRL (quantos dólares por real)
-  var fator=totBRL>0?(totUSD/totBRL):0;
+  if(elB) elB.textContent=fator>0?fmt(totBRLcalc):'-';
   if(elF) elF.textContent=fator>0?fator.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4}):'-';
-  // Update calc column for each row
+
+  // Update BRL calc column per row
   for(i=0;i<simRows.length;i++){
     var calcEl=document.getElementById('sim-calc-'+i);
     if(calcEl){
@@ -4033,7 +4046,7 @@ function renderSimRows(){
     (function(idx){
       var r=simRows[idx];
       var row=document.createElement('div');
-      row.style.cssText='display:grid;grid-template-columns:2fr 55px 80px 80px 80px 28px;gap:5px;margin-bottom:6px;align-items:center;';
+      row.style.cssText='display:grid;grid-template-columns:2fr 55px 90px 90px 28px;gap:5px;margin-bottom:6px;align-items:center;';
 
       // SKU select
       var skuSel=document.createElement('select');
@@ -4062,12 +4075,6 @@ function renderSimRows(){
       uInp.className='fi';uInp.style.cssText='padding:6px 6px;font-size:12px;font-weight:600;color:#1E90FF;text-align:right;';
       uInp.oninput=function(){onSimChange(idx,'usd',this.value);};
 
-      // BRL/unidade (editável)
-      var bInp=document.createElement('input');
-      bInp.type='number';bInp.value=r.brl||'';bInp.placeholder='0';
-      bInp.className='fi';bInp.style.cssText='padding:6px 6px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;';
-      bInp.oninput=function(){onSimChange(idx,'brl',this.value);};
-
       // BRL calculado com fator (USD * fator) - read only
       var usdVal=r.usd||0;
       var brlCalc=fator>0?(usdVal*fator):0;
@@ -4082,7 +4089,7 @@ function renderSimRows(){
       dBtn.style.cssText='width:26px;height:26px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;';
       dBtn.onclick=function(){removeSimRow(idx);};
 
-      row.appendChild(skuSel);row.appendChild(qInp);row.appendChild(uInp);row.appendChild(bInp);row.appendChild(calcEl);row.appendChild(dBtn);
+      row.appendChild(skuSel);row.appendChild(qInp);row.appendChild(uInp);row.appendChild(calcEl);row.appendChild(dBtn);
       el.appendChild(row);
     })(i);
   }
@@ -4091,17 +4098,25 @@ function renderSimRows(){
 
 function saveSimRows(){
   if(!custoContId) return;
-  dbUpsert('configuracoes',{chave:'sim_'+custoContId,valor:JSON.stringify(simRows)});
+  var data={rows:simRows,custoBRL:simCustoBRL};
+  dbUpsert('configuracoes',{chave:'sim_'+custoContId,valor:JSON.stringify(data)});
 }
 
 function loadSimRows(cid,cb){
-  if(!cid){simRows=[];if(cb)cb();return;}
+  if(!cid){simRows=[];simCustoBRL=0;if(cb)cb();return;}
   dbGet('configuracoes','chave=eq.sim_'+cid).then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{simRows=JSON.parse(rows[0].valor);}catch(e){simRows=[];}
-    } else simRows=[];
+      try{
+        var data=JSON.parse(rows[0].valor);
+        if(Array.isArray(data)){simRows=data;simCustoBRL=0;}
+        else{simRows=data.rows||[];simCustoBRL=data.custoBRL||0;}
+      }catch(e){simRows=[];simCustoBRL=0;}
+    } else {simRows=[];simCustoBRL=0;}
+    // Fill custo BRL input
+    var inp=document.getElementById('sim-custo-brl');
+    if(inp) inp.value=simCustoBRL>0?simCustoBRL:'';
     if(cb)cb();
-  }).catch(function(){simRows=[];if(cb)cb();});
+  }).catch(function(){simRows=[];simCustoBRL=0;if(cb)cb();});
 }
 
 function saveROIParams(){
