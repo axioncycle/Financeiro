@@ -2202,8 +2202,23 @@ function onProdChange(){
   calcRes();
 }
 
-function onPagChange(){
+var _pagSaveTimer=null;
+function onPagChange(idx,field,val){
+  // Update in-memory pagamento
+  if(idx!==undefined&&pagamentos[idx]){
+    if(field==='valor') pagamentos[idx].valor=parseFloat(String(val).replace(',','.'))||0;
+    else if(field==='usd') pagamentos[idx].usd=parseFloat(String(val).replace(',','.'))||0;
+    else if(field==='data') pagamentos[idx].data=val;
+  }
   calcRes();
+  calcTotalPago();
+  // Debounce save to Supabase (300ms after last keystroke)
+  if(_pagSaveTimer) clearTimeout(_pagSaveTimer);
+  _pagSaveTimer=setTimeout(function(){
+    if(custoContId){
+      saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
+    }
+  },300);
 }
 
 function onDuploPagChange(){
@@ -2622,26 +2637,28 @@ function confirmarImport(){
   function onSaved(){
     saved++;
     if(saved>=total){
-      // Consume stock for each imported venda that has a resolved SKU+local
-      if(DB_CONTAINERS.length>0){
+      // Reload containers fresh from Supabase before consuming stock
+      loadContainersDB(function(freshContainers){
+        DB_CONTAINERS=freshContainers;
+        // Now consume stock for each imported venda that resolved a SKU+local
         var pi;
         for(pi=0;pi<pending.length;pi++){
           var pv=pending[pi];
           if(pv.prodId&&pv.origem){
-            // consumeFIFO(local, skuId, qty)
             consumeFIFO(pv.origem,pv.prodId,1);
           }
         }
-      }
-      loadVendasDB(function(v){
-        if(Array.isArray(v)&&v.length) DB_VENDAS=v;
-        renderHist();renderDash();
-        if(curPage==='est') renderEst();
-        var impSt=document.getElementById('imp-status');
-        var impPv=document.getElementById('imp-preview');
-        if(impSt){impSt.style.color='#22c55e';impSt.textContent=total+' vendas salvas!';}
-        if(impPv) impPv.style.display='none';
-        toast(total+' vendas importadas!');
+        // Reload vendas + re-render
+        loadVendasDB(function(v){
+          if(Array.isArray(v)&&v.length) DB_VENDAS=v;
+          renderHist();renderDash();
+          if(curPage==='est') renderEst();
+          var impSt=document.getElementById('imp-status');
+          var impPv=document.getElementById('imp-preview');
+          if(impSt){impSt.style.color='#22c55e';impSt.textContent=total+' vendas salvas!';}
+          if(impPv) impPv.style.display='none';
+          toast(total+' vendas importadas!');
+        });
       });
     }
   }
@@ -3692,6 +3709,7 @@ function renderCustoPage(){
 function addPagamento(){
   pagamentos.push({data:today(),valor:0,usd:0});
   renderPagamentos();
+  if(custoContId) saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
 }
 
 function removePagamento(i){
