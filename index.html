@@ -1055,10 +1055,13 @@ function saveContainer(cid){
     if(cs[i].id===cid){
       var c=cs[i],sid,sk,loc,qty;
       dbUpsert("containers",{id:c.id,nome:c.nome,data:c.data||null});
+      // Collect SKU IDs that have custoQty>0
+      var validSkuIds=[];
       for(sid in c.skus){
         sk=c.skus[sid];
         if(!sk) continue;
         if(sk.custoQty>0){
+          validSkuIds.push(parseInt(sid));
           dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||0,custo_qty:sk.custoQty||0});
         }
         if(sk.un){
@@ -1068,6 +1071,21 @@ function saveContainer(cid){
             else dbDel("estoque_distribuicao","container_id=eq."+c.id+"&sku_id=eq."+parseInt(sid)+"&local=eq."+encodeURIComponent(loc));
           }
         }
+      }
+      // Delete container_skus rows for SKUs that no longer have custoQty
+      if(validSkuIds.length>0){
+        dbGet("container_skus","container_id=eq."+c.id).then(function(rows){
+          if(!Array.isArray(rows)) return;
+          var k;
+          for(k=0;k<rows.length;k++){
+            if(validSkuIds.indexOf(+rows[k].sku_id)<0){
+              dbDel("container_skus","container_id=eq."+c.id+"&sku_id=eq."+(+rows[k].sku_id));
+            }
+          }
+        });
+      } else {
+        // No valid SKUs - delete all container_skus for this container
+        dbDel("container_skus","container_id=eq."+c.id);
       }
       break;
     }
@@ -1202,19 +1220,15 @@ function getOldestContIdForLocal(local,skuId){
   var cs=loadContainers().slice();
   cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
   var i;
-  // First: find container with stock in this local
+  // Primary: container with stock in this local (FIFO)
   for(i=0;i<cs.length;i++){
     var sk=cs[i].skus[skuId];
     if(sk&&sk.un&&(sk.un[local]||0)>0) return cs[i].id;
   }
-  // Fallback: find any container that has this SKU planned
+  // Fallback: oldest container with this SKU planned
   for(i=0;i<cs.length;i++){
     var sk2=cs[i].skus[skuId];
     if(sk2&&sk2.custoQty>0) return cs[i].id;
-  }
-  // Last resort: first container with this SKU at all
-  for(i=0;i<cs.length;i++){
-    if(cs[i].skus[skuId]) return cs[i].id;
   }
   return '';
 }
@@ -2819,16 +2833,24 @@ function renderEst(){
       // ── CÁLCULOS ──────────────────────────────────────────
       var planned=sk.custoQty;
 
-      // Vendido = vendas desse SKU (match por containerId OU prodId sem containerId)
+      // Vendido = vendas desse SKU nesse contêiner específico
+      // FIX: para vendas sem containerId, conta APENAS no contêiner mais antigo
+      // que tem esse SKU planejado, para evitar duplicação
       var soldQty=0;
+      var allCs=loadContainers().slice();
+      allCs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+      var oldestWithSku=null;
+      for(var oi=0;oi<allCs.length;oi++){
+        var skO=allCs[oi].skus[skus[si].id];
+        if(skO&&skO.custoQty>0){oldestWithSku=allCs[oi].id;break;}
+      }
       for(var vsi=0;vsi<DB_VENDAS.length;vsi++){
         var vv=DB_VENDAS[vsi];
-        var skuMatch=String(vv.prodId)===String(skus[si].id);
-        if(!skuMatch) continue;
+        if(String(vv.prodId)!==String(skus[si].id)) continue;
         // Match por containerId direto
         if(vv.containerId&&vv.containerId===cont.id){soldQty++;continue;}
-        // Fallback: se containerId vazio, conta por SKU (assume esse contêiner)
-        if(!vv.containerId&&skuMatch) soldQty++;
+        // Fallback: venda sem containerId só conta no contêiner mais antigo com esse SKU
+        if(!vv.containerId&&oldestWithSku===cont.id) soldQty++;
       }
 
       // Em estoque = planejado - vendido
@@ -2951,11 +2973,12 @@ function renderEst(){
       var allLocs=loadLocais();
       var distNow=0;
       for(var li=0;li<allLocs.length;li++) distNow+=(skNow.un[allLocs[li]]||0);
-      // Count sold for this SKU in this container
+      // Count sold for this SKU in this container (correto: apenas com containerId match)
       var soldNow=0;
       for(var vi=0;vi<DB_VENDAS.length;vi++){
         var vx=DB_VENDAS[vi];
-        if(String(vx.prodId)===String(sid)&&(vx.containerId===cid||!vx.containerId)) soldNow++;
+        if(String(vx.prodId)!==String(sid)) continue;
+        if(vx.containerId===cid) soldNow++;
       }
       if(distNow+soldNow>=plannedNow){
         toast('Limite: '+plannedNow+' un planejadas',true);
@@ -4162,7 +4185,7 @@ function salvarCustoConteiner(){
     // Step 2: Apply current skuRows
     for(i=0;i<skuRows.length;i++){
       var r=skuRows[i];
-      if(!r.skuNome||r.skuNome==='__outro__') continue;
+      if(!r.skuNome||r.skuNome==='__manage__') continue;
       var brl=cotacao*r.usd;
       var qty=parseInt(r.qty)||0;
       var j;
@@ -4383,6 +4406,9 @@ function confirmarApagarContainer(){
   dbDel('estoque_distribuicao','container_id=eq.'+cid);
   dbDel('container_pagamentos','container_id=eq.'+cid);
   dbDel('container_sku_rows','container_id=eq.'+cid);
+  // Clean ROI and Simulation params for this container
+  dbDel('configuracoes','chave=eq.roi_'+cid);
+  dbDel('configuracoes','chave=eq.sim_'+cid);
   try{localStorage.removeItem('ax_custo_'+cid);}catch(e){}
   closeModal('m-del-cont');
   delContId='';
