@@ -2614,7 +2614,7 @@ function importCSV(input){
             }
           }
         }
-        vlist.push({id:Date.now()*10000+(i*1000)+Math.floor(Math.random()*999),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:resolvedProdId,origem:resolvedLocal,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
+        vlist.push({id:Date.now()*10000+(i2*1000)+Math.floor(Math.random()*999),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:resolvedProdId,origem:resolvedLocal,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
       }
       if(!vlist.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada.';return;}
       importPending=vlist;
