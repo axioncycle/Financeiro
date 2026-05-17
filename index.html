@@ -1535,6 +1535,9 @@ function renderDash(){
   for(i=0;i<vendas.length;i++) mset[mkey(vendas[i].date)]=1;
   var months=Object.keys(mset).sort().reverse();
   var html='<span class="chip'+(selMonth==='all'?' on':'')+'" onclick="setMonth(\'all\')">Tudo</span>';
+  html+='<span class="chip'+(selMonth==='12m'?' on':'')+'" onclick="setMonth(\'12m\')" style="background:'+(selMonth==='12m'?'#1E90FF':'var(--sbtn-bg)')+';">12M</span>';
+  html+='<span class="chip'+(selMonth==='6m'?' on':'')+'" onclick="setMonth(\'6m\')" style="background:'+(selMonth==='6m'?'#1E90FF':'var(--sbtn-bg)')+';">6M</span>';
+  html+='<span class="chip'+(selMonth==='3m'?' on':'')+'" onclick="setMonth(\'3m\')" style="background:'+(selMonth==='3m'?'#1E90FF':'var(--sbtn-bg)')+';">3M</span>';
   for(i=0;i<months.length;i++){
     var m=months[i];
     html+='<span class="chip'+(selMonth===m?' on':'')+'" onclick="setMonth(\''+m+'\')">'+mlabel(m)+'</span>';
@@ -1542,8 +1545,17 @@ function renderDash(){
   document.getElementById('mchips').innerHTML=html;
 
   var fv=[];
+  var _cutoffPeriod=null;
+  if(selMonth==='12m'||selMonth==='6m'||selMonth==='3m'){
+    _cutoffPeriod=new Date();
+    _cutoffPeriod.setMonth(_cutoffPeriod.getMonth()-({'12m':12,'6m':6,'3m':3}[selMonth]));
+    _cutoffPeriod.setDate(1);_cutoffPeriod.setHours(0,0,0,0);
+  }
   for(i=0;i<vendas.length;i++){
-    if(selMonth==='all'||mkey(vendas[i].date)===selMonth) fv.push(vendas[i]);
+    var _vd=vendas[i];
+    if(selMonth==='all') fv.push(_vd);
+    else if(_cutoffPeriod&&new Date(_vd.date)>=_cutoffPeriod) fv.push(_vd);
+    else if(!_cutoffPeriod&&mkey(_vd.date)===selMonth) fv.push(_vd);
   }
   var fat=0,lucro=0,lsi=0,custo=0;
   for(i=0;i<fv.length;i++){fat+=fv[i].venda;lucro+=fv[i].lucroLL;lsi+=fv[i].lucroSI;custo+=fv[i].custo+fv[i].taxa+fv[i].imp+fv[i].com+fv[i].frete;}
@@ -2091,9 +2103,13 @@ function drawSkuFatChart(){
 
 function renderCharts(vendas){
   var mMap={},i;
-  for(i=0;i<vendas.length;i++){var v=vendas[i],mk=mkey(v.date);if(!mMap[mk])mMap[mk]={fat:0,liq:0,qtd:0};mMap[mk].fat+=v.venda;mMap[mk].liq+=v.lucroLL;mMap[mk].qtd++;}
+  // For period filters, use only the filtered vendas; otherwise last 12 months
+  var chartVendas=vendas;
+  if(selMonth==='all'||selMonth==='12m'){chartVendas=vendas;} // last 12 handled by slice(-12)
+  for(i=0;i<chartVendas.length;i++){var v=chartVendas[i],mk=mkey(v.date);if(!mMap[mk])mMap[mk]={fat:0,liq:0,qtd:0};mMap[mk].fat+=v.venda;mMap[mk].liq+=v.lucroLL;mMap[mk].qtd++;}
   var keys=Object.keys(mMap).sort();
-  var last=keys.slice(-12);
+  var nMonths=selMonth==='6m'?6:selMonth==='3m'?3:12;
+  var last=keys.slice(-nMonths);
   var labels=[],fat=[],liq=[],qtd=[];
   for(i=0;i<last.length;i++){var mk=last[i],p=mk.split('-'),ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];labels.push(ms[parseInt(p[1])-1]+'/'+p[0].slice(2));fat.push(mMap[mk].fat);liq.push(mMap[mk].liq);qtd.push(mMap[mk].qtd);}
   cData={labels:labels,fat:fat,liq:liq,qtd:qtd,vendas:vendas};
