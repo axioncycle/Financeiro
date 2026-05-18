@@ -435,7 +435,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
   <div class="card" style="border-color:#1E90FF33;">
     <div class="stitle" style="margin-top:0;color:#1E90FF;">Importar CSV</div>
-    <p style="font-size:11px;color:#666;margin-bottom:10px;">Colunas: DATA, PRODUTO, CANAL, CUSTO, VENDA, TAXA ML, FRETE, NOTA FISCAL</p>
+    <p style="font-size:11px;color:#666;margin-bottom:10px;">Colunas: DATA, PRODUTO, CANAL, CUSTO, VENDA, TAXA ML, FRETE, NOTA FISCAL, CLIENTE (opcional)</p>
     <button onclick="baixarModelo()" class="btn btn-o" style="margin-bottom:8px;">&#11015; BAIXAR MODELO (.csv)</button>
     <label style="display:block;cursor:pointer;">
       <div class="btn">&#128194; SELECIONAR ARQUIVO .CSV</div>
@@ -2504,14 +2504,14 @@ function renderHist(){
 
 // ── IMPORT CSV ────────────────────────────────────────────────────────────
 function baixarModelo(){
-  var hdr=['DATA','PRODUTO','CANAL','CUSTO','VENDA','TAXA ML','FRETE','NOTA FISCAL'];
+  var hdr=['DATA','PRODUTO','CANAL','CUSTO','VENDA','TAXA ML','FRETE','NOTA FISCAL','CLIENTE'];
   var ex=[
-    ['15/01/2025','Rim brake 60mm BLACK','WhatsApp','2000','4699','0','0','0'],
-    ['18/01/2025','Disc brake 60mm CINZA','Mercado Livre','2000','4699','758.84','85.95','312.73'],
-    ['22/01/2025','Rim brake 50mm BRANCO','Site','2000','4699','140.97','0','0']
+    ['15/01/2025','Rim brake 60mm BLACK','WhatsApp','2000','4699','0','0','0','João Silva'],
+    ['18/01/2025','Disc brake 60mm CINZA','Mercado Livre','2000','4699','758.84','85.95','312.73',''],
+    ['22/01/2025','Rim brake 50mm BRANCO','Site','2000','4699','140.97','0','0','Maria Santos']
   ];
   var rows=[hdr].concat(ex);
-  var csv=rows.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n');
+  var csv=rows.map(function(r){return r.join(';');}).join('\n');
   var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');a.href=url;a.download='axion_modelo.csv';a.click();
