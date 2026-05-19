@@ -5261,7 +5261,7 @@ function getLast6Months(){
   var vendas=loadVendas();
   var mSet={};
   vendas.forEach(function(v){var mk=mkey(v.date);if(mk) mSet[mk]=1;});
-  return Object.keys(mSet).sort().slice(-6);
+  return Object.keys(mSet).sort().slice(-4);
 }
 
 function calcSimMeta(){
@@ -5316,7 +5316,7 @@ function calcSimPreco(){
   var el=document.getElementById('sim-preco-result');
   if(!custo||!margLiqDesej){if(el) el.style.display='none';return;}
 
-  // Get fixas + DAS médios dos últimos 6 meses
+  // Get fixas + DAS médios dos últimos 4 meses
   var months=getLast6Months();
   var totalFixas=0,totalDAS=0,totalExtras=0,totalFin=0,totalVendas=0;
   var vendas6=loadVendas();
