@@ -5241,7 +5241,8 @@ function calcDRE6m(months){
     if(d.fixas) d.fixas.forEach(function(f){fixas+=f.valor||0;});
     if(d.extras) d.extras.forEach(function(e){extras+=e.valor||0;});
     if(d.financeiro) d.financeiro.forEach(function(f){fin+=f.valor||0;});
-    das+=d.das>0?d.das:0;
+    if(d.das>0) das+=d.das;
+    else loadVendas().forEach(function(v){if(mkey(v.date)===mk) das+=v.imp||0;});
   });
   if(!das) das=imp;
   var recLiq=fat-taxas;
@@ -5326,7 +5327,12 @@ function calcSimPreco(){
     if(d.fixas) d.fixas.forEach(function(f){totalFixas+=f.valor||0;});
     if(d.extras) d.extras.forEach(function(e){totalExtras+=e.valor||0;});
     if(d.financeiro) d.financeiro.forEach(function(f){totalFin+=f.valor||0;});
-    totalDAS+=d.das>0?d.das:0;
+    if(d.das>0){
+      totalDAS+=d.das;
+    } else {
+      // Fallback: sum imp from vendas for this month (estimated DAS)
+      vendas6.forEach(function(v){if(mkey(v.date)===mk) totalDAS+=v.imp||0;});
+    }
   });
 
   // Médias mensais
