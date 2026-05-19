@@ -227,6 +227,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 <nav class="nav">
   <button class="nb on" id="nb-dash" onclick="goTo('dash')"><span class="ic">&#128202;</span>Dashboard</button>
+  <button class="nb" id="nb-dash2" onclick="goTo('dash2')"><span class="ic">&#128640;</span>Análise</button>
   <button class="nb" id="nb-vend" onclick="goTo('vend')"><span class="ic">&#128176;</span>Vendas</button>
   <button class="nb" id="nb-est" onclick="goTo('est')"><span class="ic">&#128230;</span>Estoque</button>
   <button class="nb" id="nb-res" onclick="goTo('res')"><span class="ic">&#128200;</span>Resultado</button>
@@ -266,12 +267,16 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="kpi"><div class="klbl">Ticket Medio</div><div class="kval" id="kt">R$ 0</div></div>
   </div>
   <div class="kgrid">
-    <div class="kpi"><div class="klbl">Lucro s/ Imposto</div><div class="kval gr" id="klsi">R$ 0</div></div>
-    <div class="kpi"><div class="klbl">Margem s/ Imposto</div><div class="kval gr" id="kmsi">0%</div></div>
+    <div class="kpi"><div class="klbl">Margem Contribuição</div><div class="kval gr" id="klsi">R$ 0</div></div>
+    <div class="kpi"><div class="klbl">Margem Contrib. %</div><div class="kval gr" id="kmsi">0%</div></div>
   </div>
   <div class="kgrid">
-    <div class="kpi"><div class="klbl">Lucro Liq Estimado</div><div class="kval gr" id="kl">R$ 0</div></div>
-    <div class="kpi"><div class="klbl">Margem Liquida</div><div class="kval gr" id="km">0%</div></div>
+    <div class="kpi"><div class="klbl">EBITDA</div><div class="kval gr" id="kebitda">R$ 0</div></div>
+    <div class="kpi"><div class="klbl">Margem EBITDA</div><div class="kval gr" id="kmebitda">0%</div></div>
+  </div>
+  <div class="kgrid">
+    <div class="kpi"><div class="klbl">Lucro Líquido</div><div class="kval gr" id="kl">R$ 0</div></div>
+    <div class="kpi"><div class="klbl">Margem Líquida</div><div class="kval gr" id="km">0%</div></div>
   </div>
   <div class="kgrid">
     <div class="kpi"><div class="klbl">Capital em Estoque</div><div class="kval or" id="k-cap-est">R$ 0</div></div>
@@ -281,8 +286,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
     <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;">
       <button onclick="showChart('fat')" id="ctab-fat" class="chip on">Faturamento</button>
-      <button onclick="showChart('liq')" id="ctab-liq" class="chip">Resultado</button>
+      <button onclick="showChart('fat-ano')" id="ctab-fat-ano" class="chip">Fat. Anual</button>
+      <button onclick="showChart('liq')" id="ctab-liq" class="chip">Lucro Líquido</button>
+      <button onclick="showChart('liq-ano')" id="ctab-liq-ano" class="chip">Lucro Anual</button>
       <button onclick="showChart('qtd')" id="ctab-qtd" class="chip">Qtd Vendas</button>
+      <button onclick="showChart('qtd-ano')" id="ctab-qtd-ano" class="chip">Qtd Anual</button>
       <button onclick="showChart('canal')" id="ctab-canal" class="chip">Por Canal</button>
       <button onclick="showChart('sku-est')" id="ctab-sku-est" class="chip">Estoque SKU</button>
       <button onclick="showChart('sku-fat')" id="ctab-sku-fat" class="chip">Mix Faturamento</button>
@@ -302,6 +310,106 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div id="d-ult"></div>
   <div style="height:8px;"></div>
   <button class="btn btn-g" onclick="exportCSV()">&#11015; Exportar CSV</button>
+</div>
+
+<!-- DASHBOARD 2 -->
+<div class="pg" id="pg-dash2">
+  <!-- Period Filter -->
+  <div style="padding:10px 0 6px;">
+    <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:6px;">PERÍODO DE ANÁLISE</div>
+    <div id="d2-filter" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+  </div>
+
+  <!-- DRE Cascata -->
+  <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:12px;">
+    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">📊 DRE — DEMONSTRAÇÃO DE RESULTADO</div>
+    <div id="d2-dre"></div>
+  </div>
+
+  <!-- Grid KPIs por produto -->
+  <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:8px;">MARGEM POR PRODUTO</div>
+  <div id="d2-skus" style="margin-bottom:12px;"></div>
+
+  <!-- Comparação entre períodos -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
+    <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:10px;">📅 COMPARAÇÃO DE PERÍODOS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Período A</div>
+        <select class="fs" id="d2-per-a" onchange="renderDash2Comp()" style="font-size:11px;"></select>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Período B</div>
+        <select class="fs" id="d2-per-b" onchange="renderDash2Comp()" style="font-size:11px;"></select>
+      </div>
+    </div>
+    <div id="d2-comp"></div>
+  </div>
+
+  <!-- Simuladores -->
+  <div style="background:linear-gradient(135deg,#0f1f0f,#0a2a0a);border:1px solid #22c55e33;border-radius:14px;padding:14px;margin-bottom:12px;">
+    <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">🚀 SIMULADORES ESTRATÉGICOS</div>
+
+    <!-- Simulador de Meta -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">Meta de Lucro</div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:6px;">Quantas vendas para atingir determinado <strong>Lucro Líquido</strong> (pós fixas e DAS)?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Meta de lucro (R$)</div>
+          <input class="fi" id="sim-meta-lucro" type="number" placeholder="ex: 100000" oninput="calcSimMeta()">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Ticket médio (R$)</div>
+          <input class="fi" id="sim-meta-ticket" type="number" placeholder="ex: 4699" oninput="calcSimMeta()">
+        </div>
+      </div>
+      <div id="sim-meta-result" style="background:var(--bg3);border-radius:8px;padding:10px;display:none;"></div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin-bottom:14px;"></div>
+
+    <!-- Simulador de Preço Ideal -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">Preço Mínimo por Margem Líquida</div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Qual o preço mínimo para atingir sua meta de margem? Compare com seu preço atual.</div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:6px;">Qual preço cobrar para atingir a <strong>Margem Líquida</strong> desejada? (inclui rateio de fixas+DAS)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Custo (R$)</div>
+          <input class="fi" id="sim-preco-custo" type="number" placeholder="ex: 2000" oninput="calcSimPreco()">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Margem desejada %</div>
+          <input class="fi" id="sim-preco-margem" type="number" placeholder="ex: 40" oninput="calcSimPreco()">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Taxa ML %</div>
+          <input class="fi" id="sim-preco-taxa" type="number" placeholder="ex: 16" oninput="calcSimPreco()">
+        </div>
+      </div>
+      <div id="sim-preco-result" style="background:var(--bg3);border-radius:8px;padding:10px;display:none;"></div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin-bottom:14px;"></div>
+
+    <!-- Projeção de Escala -->
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">Projeção de Escala</div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:6px;">Impacto no lucro com crescimento de vendas</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Vendas atuais/mês</div>
+          <input class="fi" id="sim-esc-atual" type="number" placeholder="ex: 20" oninput="calcSimEscala()">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Crescimento %</div>
+          <input class="fi" id="sim-esc-pct" type="number" placeholder="ex: 50" oninput="calcSimEscala()">
+        </div>
+      </div>
+      <div id="sim-esc-result" style="background:var(--bg3);border-radius:8px;padding:10px;display:none;"></div>
+    </div>
+  </div>
 </div>
 
 <!-- VENDAS -->
@@ -967,7 +1075,7 @@ function saveContainersDB(cs){
   }
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
-function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
+function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
 function loadCustomSKUsDB(cb){
   var done=0;
   function chk(){done++;if(done>=3&&cb)cb();}
@@ -1014,6 +1122,12 @@ function initDB(cb){
   loadCustomSKUsDB(chk);
   syncDespesasFromDB(chk);
   // Load meta from Supabase
+  dbGet('configuracoes','chave=eq.dash2_filter').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){d2SelPeriod=rows[0].valor;}
+  }).catch(function(){});
+  dbGet('configuracoes','chave=eq.dash_filter').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){selMonth=rows[0].valor;}
+  }).catch(function(){});
   dbGet('configuracoes','chave=eq.ax_meta').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
       var m=parseFloat(rows[0].valor)||0;
@@ -1155,7 +1269,7 @@ var PAG_TAXA={
 
 var FIXAS_P=[
   {nome:"Contador",valor:383.00},{nome:"Aluguel",valor:650.00},
-  {nome:"DAS",valor:0},{nome:"INSS",valor:178.31},
+  {nome:"INSS",valor:178.31},
   {nome:"Tiny",valor:84.90},{nome:"Marketing",valor:0},
   {nome:"Manutencao Site",valor:147.90}
 ];
@@ -1431,7 +1545,7 @@ function removerPINModal(){
 // ── NAV ──────────────────────────────────────────────────────────────────
 var curPage='dash';
 function goTo(p){
-  var pages=['dash','vend','est','res','custo'];
+  var pages=['dash','dash2','vend','est','res','custo'];
   var i;
   for(i=0;i<pages.length;i++){
     var pg=document.getElementById('pg-'+pages[i]);
@@ -1439,8 +1553,8 @@ function goTo(p){
     if(pg) pg.className='pg'+(pages[i]===p?' on':'');
     if(nb) nb.className='nb'+(pages[i]===p?' on':'');
   }
-  curPage=p;
-  if(p==='dash') renderDash();
+  curPage=p;if(p==='dash2'){syncDespesasFromDB(function(){renderDash2();});return;}
+  if(p==='dash'){syncDespesasFromDB(function(){renderDash();});return;}
   if(p==='vend'){fillOrigSelect();renderHist();}
   if(p==='est') renderEst();
   if(p==='res'){
@@ -1466,7 +1580,11 @@ var cData={labels:[],fat:[],liq:[],qtd:[]};
 var activeChart='fat';
 var tipIdx=-1;
 
-function setMonth(m){selMonth=m;renderDash();}
+function setMonth(m){
+  selMonth=m;
+  renderDash();
+  dbUpsert('configuracoes',{chave:'dash_filter',valor:m});
+}
 
 function saveMeta(val){
   var m=parseFloat(val)||0;
@@ -1557,23 +1675,67 @@ function renderDash(){
     else if(_cutoffPeriod&&new Date(_vd.date)>=_cutoffPeriod) fv.push(_vd);
     else if(!_cutoffPeriod&&mkey(_vd.date)===selMonth) fv.push(_vd);
   }
-  var fat=0,lucro=0,lsi=0,custo=0;
-  for(i=0;i<fv.length;i++){fat+=fv[i].venda;lucro+=fv[i].lucroLL;lsi+=fv[i].lucroSI;custo+=fv[i].custo+fv[i].taxa+fv[i].imp+fv[i].com+fv[i].frete;}
+  // ── DRE METHODOLOGY (same as Análise tab) ──────────────────
+  var fat=0,lsi=0,taxas=0,custoP=0,frete=0,imp=0,periodos={};
+  for(i=0;i<fv.length;i++){
+    var _v=fv[i];
+    fat+=_v.venda||0;
+    taxas+=(_v.taxa||0)+(_v.com||0);
+    custoP+=_v.custo||0;
+    frete+=_v.frete||0;
+    imp+=_v.imp||0;
+    lsi+=_v.lucroSI||0;
+    var mk_=mkey(_v.date);if(mk_) periodos[mk_]=1;
+  }
+  // Sum fixas and extras from DB_DESP for the period
+  var totalFixas=0,totalExtras=0,totalFin=0;
+  for(var mk_ in periodos){
+    var d_=DB_DESP[mk_];
+    if(d_){
+      if(d_.fixas) for(var fi_=0;fi_<d_.fixas.length;fi_++) totalFixas+=d_.fixas[fi_].valor||0;
+      if(d_.extras) for(var ei_=0;ei_<d_.extras.length;ei_++) totalExtras+=d_.extras[ei_].valor||0;
+      if(d_.financeiro) for(var fni_=0;fni_<d_.financeiro.length;fni_++) totalFin+=d_.financeiro[fni_].valor||0;
+    }
+  }
+  var custo=taxas+custoP+frete+imp; // for display
+  // DRE cascade
+  // DAS real from Resultado takes priority over estimated imp from vendas
+  var dasReal=0;
+  for(var mk_ in periodos){
+    var d_=DB_DESP[mk_];
+    if(d_&&d_.das>0) dasReal+=d_.das;
+    else {
+      // fallback: sum imp from vendas for this month
+      for(var vi_=0;vi_<fv.length;vi_++){if(mkey(fv[vi_].date)===mk_) dasReal+=fv[vi_].imp||0;}
+    }
+  }
+  var recLiq=fat-taxas;
+  var lucroBruto=recLiq-custoP;
+  var despVar=frete+totalExtras;
+  var margContrib=lucroBruto-despVar;
+  var ebitda=margContrib-totalFixas;
+  var lucro=ebitda+totalFin-dasReal;
+  var imp=dasReal;
   var margem=fat?(lucro/fat*100):0;
-  var margemSI=fat?(lsi/fat*100):0;
+  var margemContrib=fat?(margContrib/fat*100):0;  // replaces margemSI
+  var margemEbitda=fat?(ebitda/fat*100):0;
 
   document.getElementById('kf').textContent=fmt(fat);
   document.getElementById('kl').textContent=fmt(lucro);
   document.getElementById('kl').className='kval '+(lucro>=0?'gr':'rd');
   document.getElementById('kq').textContent=fv.length;
   document.getElementById('kt').textContent=fv.length?fmt(fat/fv.length):'R$ 0';
-  document.getElementById('klsi').textContent=fmt(lsi);
-  document.getElementById('klsi').className='kval '+(lsi>=0?'gr':'rd');
-  document.getElementById('kmsi').textContent=margemSI.toFixed(1)+'%';
-  document.getElementById('kmsi').className='kval '+(margemSI>=0?'gr':'rd');
+  document.getElementById('klsi').textContent=fmt(margContrib);
+  document.getElementById('klsi').className='kval '+(margContrib>=0?'gr':'rd');
+  document.getElementById('kmsi').textContent=margemContrib.toFixed(1)+'%';
+  document.getElementById('kmsi').className='kval '+(margemContrib>=0?'gr':'rd');
   document.getElementById('kc').textContent=fmt(custo);
   document.getElementById('km').textContent=margem.toFixed(1)+'%';
   document.getElementById('km').className='kval '+(margem>=0?'gr':'rd');
+  var elEbitda=document.getElementById('kebitda');
+  var elMebitda=document.getElementById('kmebitda');
+  if(elEbitda){elEbitda.textContent=fmt(ebitda);elEbitda.className='kval '+(ebitda>=0?'gr':'rd');}
+  if(elMebitda){elMebitda.textContent=margemEbitda.toFixed(1)+'%';elMebitda.className='kval '+(margemEbitda>=0?'gr':'rd');}
   // Capital em estoque: soma custo * qty de todas as unidades em todos containers
   var cs=loadContainers();
   var capEst=0,unEst=0,ci2,s2,loc2,allS2=getAllSKUs(),locais2=loadLocais();
@@ -1680,9 +1842,13 @@ function renderDash(){
 }
 
 // ── CHARTS ───────────────────────────────────────────────────────────────
+function setChart(type){
+  showChart(type==='fat'?'fat':type==='liq'?'liq':type==='qtd'?'qtd':type);
+}
+
 function showChart(type){
   activeChart=type;
-  var tabs=['fat','liq','qtd','canal','sku-est','sku-fat'];
+  var tabs=['fat','fat-ano','liq','liq-ano','qtd','qtd-ano','canal','sku-est','sku-fat'];
   var i;
   for(i=0;i<tabs.length;i++){
     var btn=document.getElementById('ctab-'+tabs[i]);
@@ -1691,16 +1857,21 @@ function showChart(type){
     else btn.className='chip';
   }
   var titles={
-    fat:'Faturamento Mensal (R$)',liq:'Resultado Liquido Mensal (R$)',
-    qtd:'Quantidade de Vendas',canal:'Vendas por Canal',
-    'sku-est':'Estoque vs Vendas por SKU','sku-fat':'Mix de Faturamento por SKU'
+    fat:'Faturamento Mensal (R$)',
+    'fat-ano':'Faturamento Anual (R$)',
+    liq:'Lucro Líquido Mensal (R$)',
+    'liq-ano':'Lucro Líquido Anual (R$)',
+    qtd:'Qtd Vendas Mensal',
+    'qtd-ano':'Qtd Vendas Anual',
+    canal:'Vendas por Canal',
+    'sku-est':'Estoque vs Vendas por SKU',
+    'sku-fat':'Mix de Faturamento por SKU'
   };
   var el=document.getElementById('chart-title');
   if(el) el.textContent=titles[type]||'';
   tipIdx=-1;
   var tip=document.getElementById('chart-tip');
   if(tip) tip.style.display='none';
-  // Toggle canvases
   var cm=document.getElementById('chart-main');
   var ca=document.getElementById('chart-alt');
   var isAlt=(type==='sku-est'||type==='sku-fat');
@@ -1709,6 +1880,7 @@ function showChart(type){
   if(type==='canal') drawCanalChart();
   else if(type==='sku-est') drawSkuEstoqueChart();
   else if(type==='sku-fat') drawSkuFatChart();
+  else if(type==='fat-ano'||type==='liq-ano'||type==='qtd-ano') drawAnualChart(type);
   else drawChart();
 }
 
@@ -1718,56 +1890,151 @@ function fmtChartV(n){
   return 'R$'+n.toFixed(0);
 }
 
+function drawAnualChart(type){
+  var canvas=document.getElementById('chart-main');
+  if(!canvas) return;
+  var vendas=loadVendas();
+  // Group by year
+  var yMap={};
+  vendas.forEach(function(v){
+    var yr=v.date?v.date.substring(0,4):'?';
+    if(!yMap[yr]) yMap[yr]={fat:0,liq:0,qtd:0};
+    yMap[yr].fat+=v.venda||0;
+    yMap[yr].liq+=v.lucroLL||0;
+    yMap[yr].qtd++;
+  });
+  var years=Object.keys(yMap).sort();
+  var vals=years.map(function(yr){
+    return type==='liq-ano'?yMap[yr].liq:type==='qtd-ano'?yMap[yr].qtd:yMap[yr].fat;
+  });
+  var color=type==='fat-ano'?'#1E90FF':type==='liq-ano'?'#22c55e':'#f59e0b';
+  var isQtd=type==='qtd-ano';
+  var n=years.length;
+  var W=canvas.parentNode.offsetWidth||300;
+  var H=160;
+  canvas.width=W*2;canvas.height=H*2;canvas.style.width=W+'px';canvas.style.height=H+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.scale(2,2);
+  ctx.clearRect(0,0,W,H);
+  if(!n) return;
+  var maxV=Math.max.apply(null,vals.map(Math.abs))||1;
+  var pT=20,pB=30,pL=10,pR=10;
+  var cW=W-pL-pR,cH=H-pT-pB;
+  var bW=Math.min(60,Math.floor(cW/n)-8);
+  var xp=function(i){return pL+(i+0.5)*(cW/n);};
+  // Gridlines
+  ctx.strokeStyle='#222';ctx.lineWidth=0.5;
+  for(var g=0;g<=4;g++){
+    var gy=pT+cH*(1-g/4);
+    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
+    var gv=maxV*g/4;
+    ctx.fillStyle='#444';ctx.font='8px Arial';ctx.textAlign='left';
+    ctx.fillText(isQtd?Math.round(gv).toString():formatK(gv),pL+2,gy-2);
+  }
+  // Bars
+  for(var bi=0;bi<n;bi++){
+    var v=vals[bi];
+    var barH=Math.abs(v)/maxV*cH;
+    var bx=xp(bi)-bW/2;
+    var by=pT+cH-barH;
+    // Gradient
+    var grad=ctx.createLinearGradient(0,by,0,by+barH);
+    grad.addColorStop(0,color);
+    grad.addColorStop(1,color+'44');
+    ctx.fillStyle=grad;
+    ctx.beginPath();
+    ctx.roundRect?ctx.roundRect(bx,by,bW,barH,3):ctx.rect(bx,by,bW,barH);
+    ctx.fill();
+    // Value label on bar
+    ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';
+    var lbl=isQtd?String(Math.round(v)):formatK(v);
+    ctx.fillText(lbl,xp(bi),by-3);
+    // Year label
+    ctx.fillStyle='#888';ctx.font='9px Arial';
+    ctx.fillText(years[bi],xp(bi),H-pB+12);
+  }
+}
+
+function formatK(v){
+  if(Math.abs(v)>=1000000) return 'R$'+(v/1000000).toFixed(1)+'M';
+  if(Math.abs(v)>=1000) return 'R$'+(v/1000).toFixed(0)+'k';
+  return 'R$'+Math.round(v);
+}
+
 function drawChart(){
   var canvas=document.getElementById('chart-main');
   if(!canvas) return;
-  var vals=activeChart==='liq'?cData.liq:activeChart==='qtd'?cData.qtd:cData.fat;
+  var isQtd=activeChart==='qtd';
+  var vals=activeChart==='liq'?cData.liq:isQtd?cData.qtd:cData.fat;
   var labels=cData.labels;
   var color=activeChart==='fat'?'#1E90FF':activeChart==='liq'?'#22c55e':'#f59e0b';
   var n=labels.length;
   var W=canvas.parentNode.offsetWidth||300;
-  var H=160;
+  var H=170;
   canvas.width=W*2;canvas.height=H*2;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
   var ctx=canvas.getContext('2d');
   ctx.scale(2,2);ctx.clearRect(0,0,W,H);
   if(!n){ctx.fillStyle='#444';ctx.font='12px Arial';ctx.textAlign='center';ctx.fillText('Sem dados',W/2,H/2);return;}
-  var pL=48,pR=10,pT=14,pB=22;
+
+  var pT=22,pB=28,pL=8,pR=8;
   var cW=W-pL-pR,cH=H-pT-pB;
-  var maxV=vals[0],minV=vals[0],i;
-  for(i=1;i<n;i++){if(vals[i]>maxV)maxV=vals[i];if(vals[i]<minV)minV=vals[i];}
-  var range=maxV-minV;
-  if(range<1){maxV+=100;minV-=100;range=200;}
-  else{maxV+=range*0.15;minV-=range*0.15;range=maxV-minV;}
-  function xp(j){return pL+j*(cW/(n>1?n-1:1));}
-  function yp(v){return pT+cH*(1-(v-minV)/range);}
-  var gc=4,j;
-  for(j=0;j<=gc;j++){
-    var gv=minV+range*j/gc,gy=yp(gv);
-    ctx.strokeStyle='#1e1e1e';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
-    ctx.fillStyle='#555';ctx.font='9px Arial';ctx.textAlign='right';ctx.fillText(fmtChartV(gv),pL-3,gy+3);
+
+  // Find range including negatives
+  var maxV=Math.max.apply(null,vals.map(function(v){return Math.abs(v)>0?v:-Infinity;}))||1;
+  var minV=Math.min.apply(null,vals);
+  if(minV>=0) minV=0;
+  var range=maxV-minV||1;
+  maxV+=range*0.18;
+  range=maxV-minV;
+
+  var bW=Math.max(4,Math.min(30,Math.floor(cW/n)-4));
+  var xp=function(i){return pL+(i+0.5)*(cW/n);};
+  var yBase=pT+cH*(maxV/range); // zero line y position
+
+  // Gridlines
+  var gridVals=[0,maxV*0.33,maxV*0.66,maxV];
+  if(minV<0) gridVals.unshift(minV*0.5,minV);
+  for(var gi=0;gi<gridVals.length;gi++){
+    var gv=gridVals[gi];
+    var gy=pT+cH*(1-(gv-minV)/range);
+    ctx.strokeStyle=gv===0?'#333':'#1a1a1a';
+    ctx.lineWidth=gv===0?1:0.5;
+    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
   }
-  if(minV<0&&maxV>0){ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pL,yp(0));ctx.lineTo(W-pR,yp(0));ctx.stroke();}
-  if(n>1){
-    var gr=ctx.createLinearGradient(0,pT,0,pT+cH);
-    gr.addColorStop(0,color+'30');gr.addColorStop(1,color+'00');
-    ctx.beginPath();ctx.moveTo(xp(0),yp(vals[0]));
-    for(i=1;i<n;i++){var xc=(xp(i-1)+xp(i))/2,yc=(yp(vals[i-1])+yp(vals[i]))/2;ctx.quadraticCurveTo(xp(i-1),yp(vals[i-1]),xc,yc);}
-    ctx.lineTo(xp(n-1),yp(vals[n-1]));ctx.lineTo(xp(n-1),pT+cH);ctx.lineTo(xp(0),pT+cH);ctx.closePath();
-    ctx.fillStyle=gr;ctx.fill();
-    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(xp(0),yp(vals[0]));
-    for(i=1;i<n;i++){var xc=(xp(i-1)+xp(i))/2,yc=(yp(vals[i-1])+yp(vals[i]))/2;ctx.quadraticCurveTo(xp(i-1),yp(vals[i-1]),xc,yc);}
-    ctx.lineTo(xp(n-1),yp(vals[n-1]));ctx.stroke();
-  }
+
+  // Bars
+  var i;
   for(i=0;i<n;i++){
-    ctx.beginPath();ctx.arc(xp(i),yp(vals[i]),i===tipIdx?5:3,0,6.28);
-    ctx.fillStyle=i===tipIdx?'#fff':color;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.fill();ctx.stroke();
+    var v=vals[i];
+    var bH=Math.abs(v)/range*cH;
+    var bx=xp(i)-bW/2;
+    var by=v>=0?yBase-bH:yBase;
+    var grad=ctx.createLinearGradient(0,by,0,by+bH);
+    var c1=v<0?'#ef4444':color;
+    grad.addColorStop(0,c1);
+    grad.addColorStop(1,c1+'55');
+    ctx.fillStyle=grad;
+    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,bW,bH,2);ctx.fill();}
+    else{ctx.fillRect(bx,by,bW,bH);}
+
+    // Value label above/below bar
+    var lbl=isQtd?String(Math.round(v)):formatK(v);
+    ctx.fillStyle=v<0?'#ef4444':color;
+    ctx.font='bold 7px Arial';ctx.textAlign='center';
+    ctx.fillText(lbl,xp(i),v>=0?by-2:by+bH+8);
   }
-  if(tipIdx>=0){ctx.strokeStyle='#ffffff15';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xp(tipIdx),pT);ctx.lineTo(xp(tipIdx),pT+cH);ctx.stroke();}
-  var step=n>8?Math.ceil(n/6):1;
-  ctx.fillStyle='#555';ctx.font='9px Arial';ctx.textAlign='center';
-  for(i=0;i<n;i+=step) ctx.fillText(labels[i],xp(i),H-4);
+
+  // Month labels - skip if too many
+  var step=n>10?Math.ceil(n/6):1;
+  ctx.fillStyle='#666';ctx.font='8px Arial';ctx.textAlign='center';
+  for(i=0;i<n;i+=step) ctx.fillText(labels[i],xp(i),H-6);
+
+  // Tooltip highlight
+  if(tipIdx>=0&&tipIdx<n){
+    ctx.strokeStyle='#ffffff20';ctx.lineWidth=bW+4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(xp(tipIdx),pT);ctx.lineTo(xp(tipIdx),pT+cH);ctx.stroke();
+  }
 }
 
 function initChartEvents(){
@@ -1813,10 +2080,10 @@ function initChartEvents(){
       tip.style.left=Math.min(Math.max(pct-8,1),55)+'%';
     } else {
       var n=cData.labels.length;if(!n) return;
-      var pL=48,pR=10;
+      var pL=8,pR=8;
       var cW=rect.width-pL-pR;
       var best=0,bd=99999,i;
-      for(i=0;i<n;i++){var px=pL+i*(cW/(n>1?n-1:1));var d=Math.abs(x-px);if(d<bd){bd=d;best=i;}}
+      for(i=0;i<n;i++){var px=pL+(i+0.5)*(cW/n);var d=Math.abs(x-px);if(d<bd){bd=d;best=i;}}
       if(tipIdx===best) return;
       tipIdx=best;drawChart();
       var vals=activeChart==='liq'?cData.liq:activeChart==='qtd'?cData.qtd:cData.fat;
@@ -2103,15 +2370,41 @@ function drawSkuFatChart(){
 
 function renderCharts(vendas){
   var mMap={},i;
-  // For period filters, use only the filtered vendas; otherwise last 12 months
   var chartVendas=vendas;
-  if(selMonth==='all'||selMonth==='12m'){chartVendas=vendas;} // last 12 handled by slice(-12)
-  for(i=0;i<chartVendas.length;i++){var v=chartVendas[i],mk=mkey(v.date);if(!mMap[mk])mMap[mk]={fat:0,liq:0,qtd:0};mMap[mk].fat+=v.venda;mMap[mk].liq+=v.lucroLL;mMap[mk].qtd++;}
+  for(i=0;i<chartVendas.length;i++){
+    var v=chartVendas[i],mk=mkey(v.date);
+    if(!mMap[mk])mMap[mk]={fat:0,taxas:0,custo:0,frete:0,imp:0,qtd:0};
+    mMap[mk].fat+=v.venda||0;
+    mMap[mk].taxas+=(v.taxa||0)+(v.com||0);
+    mMap[mk].custo+=v.custo||0;
+    mMap[mk].frete+=v.frete||0;
+    mMap[mk].imp+=v.imp||0;
+    mMap[mk].qtd++;
+  }
   var keys=Object.keys(mMap).sort();
   var nMonths=selMonth==='6m'?6:selMonth==='3m'?3:12;
   var last=keys.slice(-nMonths);
   var labels=[],fat=[],liq=[],qtd=[];
-  for(i=0;i<last.length;i++){var mk=last[i],p=mk.split('-'),ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];labels.push(ms[parseInt(p[1])-1]+'/'+p[0].slice(2));fat.push(mMap[mk].fat);liq.push(mMap[mk].liq);qtd.push(mMap[mk].qtd);}
+  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  for(i=0;i<last.length;i++){
+    var mk=last[i],p=mk.split('-');
+    labels.push(ms[parseInt(p[1])-1]+'/'+p[0].slice(2));
+    fat.push(mMap[mk].fat);
+    qtd.push(mMap[mk].qtd);
+    // Lucro Líquido real: DRE cascade with fixas from DB_DESP
+    var md=getMDesp(mk);
+    var fixas=0,extras=0,fin=0,das=0,ji;
+    for(ji=0;ji<md.fixas.length;ji++) fixas+=parseFloat(md.fixas[ji].valor)||0;
+    for(ji=0;ji<md.extras.length;ji++) extras+=parseFloat(md.extras[ji].valor)||0;
+    if(md.financeiro) for(ji=0;ji<md.financeiro.length;ji++) fin+=parseFloat(md.financeiro[ji].valor)||0;
+    das=md.das>0?md.das:mMap[mk].imp;
+    var recLiq=mMap[mk].fat-mMap[mk].taxas;
+    var lucroBruto=recLiq-mMap[mk].custo;
+    var margContrib=lucroBruto-mMap[mk].frete-extras;
+    var ebitda=margContrib-fixas;
+    var lucroLiq=ebitda+fin-das;
+    liq.push(lucroLiq);
+  }
   cData={labels:labels,fat:fat,liq:liq,qtd:qtd,vendas:vendas};
   drawChart();
   initChartEvents();
@@ -2574,16 +2867,39 @@ function importCSV(input){
       var hdrs=parseLine(nonEmpty[0]);
       for(ni=0;ni<hdrs.length;ni++) hdrs[ni]=hdrs[ni].replace(/["']/g,'').toUpperCase().trim();
       function cIdx(names){
-        var j,k;
-        for(j=0;j<names.length;j++){for(k=0;k<hdrs.length;k++){if(hdrs[k]===names[j]) return k;}}
-        for(j=0;j<names.length;j++){for(k=0;k<hdrs.length;k++){if(hdrs[k].indexOf(names[j])>=0) return k;}}
+        var j,k,hu;
+        // Pass 1: case-insensitive exact match
+        for(j=0;j<names.length;j++){
+          for(k=0;k<hdrs.length;k++){
+            if(hdrs[k].toLowerCase()===names[j].toLowerCase()) return k;
+          }
+        }
+        // Pass 2: case-insensitive contains
+        for(j=0;j<names.length;j++){
+          for(k=0;k<hdrs.length;k++){
+            if(hdrs[k].toLowerCase().indexOf(names[j].toLowerCase())>=0) return k;
+          }
+        }
         return -1;
       }
       var cols={
-        data:cIdx(['DATA']),prod:cIdx(['PRODUTO']),canal:cIdx(['CANAL']),
-        custo:cIdx(['CUSTO']),venda:cIdx(['VENDA']),
-        taxa:cIdx(['TAXA ML','TAXA_ML','TAXA%','TAXA %','TAXA']),
-        frete:cIdx(['FRETE']),nf:cIdx(['NOTA FISCAL','NF'])
+        data:   cIdx(['DATA']),
+        prod:   cIdx(['PRODUTO','PRODUCT']),
+        canal:  cIdx(['CANAL']),
+        custo:  cIdx(['CUSTO']),
+        venda:  cIdx(['VENDA','VL.VENDA','VL VENDA','VALOR VENDA']),
+        taxa:   cIdx(['TAXA R$','TAXA ML','TAXA_ML','TAXA %','TAXA']),
+        taxaPct:cIdx(['TAXA%','% TAXA']),
+        frete:  cIdx(['FRETE']),
+        nf:     cIdx(['NOTA FISCAL','NF']),
+        imp:    cIdx(['IMP R$','IMP$','VL IMP','IMPOSTO R$']),
+        impPct: cIdx(['IMP%','IMPOSTO%']),
+        com:    cIdx(['COM R$','COM$','VL COM','COMISSAO R$','COMISSÃO R$']),
+        comPct: cIdx(['COM%','COMISSAO%','COMISSÃO%']),
+        cliente:cIdx(['CLIENTE','CUSTOMER','COMPRADOR']),
+        origem: cIdx(['ORIGEM','ORIGIN','LOCAL']),
+        lucroSI:cIdx(['LUCRO S/IMP','LUCRO S/ IMP','LUCRO SEM IMP']),
+        lucroLL:cIdx(['LUCRO LIQ','LUCRO LÍQ','LUCRO LIQUIDO','LUCRO LÍQUIDO'])
       };
       if(cols.prod<0||cols.venda<0){status.style.color='#ef4444';status.textContent='Colunas PRODUTO e VENDA nao encontradas.';return;}
       function ps(row,idx){return idx>=0?String(row[idx]||'').replace(/["']/g,'').trim():'';}
@@ -2600,10 +2916,28 @@ function importCSV(input){
         var row=parseLine(nonEmpty[i2]);
         var prod=ps(row,cols.prod);var venda2=pn(row,cols.venda);
         if(!prod||!venda2) continue;
-        var custo2=pn(row,cols.custo),taxa2=pn(row,cols.taxa),frete2=pn(row,cols.frete),nf2=pn(row,cols.nf);
+        var custo2=pn(row,cols.custo),frete2=pn(row,cols.frete);
+        // TAXA: prefer R$ value, fallback to % * venda
+        var taxa2=0;
+        if(cols.taxa>=0&&pn(row,cols.taxa)>0) taxa2=pn(row,cols.taxa);
+        else if(cols.taxaPct>=0&&pn(row,cols.taxaPct)>0) taxa2=venda2*pn(row,cols.taxaPct)/100;
+        else taxa2=pn(row,cols.nf>0?cols.nf:-1); // legacy NF fallback
+        // IMPOSTO
+        var nf2=0;
+        if(cols.imp>=0&&pn(row,cols.imp)>0) nf2=pn(row,cols.imp);
+        else if(cols.impPct>=0&&pn(row,cols.impPct)>0) nf2=venda2*pn(row,cols.impPct)/100;
+        else if(cols.nf>=0) nf2=pn(row,cols.nf);
+        // COMISSÃO
+        var com2=0;
+        if(cols.com>=0) com2=pn(row,cols.com);
+        else if(cols.comPct>=0&&pn(row,cols.comPct)>0) com2=venda2*pn(row,cols.comPct)/100;
+        // CANAL & CLIENTE & ORIGEM
         var canal2=ps(row,cols.canal)||( taxa2>0?'Mercado Livre':'WhatsApp');
+        var cli2=(cols.cliente>=0&&ps(row,cols.cliente).trim())?ps(row,cols.cliente).trim():'Importado';
+        var orig2=(cols.origem>=0&&ps(row,cols.origem).trim())?ps(row,cols.origem).trim():'';
         var txPct2=venda2>0?parseFloat((taxa2/venda2*100).toFixed(2)):0;
         var impPct2=venda2>0?parseFloat((nf2/venda2*100).toFixed(2)):0;
+        var comPct2=venda2>0?parseFloat((com2/venda2*100).toFixed(2)):0;
         // Resolve prodId from SKU name
         var resolvedProdId=null,resolvedLocal='',resolvedContId='';
         var allSKUsImp=getAllCustoSKUs();
@@ -2630,7 +2964,12 @@ function importCSV(input){
             }
           }
         }
-        vlist.push({id:Date.now()*10000+(i2*1000)+Math.floor(Math.random()*999),date:pd(ps(row,cols.data)),cliente:'Importado',canal:canal2,produto:prod,prodId:resolvedProdId,origem:resolvedLocal,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:0,com:0,frete:frete2,lucroSI:venda2-custo2-taxa2-frete2,lucroLL:venda2-custo2-taxa2-frete2-nf2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
+        // Use origem from CSV if no stock local was resolved
+        var finalOrig=resolvedLocal||orig2||'';
+        // Calculate lucro from CSV if available (trusted), else calculate
+        var lsi2=cols.lucroSI>=0&&pn(row,cols.lucroSI)!==0?pn(row,cols.lucroSI):(venda2-custo2-taxa2-frete2-com2);
+        var lll2=cols.lucroLL>=0&&pn(row,cols.lucroLL)!==0?pn(row,cols.lucroLL):(venda2-custo2-taxa2-frete2-nf2-com2);
+        vlist.push({id:Date.now()*10000+(i2*1000)+Math.floor(Math.random()*999),date:pd(ps(row,cols.data)),cliente:cli2,canal:canal2,produto:prod,prodId:resolvedProdId,origem:finalOrig,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:comPct2,com:com2,frete:frete2,lucroSI:lsi2,lucroLL:lll2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
       }
       if(!vlist.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada.';return;}
       importPending=vlist;
@@ -2638,7 +2977,7 @@ function importCSV(input){
       for(j3=0;j3<vlist.length;j3++){tF+=vlist[j3].venda;tL+=vlist[j3].lucroLL;tLSI+=vlist[j3].lucroSI;}
       status.style.color='#22c55e';status.textContent=vlist.length+' vendas encontradas.';
       preview.style.display='block';
-      preview.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><div style="font-size:9px;color:var(--text2);font-weight:600;">VENDAS</div><div style="font-size:18px;font-weight:800;color:#1E90FF;">'+vlist.length+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">FATURAMENTO</div><div style="font-size:14px;font-weight:700;">'+fmt(tF)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO S/ IMP</div><div style="font-size:14px;font-weight:700;color:#f59e0b;">'+fmt(tLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO LIQ</div><div style="font-size:14px;font-weight:700;color:#22c55e;">'+fmt(tL)+'</div></div></div>';
+      preview.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><div style="font-size:9px;color:var(--text2);font-weight:600;">VENDAS</div><div style="font-size:18px;font-weight:800;color:#1E90FF;">'+vlist.length+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">FATURAMENTO</div><div style="font-size:14px;font-weight:700;">'+fmt(tF)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">MARG. CONTRIBUIÇÃO</div><div style="font-size:14px;font-weight:700;color:#f59e0b;">'+fmt(tLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO LIQ</div><div style="font-size:14px;font-weight:700;color:#22c55e;">'+fmt(tL)+'</div></div></div>';
       okBtn.style.display='block';
     }catch(err){status.style.color='#ef4444';status.textContent='Erro: '+err.message;}
   };
@@ -2705,7 +3044,7 @@ function confirmarImport(){
 function exportCSV(){
   var vendas=loadVendas();
   if(!vendas.length){toast('Nenhuma venda',true);return;}
-  var hdr=['Data','Cliente','Canal','Produto','Origem','Vl.Venda','Custo','Taxa%','Taxa R$','Frete','Imp%','Imp R$','Com%','Com R$','Lucro s/Imp','Lucro Liq'];
+  var hdr=['Data','Cliente','Canal','Produto','Origem','Vl.Venda','Custo','Taxa%','Taxa R$','Frete','Imp%','Imp R$','Com%','Com R$','Marg. Contribuição','Lucro Liq'];
   var rows=[hdr];
   var i;
   for(i=0;i<vendas.length;i++){
@@ -2834,7 +3173,7 @@ function renderEst(){
   sumCard.appendChild(sumHeader);
   var sumBody=document.createElement('div');
   sumBody.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;';
-  sumBody.innerHTML='<div><div style="font-size:9px;color:#666;font-weight:600;">FAT.</div><div style="font-size:14px;font-weight:800;color:#1E90FF;">'+fmt(cFat)+'</div><div style="font-size:9px;color:#666;">'+cQtd+' venda'+(cQtd!==1?'s':'')+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">LUCRO S/IMP</div><div style="font-size:14px;font-weight:800;color:'+(cLSI>=0?'#22c55e':'#ef4444')+';">'+fmt(cLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">MARGEM</div><div style="font-size:14px;font-weight:800;color:'+(cMg>=0?'#22c55e':'#ef4444')+';">'+cMg.toFixed(1)+'%</div></div>';
+  sumBody.innerHTML='<div><div style="font-size:9px;color:#666;font-weight:600;">FAT.</div><div style="font-size:14px;font-weight:800;color:#1E90FF;">'+fmt(cFat)+'</div><div style="font-size:9px;color:#666;">'+cQtd+' venda'+(cQtd!==1?'s':'')+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">MARG. CONTRIBUIÇÃO</div><div style="font-size:14px;font-weight:800;color:'+(cLSI>=0?'#22c55e':'#ef4444')+';">'+fmt(cLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">MARGEM</div><div style="font-size:14px;font-weight:800;color:'+(cMg>=0?'#22c55e':'#ef4444')+';">'+cMg.toFixed(1)+'%</div></div>';
   sumCard.appendChild(sumBody);
   listEl.appendChild(sumCard);
   // Empty state if no SKUs planned
@@ -3149,12 +3488,21 @@ function restoreStock(local,skuId,containerId){
 }
 
 function getMDesp(mk){
+  // Prefer DB_DESP (from Supabase) over localStorage
+  if(DB_DESP[mk]){
+    if(!DB_DESP[mk].financeiro) DB_DESP[mk].financeiro=[];
+    if(DB_DESP[mk].das===undefined) DB_DESP[mk].das=0;
+    return DB_DESP[mk];
+  }
   var d=loadDesp();
   if(!d[mk]){
     var fixas=[],i;
     for(i=0;i<FIXAS_P.length;i++) fixas.push({nome:FIXAS_P[i].nome,valor:FIXAS_P[i].valor});
-    d[mk]={fixas:fixas,extras:[]};
+    d[mk]={fixas:fixas,extras:[],financeiro:[],das:0};
+    saveDespDB(mk,d[mk]);
   }
+  if(!d[mk].financeiro) d[mk].financeiro=[];
+  if(d[mk].das===undefined) d[mk].das=0;
   return d[mk];
 }
 
@@ -3164,8 +3512,10 @@ function syncDespesasFromDB(cb){
     var d={},i,r;
     for(i=0;i<rows.length;i++){
       r=rows[i];
-      if(!d[r.mes]) d[r.mes]={fixas:[],extras:[]};
+      if(!d[r.mes]) d[r.mes]={fixas:[],extras:[],financeiro:[],das:0};
       if(r.tipo==='fixa') d[r.mes].fixas.push({nome:r.nome,valor:+r.valor||0});
+      else if(r.tipo==='financeiro'){if(!d[r.mes].financeiro)d[r.mes].financeiro=[];d[r.mes].financeiro.push({nome:r.nome,valor:+r.valor||0});}
+      else if(r.tipo==='das') d[r.mes].das=+r.valor||0;
       else d[r.mes].extras.push({nome:r.nome,valor:+r.valor||0});
     }
     // Merge with localStorage (DB wins)
@@ -3174,7 +3524,11 @@ function syncDespesasFromDB(cb){
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
-function setMDesp(mk,data){var d=loadDesp();d[mk]=data;saveDesp(d);saveDespDB(mk,data);}
+function setMDesp(mk,data){
+  DB_DESP[mk]=data;  // Update in-memory DB_DESP immediately
+  var d=loadDesp();d[mk]=data;saveDesp(d);
+  saveDespDB(mk,data);
+}
 
 function loadDespesasFromDB(mk,cb){
   dbGet('despesas','mes=eq.'+mk).then(function(rows){
@@ -3209,20 +3563,87 @@ function renderRes(){
     for(k=0;k<md.extras.length;k++) td+=parseFloat(md.extras[k].valor)||0;
     anoFat+=fat;anoLSI+=lsi;anoDesp+=td;
   }
-  var anoLiq=anoLSI-anoDesp;
-  var anoMg=anoFat?(anoLiq/anoFat*100):0;
-  var ac=anoLiq>=0?'#22c55e':'#ef4444';
+  // Build year selector
+  var years={};
+  for(i=0;i<meses.length;i++) years[meses[i].split('-')[0]]=1;
+  var yearArr=Object.keys(years).sort().reverse();
+  if(!window._resAnoSel||!years[window._resAnoSel]) window._resAnoSel='all';
+  var yearSel=window._resAnoSel;
+
+  // Filter months by year
+  var mesesF=yearSel==='all'?meses:meses.filter(function(m){return m.split('-')[0]===yearSel;});
+
+  // Recalculate for filtered period
+  var anoFatF=0,anoLSIF=0,anoDespF=0;
+  for(i=0;i<mesesF.length;i++){
+    var mkF=mesesF[i];
+    var mvF=[],jF;
+    for(jF=0;jF<vendas.length;jF++){if(mkey(vendas[jF].date)===mkF) mvF.push(vendas[jF]);}
+    var fatF2=0,lsiF2=0;
+    for(jF=0;jF<mvF.length;jF++){fatF2+=mvF[jF].venda;lsiF2+=mvF[jF].lucroSI;}
+    var mdF=getMDesp(mkF),tdF=0,kF;
+    for(kF=0;kF<mdF.fixas.length;kF++) tdF+=parseFloat(mdF.fixas[kF].valor)||0;
+    for(kF=0;kF<mdF.extras.length;kF++) tdF+=parseFloat(mdF.extras[kF].valor)||0;
+    anoFatF+=fatF2;anoLSIF+=lsiF2;anoDespF+=tdF;
+  }
+
+  // DRE for filtered period
+  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0;
+  for(i=0;i<mesesF.length;i++){
+    var mkF2=mesesF[i];
+    var mvF2=[],jF2;
+    for(jF2=0;jF2<vendas.length;jF2++){
+      if(mkey(vendas[jF2].date)===mkF2){
+        var vx=vendas[jF2];
+        anoTaxasF+=(vx.taxa||0)+(vx.com||0);
+        anoCustoF+=vx.custo||0;
+        anoFreteF+=vx.frete||0;
+        mvF2.push(vx);
+      }
+    }
+    var mdF2=getMDesp(mkF2),kF2;
+    for(kF2=0;kF2<mdF2.fixas.length;kF2++) anoFixasF+=parseFloat(mdF2.fixas[kF2].valor)||0;
+    for(kF2=0;kF2<mdF2.extras.length;kF2++) anoExtrasF+=parseFloat(mdF2.extras[kF2].valor)||0;
+    if(mdF2.financeiro) for(kF2=0;kF2<mdF2.financeiro.length;kF2++) anoFinF+=parseFloat(mdF2.financeiro[kF2].valor)||0;
+    // DAS
+    if(mdF2.das>0) anoDasF+=mdF2.das;
+    else for(jF2=0;jF2<mvF2.length;jF2++) anoDasF+=mvF2[jF2].imp||0;
+  }
+  var anoMargContribF=anoLSIF-anoExtrasF;
+  var anoEbitdaF=anoMargContribF-anoFixasF;
+  var anoEbitFinF=anoEbitdaF+anoFinF;
+  var anoLiqF=anoEbitFinF-anoDasF;
+  var acF=anoLiqF>=0?'#22c55e':'#ef4444';
+
+  // Year selector buttons
+  var yrBtns='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">';
+  yrBtns+='<button onclick="window._resAnoSel=\'all\';renderRes();" style="padding:4px 10px;border-radius:14px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:'+(yearSel==='all'?'#1E90FF':'var(--sbtn-bg)')+';color:'+(yearSel==='all'?'#fff':'var(--text2)')+';">Geral</button>';
+  for(var yi=0;yi<yearArr.length;yi++){
+    var yr=yearArr[yi];
+    yrBtns+='<button onclick="window._resAnoSel=\''+yr+'\';renderRes();" style="padding:4px 10px;border-radius:14px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:'+(yearSel===yr?'#1E90FF':'var(--sbtn-bg)')+';color:'+(yearSel===yr?'#fff':'var(--text2)')+';">'+yr+'</button>';
+  }
+  yrBtns+='</div>';
+
   document.getElementById('res-anual').innerHTML=
-    '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#1E90FF;margin-bottom:10px;">RESUMO ANUAL</div>'+
+    '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#1E90FF;margin-bottom:8px;">RESUMO</div>'+
+    yrBtns+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+
-    '<div><div style="font-size:9px;color:#666;font-weight:600;">Faturamento</div><div style="font-size:16px;font-weight:800;color:#1E90FF;">'+fmt(anoFat)+'</div></div>'+
-    '<div><div style="font-size:9px;color:#666;font-weight:600;">Lucro s/ Imp</div><div style="font-size:16px;font-weight:800;">'+fmt(anoLSI)+'</div></div>'+
-    '<div><div style="font-size:9px;color:#666;font-weight:600;">Total Despesas</div><div style="font-size:16px;font-weight:800;color:#ef4444;">'+fmt(anoDesp)+'</div></div>'+
-    '<div><div style="font-size:9px;color:#666;font-weight:600;">Resultado Liq</div><div style="font-size:16px;font-weight:800;color:'+ac+';">'+fmt(anoLiq)+'</div></div>'+
+      '<div><div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;">Faturamento</div><div style="font-size:18px;font-weight:800;color:#1E90FF;">'+fmt(anoFatF)+'</div></div>'+
+      '<div><div style="font-size:9px;color:#22c55e;font-weight:600;text-transform:uppercase;">Margem Contribuição</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-size:18px;font-weight:800;color:#22c55e;">'+fmt(anoMargContribF)+'</div><div style="font-size:9px;color:#22c55e;opacity:.7;">'+(anoFatF?(anoMargContribF/anoFatF*100):0).toFixed(1)+'%</div></div><div style="font-size:9px;color:#666;">Após taxas, CMV, frete e extras</div></div>'+
+      '<div><div style="font-size:9px;color:#f59e0b;font-weight:600;text-transform:uppercase;">EBITDA</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-size:18px;font-weight:800;color:#f59e0b;">'+fmt(anoEbitdaF)+'</div><div style="font-size:9px;color:#f59e0b;opacity:.7;">'+(anoFatF?(anoEbitdaF/anoFatF*100):0).toFixed(1)+'%</div></div><div style="font-size:9px;color:#666;">Margem contrib. − custos fixos</div></div>'+
+      '<div><div style="font-size:9px;color:'+acF+';font-weight:600;text-transform:uppercase;">Lucro Líquido</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-size:18px;font-weight:800;color:'+acF+';">'+fmt(anoLiqF)+'</div><div style="font-size:9px;color:'+acF+';opacity:.7;">'+(anoFatF?(anoLiqF/anoFatF*100):0).toFixed(1)+'%</div></div><div style="font-size:9px;color:#666;">EBITDA ± financeiro − DAS</div></div>'+
     '</div>'+
-    '<div style="margin-top:10px;padding-top:8px;border-top:1px solid #1E90FF22;display:flex;justify-content:space-between;align-items:center;">'+
-    '<span style="font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.8px;">Margem Anual</span>'+
-    '<span style="font-size:20px;font-weight:800;color:'+ac+';">'+anoMg.toFixed(1)+'%</span></div>';
+    '<div style="margin-top:10px;padding:10px;background:#ffffff08;border-radius:10px;border:1px solid var(--border);">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+        '<span style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;">Lucro Líq. ÷ 12 meses</span>'+
+        '<span style="font-size:9px;color:var(--text3);">'+(yearSel==='all'?'Média mensal geral':'Média mensal '+yearSel)+'</span>'+
+      '</div>'+
+      '<div style="font-size:22px;font-weight:800;color:'+acF+';">'+fmt(anoLiqF/12)+'<span style="font-size:12px;font-weight:400;color:var(--text3);"> / mês</span></div>'+
+    '</div>'+
+    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1E90FF22;display:flex;justify-content:space-between;align-items:center;">'+
+      '<span style="font-size:10px;color:#666;font-weight:600;text-transform:uppercase;">Margem Líquida</span>'+
+      '<span style="font-size:20px;font-weight:800;color:'+acF+';">'+(anoFatF?(anoLiqF/anoFatF*100):0).toFixed(1)+'%</span>'+
+    '</div>';
   if(!meses.length){document.getElementById('res-meses').innerHTML='<div class="empty">Registre vendas para ver resultados.</div>';return;}
   var html='';
   for(i=0;i<meses.length;i++){
@@ -3231,10 +3652,20 @@ function renderRes(){
     for(j=0;j<vendas.length;j++){if(mkey(vendas[j].date)===mk) mv.push(vendas[j]);}
     var fat=0,lsi=0;
     for(j=0;j<mv.length;j++){fat+=mv[j].venda;lsi+=mv[j].lucroSI;}
-    var md=getMDesp(mk);var totF=0,totE=0,k;
+    var md=getMDesp(mk);var totF=0,totE=0,totFin=0,k;
     for(k=0;k<md.fixas.length;k++) totF+=parseFloat(md.fixas[k].valor)||0;
     for(k=0;k<md.extras.length;k++) totE+=parseFloat(md.extras[k].valor)||0;
-    var totD=totF+totE,res=lsi-totD,mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
+    if(md.financeiro) for(k=0;k<md.financeiro.length;k++) totFin+=parseFloat(md.financeiro[k].valor)||0;
+    var margContribM=lsi-totE;
+    var ebitdaM=margContribM-totF;
+    var ebitFinM=ebitdaM+totFin;
+    // Get imp for this month
+    // DAS real (from Resultado) takes priority over estimated (from vendas)
+    var impEstimado=0;for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
+    var impM=md.das>0?md.das:impEstimado;
+    var res=ebitFinM-impM;
+    var totD=totF+totE-totFin;
+    var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a1a1a;font-size:11px;"><span>'+v.cliente+' - '+(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
     var fixaRows=md.fixas.map(function(f,fi){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a;"><span style="font-size:12px;">'+f.nome+'</span><input type="number" value="'+(f.valor||'')+'" placeholder="0" style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" onchange="updFixa(\''+mk+'\','+fi+',this.value)"></div>';}).join('');
     var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a;"><span style="font-size:12px;">'+e.nome+'</span><span style="font-size:12px;font-weight:700;color:#ef4444;">'+fmt(parseFloat(e.valor)||0)+'</span><button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#444;font-size:13px;cursor:pointer;padding:0 4px;">x</button></div>';}).join('');
@@ -3253,8 +3684,40 @@ function renderRes(){
       extraRows+
       '<div style="display:flex;gap:6px;margin-top:6px;"><input id="en'+i+'" class="fi" type="text" placeholder="Descricao" style="flex:1;font-size:12px;padding:8px 10px;"><input id="ev'+i+'" class="fi" type="number" placeholder="Valor" style="width:80px;font-size:12px;padding:8px 10px;"><button onclick="addExtra(\''+mk+'\','+i+')" style="background:#1E90FF;border:none;border-radius:8px;color:#fff;font-size:16px;padding:0 10px;cursor:pointer;">+</button></div>'+
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
+      '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">± Resultado Financeiro</div>'+
+      (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
+        var isPos=f.valor>=0;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a;">'+
+          '<span style="font-size:12px;color:var(--text2);">'+f.nome+'</span>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+          '<span style="font-size:12px;font-weight:700;color:'+(isPos?'#22c55e':'#ef4444')+';">'+fmt(f.valor)+'</span>'+
+          '<button onclick="delFinanceiro(\''+mk+'\','+fi+')" style="background:none;border:none;color:#444;font-size:13px;cursor:pointer;padding:0 4px;">x</button>'+
+          '</div></div>';
+      }).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhum lançamento</div>')+
+      '<div style="display:flex;gap:4px;margin-top:6px;">'+
+        '<select id="ft'+i+'" class="fs" style="width:90px;font-size:11px;padding:6px 6px;"><option value="entrada">+ Entrada</option><option value="saida">− Saída</option></select>'+
+        '<input id="fn'+i+'" class="fi" type="text" placeholder="Descrição" style="flex:1;font-size:12px;padding:7px 10px;">'+
+        '<input id="fv'+i+'" class="fi" type="number" placeholder="Valor" style="width:80px;font-size:12px;padding:7px 8px;">'+
+        '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 10px;cursor:pointer;">+</button>'+
+      '</div>'+
+      (totFin!==0?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Saldo Financeiro</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>':'')+
       '<div style="background:#1a1a1a;border-radius:8px;padding:12px;margin-top:12px;">'+
-      '<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;">Resultado Liquido do Mes</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
+      '<div><div style="font-size:9px;color:#666;font-weight:600;">EBITDA</div><div style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(ebitdaM)+'</div></div>'+
+      '<div><div style="font-size:9px;color:#666;font-weight:600;">EBIT (c/ Financeiro)</div><div style="font-size:14px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';">'+fmt(ebitFinM)+'</div></div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #333;margin-bottom:8px;">'+
+        '<div>'+
+          '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− DAS (Imposto Real)</div>'+
+          '<div style="font-size:9px;color:#666;margin-top:1px;">'+(md.das>0?'Valor real':'Estimado: '+fmt(impEstimado))+'</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;">'+
+          '<input type="number" value="'+(md.das||'')+'" placeholder="'+impEstimado.toFixed(0)+'"'+
+          ' style="width:110px;background:#111;border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
+          ' onchange="saveDAS(\''+mk+'\',this.value)">'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
       '<div style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
       '<div style="font-size:11px;color:#666;margin-top:1px;">Margem: <strong style="color:'+rc+';">'+mg.toFixed(1)+'%</strong></div>'+
       '</div></div></div>';
@@ -3263,6 +3726,31 @@ function renderRes(){
 }
 
 function toggleMes(id){var el=document.getElementById(id);if(el) el.style.display=el.style.display==='none'?'block':'none';}
+function saveDAS(mk,val){
+  var md=getMDesp(mk);
+  md.das=parseFloat(val)||0;
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderRes();
+}
+
+function addFinanceiro(mk,i){
+  var nome=document.getElementById('fn'+i).value.trim();
+  var val=parseFloat(document.getElementById('fv'+i).value)||0;
+  var tipo=document.getElementById('ft'+i)?document.getElementById('ft'+i).value:'entrada';
+  if(!nome){toast('Informe a descrição',true);return;}
+  var realVal=tipo==='saida'?-Math.abs(val):Math.abs(val);
+  var md=getMDesp(mk);if(!md.financeiro)md.financeiro=[];
+  md.financeiro.push({nome:nome,valor:realVal});
+  setMDesp(mk,md);saveDespDB(mk,md);renderRes();toast('Lançamento adicionado!');
+}
+
+function delFinanceiro(mk,fi){
+  var md=getMDesp(mk);if(!md.financeiro)return;
+  md.financeiro.splice(fi,1);setMDesp(mk,md);
+  saveDespDB(mk,md);renderRes();
+}
+
 function updFixa(mk,idx,val){var md=getMDesp(mk);md.fixas[idx].valor=parseFloat(val)||0;setMDesp(mk,md);renderRes();}
 function addExtra(mk,i){
   var nome=document.getElementById('en'+i).value.trim();
@@ -4468,6 +4956,529 @@ initModalClose();
 applyTheme();
 pinInit();
 initDB(function(){renderDash();onPagChange();});
+
+
+// ══════════════════════════════════════════════════════════════════════
+// DASHBOARD 2 — ANÁLISE FINANCEIRA COMPLETA
+// ══════════════════════════════════════════════════════════════════════
+
+var d2SelPeriod='all'; // 'all','12m','6m','3m', or 'YYYY-MM'
+
+function mkey2(date){
+  if(!date) return '';
+  var d=new Date(date);
+  return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);
+}
+
+function mlabel2(mk){
+  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var p=mk.split('-');
+  return ms[parseInt(p[1])-1]+'/'+p[0].slice(2);
+}
+
+function getD2Vendas(){
+  var vendas=loadVendas();
+  if(d2SelPeriod==='all') return vendas;
+  if(d2SelPeriod==='12m'||d2SelPeriod==='6m'||d2SelPeriod==='3m'){
+    var n={'12m':12,'6m':6,'3m':3}[d2SelPeriod];
+    var cut=new Date();cut.setMonth(cut.getMonth()-n);cut.setDate(1);cut.setHours(0,0,0,0);
+    return vendas.filter(function(v){return new Date(v.date)>=cut;});
+  }
+  return vendas.filter(function(v){return mkey2(v.date)===d2SelPeriod;});
+}
+
+function getFixasCusto(vendas){
+  // Sum fixas from DB_DESP for the months in vendas
+  var months={};
+  vendas.forEach(function(v){months[mkey2(v.date)]=1;});
+  var tot=0;
+  for(var mk in months){
+    var d=DB_DESP[mk];
+    if(d&&d.fixas) d.fixas.forEach(function(f){tot+=f.valor||0;});
+  }
+  return tot;
+}
+
+function getExtras(vendas){
+  var months={};
+  vendas.forEach(function(v){months[mkey2(v.date)]=1;});
+  var tot=0;
+  for(var mk in months){
+    var d=DB_DESP[mk];
+    if(d&&d.extras) d.extras.forEach(function(e){tot+=e.valor||0;});
+  }
+  return tot;
+}
+
+function calcDRE(vendas){
+  // 1. Faturamento (Receita Bruta)
+  var fat=0,taxas=0,custo=0,frete=0,imp=0,qtd=vendas.length;
+  vendas.forEach(function(v){
+    fat+=v.venda||0;
+    taxas+=(v.taxa||0)+(v.com||0);
+    custo+=v.custo||0;
+    frete+=v.frete||0;
+    imp+=v.imp||0;
+  });
+  // Sum financeiro from DB_DESP
+  var months2={};
+  vendas.forEach(function(v){months2[mkey2(v.date)]=1;});
+  var totFin2=0;
+  for(var mk2_ in months2){
+    var df_=DB_DESP[mk2_];
+    if(df_&&df_.financeiro) df_.financeiro.forEach(function(f){totFin2+=f.valor||0;});
+  }
+  var recLiq=fat-taxas;
+  var lucroBruto=recLiq-custo;
+  var despVar=frete+getExtras(vendas);
+  var margContrib=lucroBruto-despVar;
+  var fixas=getFixasCusto(vendas);
+  var ebitda=margContrib-fixas;
+  // DAS real from Resultado
+  var dasReal2=0;
+  for(var mk2__ in months2){
+    var df2_=DB_DESP[mk2__];
+    if(df2_&&df2_.das>0) dasReal2+=df2_.das;
+    else{vendas.forEach(function(v){if(mkey2(v.date)===mk2__) dasReal2+=v.imp||0;});}
+  }
+  var lucroLiq=ebitda+totFin2-dasReal2;
+  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:dasReal2,lucroLiq:lucroLiq,qtd:qtd};
+}
+
+function fmtPct(num,den){
+  if(!den||den===0) return '0%';
+  return (num/den*100).toFixed(1)+'%';
+}
+
+function renderD2DRE(dre){
+  var el=document.getElementById('d2-dre');
+  if(!el) return;
+  var fmt2=function(v){return v>=0?('<span style="color:#22c55e">'+fmt(v)+'</span>'):('<span style="color:#ef4444">'+fmt(v)+'</span>');};
+  var rows=[
+    {label:'📦 Receita Bruta (Faturamento)',val:dre.fat,pct:'100%',color:'#1E90FF',bold:true},
+    {label:'   − Taxas de venda (ML/taxa)',val:-dre.taxas,pct:fmtPct(-dre.taxas,dre.fat),color:'#ef4444'},
+    {label:'💰 Receita Líquida',val:dre.recLiq,pct:fmtPct(dre.recLiq,dre.fat),color:'#60a5fa',bold:true},
+    {label:'   − Custo dos produtos (CMV)',val:-dre.custo,pct:fmtPct(-dre.custo,dre.fat),color:'#ef4444'},
+    {label:'📈 Lucro Bruto',val:dre.lucroBruto,pct:fmtPct(dre.lucroBruto,dre.fat),color:'#a3e635',bold:true},
+    {label:'   − Despesas variáveis (frete+extras)',val:-dre.despVar,pct:fmtPct(-dre.despVar,dre.fat),color:'#ef4444'},
+    {label:'🎯 Margem de Contribuição',val:dre.margContrib,pct:fmtPct(dre.margContrib,dre.fat),color:'#22c55e',bold:true},
+    {label:'   − Custos fixos',val:-dre.fixas,pct:fmtPct(-dre.fixas,dre.fat),color:'#ef4444'},
+    {label:'⚡ EBITDA',val:dre.ebitda,pct:fmtPct(dre.ebitda,dre.fat),color:'#f59e0b',bold:true},
+    {label:'   ± Resultado Financeiro',val:dre.totFin2||0,pct:fmtPct(dre.totFin2||0,dre.fat),color:(dre.totFin2||0)>=0?'#22c55e':'#ef4444'},
+    {label:'   − Impostos (DAS)',val:-dre.imp,pct:fmtPct(-dre.imp,dre.fat),color:'#ef4444'},
+    {label:'✅ Lucro Líquido',val:dre.lucroLiq,pct:fmtPct(dre.lucroLiq,dre.fat),color:dre.lucroLiq>=0?'#22c55e':'#ef4444',bold:true,big:true},
+  ];
+  var h='<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">'+dre.qtd+' venda'+(dre.qtd!==1?'s':'')+' no período</div>';
+  rows.forEach(function(r){
+    var fs=r.big?'15px':r.bold?'13px':'11px';
+    var fw=r.bold?'800':'400';
+    var mt=r.bold?'margin-top:6px;':'';
+    var bb=r.bold?'border-top:1px solid var(--border);padding-top:6px;':'';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;'+mt+bb+'padding:3px 0;">';
+    h+='<span style="font-size:'+fs+';font-weight:'+fw+';color:'+(r.bold?r.color:'var(--text2)')+';">'+r.label+'</span>';
+    h+='<div style="display:flex;gap:10px;align-items:center;">';
+    h+='<span style="font-size:9px;color:var(--text3);min-width:40px;text-align:right;">'+r.pct+'</span>';
+    h+='<span style="font-size:'+fs+';font-weight:'+fw+';color:'+r.color+';min-width:110px;text-align:right;">'+fmt(r.val)+'</span>';
+    h+='</div></div>';
+  });
+  // Lucro por unidade
+  if(dre.qtd>0){
+    h+='<div style="margin-top:10px;padding:8px;background:#ffffff08;border-radius:8px;display:flex;justify-content:space-between;">';
+    h+='<span style="font-size:11px;color:var(--text2);">Lucro Líquido / unidade</span>';
+    h+='<span style="font-size:13px;font-weight:800;color:'+(dre.lucroLiq>=0?'#22c55e':'#ef4444')+';">'+fmt(dre.lucroLiq/dre.qtd)+'</span>';
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+
+function renderD2SKUs(vendas){
+  var el=document.getElementById('d2-skus');
+  if(!el) return;
+  var map={};
+  vendas.forEach(function(v){
+    var k=v.produto||'?';
+    if(!map[k]) map[k]={nome:k,qtd:0,fat:0,taxa:0,custo:0,frete:0,lucro:0};
+    map[k].qtd++;
+    map[k].fat+=v.venda||0;
+    map[k].taxa+=(v.taxa||0)+(v.com||0);
+    map[k].custo+=v.custo||0;
+    map[k].frete+=v.frete||0;
+    map[k].lucro+=v.lucroLL||0;
+  });
+  var arr=Object.values(map).sort(function(a,b){return b.fat-a.fat;});
+  if(!arr.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px;">Sem dados</div>';return;}
+  var maxFat=arr[0].fat;
+  var h='';
+  arr.forEach(function(s){
+    var marg=s.fat>0?(s.lucro/s.fat*100):0;
+    var col=marg>=30?'#22c55e':marg>=15?'#f59e0b':'#ef4444';
+    var barW=maxFat>0?Math.round(s.fat/maxFat*100):0;
+    h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:6px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">';
+    h+='<span style="font-size:12px;font-weight:700;color:var(--text);">'+s.nome+'</span>';
+    h+='<span style="font-size:11px;font-weight:800;color:'+col+';">'+marg.toFixed(1)+'% margem</span>';
+    h+='</div>';
+    h+='<div style="background:var(--bg3);border-radius:4px;height:5px;margin-bottom:6px;">';
+    h+='<div style="width:'+barW+'%;height:100%;border-radius:4px;background:'+col+';"></div></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">';
+    h+='<div style="text-align:center;"><div style="font-size:9px;color:var(--text3);">Qtd</div><div style="font-size:12px;font-weight:700;color:var(--text);">'+s.qtd+'</div></div>';
+    h+='<div style="text-align:center;"><div style="font-size:9px;color:var(--text3);">Fat.</div><div style="font-size:11px;font-weight:700;color:#1E90FF;">'+fmt(s.fat)+'</div></div>';
+    h+='<div style="text-align:center;"><div style="font-size:9px;color:var(--text3);">Lucro Total</div><div style="font-size:11px;font-weight:700;color:'+col+';">'+fmt(s.lucro)+'</div></div>';
+    h+='<div style="text-align:center;"><div style="font-size:9px;color:var(--text3);">Lucro/un</div><div style="font-size:11px;font-weight:700;color:'+col+';">'+fmt(s.qtd>0?s.lucro/s.qtd:0)+'</div></div>';
+    h+='</div></div>';
+  });
+  el.innerHTML=h;
+}
+
+function renderD2Filter(){
+  var el=document.getElementById('d2-filter');
+  if(!el) return;
+  var vendas=loadVendas();
+  var months={};
+  vendas.forEach(function(v){if(v.date) months[mkey2(v.date)]=1;});
+  var mArr=Object.keys(months).sort().reverse();
+  var chips=[
+    {k:'all',label:'Tudo'},
+    {k:'12m',label:'12M'},
+    {k:'6m',label:'6M'},
+    {k:'3m',label:'3M'}
+  ];
+  mArr.forEach(function(m){chips.push({k:m,label:mlabel2(m)});});
+  el.innerHTML=chips.map(function(c){
+    var on=d2SelPeriod===c.k;
+    return '<button onclick="d2SelPeriod=\''+c.k+'\';dbUpsert(\'configuracoes\',{chave:\'dash2_filter\',valor:\''+c.k+'\' });renderDash2();" style="padding:5px 10px;border-radius:20px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:'+(on?'#1E90FF':'var(--sbtn-bg)')+';color:'+(on?'#fff':'var(--text2)')+';">'+c.label+'</button>';
+  }).join('');
+}
+
+function renderD2Comp(){
+  var selA=document.getElementById('d2-per-a');
+  var selB=document.getElementById('d2-per-b');
+  var el=document.getElementById('d2-comp');
+  if(!selA||!selB||!el) return;
+  var mA=selA.value, mB=selB.value;
+  if(!mA||!mB){el.innerHTML='<div style="color:var(--text3);font-size:11px;">Selecione dois períodos</div>';return;}
+  var vendas=loadVendas();
+  var vA=vendas.filter(function(v){return mkey2(v.date)===mA;});
+  var vB=vendas.filter(function(v){return mkey2(v.date)===mB;});
+  var dA=calcDRE(vA), dB=calcDRE(vB);
+  var rows=[
+    {label:'Faturamento',a:dA.fat,b:dB.fat},
+    {label:'Receita Líquida',a:dA.recLiq,b:dB.recLiq},
+    {label:'Lucro Bruto',a:dA.lucroBruto,b:dB.lucroBruto},
+    {label:'Margem Contrib.',a:dA.margContrib,b:dB.margContrib},
+    {label:'EBITDA',a:dA.ebitda,b:dB.ebitda},
+    {label:'Lucro Líquido',a:dA.lucroLiq,b:dB.lucroLiq},
+    {label:'Qtd Vendas',a:dA.qtd,b:dB.qtd,isQtd:true},
+  ];
+  var h='<div style="display:grid;grid-template-columns:auto 1fr 1fr 80px;gap:5px;align-items:center;">';
+  h+='<div style="font-size:9px;color:var(--text3);font-weight:700;"></div>';
+  h+='<div style="font-size:9px;color:#1E90FF;font-weight:700;text-align:right;">'+mlabel2(mA)+'</div>';
+  h+='<div style="font-size:9px;color:#f59e0b;font-weight:700;text-align:right;">'+mlabel2(mB)+'</div>';
+  h+='<div style="font-size:9px;color:var(--text3);font-weight:700;text-align:right;">Δ%</div>';
+  rows.forEach(function(r){
+    var delta=r.a!==0?((r.b-r.a)/Math.abs(r.a)*100):0;
+    var dCol=delta>=0?'#22c55e':'#ef4444';
+    h+='<div style="font-size:10px;color:var(--text2);padding:4px 0;border-top:1px solid var(--border);">'+r.label+'</div>';
+    h+='<div style="font-size:11px;font-weight:700;color:#1E90FF;text-align:right;border-top:1px solid var(--border);padding:4px 0;">'+(r.isQtd?r.a:fmt(r.a))+'</div>';
+    h+='<div style="font-size:11px;font-weight:700;color:#f59e0b;text-align:right;border-top:1px solid var(--border);padding:4px 0;">'+(r.isQtd?r.b:fmt(r.b))+'</div>';
+    h+='<div style="font-size:11px;font-weight:700;color:'+dCol+';text-align:right;border-top:1px solid var(--border);padding:4px 0;">'+(delta>0?'+':'')+delta.toFixed(1)+'%</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function populateD2Sels(){
+  var vendas=loadVendas();
+  var months={};
+  vendas.forEach(function(v){if(v.date) months[mkey2(v.date)]=1;});
+  var mArr=Object.keys(months).sort().reverse();
+  var sels=['d2-per-a','d2-per-b'];
+  sels.forEach(function(id,si){
+    var sel=document.getElementById(id);
+    if(!sel) return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">Selecionar...</option>';
+    mArr.forEach(function(m,mi){
+      var o=document.createElement('option');
+      o.value=m;o.textContent=mlabel2(m);
+      if(cur?m===cur:mi===si) o.selected=true;
+      sel.appendChild(o);
+    });
+  });
+}
+
+function calcDRE6m(months){
+  // Calculate DRE for a specific set of months
+  var vendas=loadVendas();
+  var mSet={};months.forEach(function(m){mSet[m]=1;});
+  var fat=0,taxas=0,custo=0,frete=0,imp=0;
+  vendas.forEach(function(v){
+    if(!mSet[mkey(v.date)]) return;
+    fat+=v.venda||0;
+    taxas+=(v.taxa||0)+(v.com||0);
+    custo+=v.custo||0;
+    frete+=v.frete||0;
+    imp+=v.imp||0;
+  });
+  var fixas=0,extras=0,fin=0,das=0;
+  months.forEach(function(mk){
+    var d=getMDesp(mk);
+    if(d.fixas) d.fixas.forEach(function(f){fixas+=f.valor||0;});
+    if(d.extras) d.extras.forEach(function(e){extras+=e.valor||0;});
+    if(d.financeiro) d.financeiro.forEach(function(f){fin+=f.valor||0;});
+    das+=d.das>0?d.das:0;
+  });
+  if(!das) das=imp;
+  var recLiq=fat-taxas;
+  var lucroBruto=recLiq-custo;
+  var margContrib=lucroBruto-frete-extras;
+  var ebitda=margContrib-fixas;
+  var lucroLiq=ebitda+fin-das;
+  return {fat:fat,taxas:taxas,custo:custo,frete:frete,
+    fixas:fixas,extras:extras,fin:fin,das:das,
+    recLiq:recLiq,lucroBruto:lucroBruto,margContrib:margContrib,
+    ebitda:ebitda,lucroLiq:lucroLiq,
+    meses:months.length};
+}
+
+function getLast6Months(){
+  var vendas=loadVendas();
+  var mSet={};
+  vendas.forEach(function(v){var mk=mkey(v.date);if(mk) mSet[mk]=1;});
+  return Object.keys(mSet).sort().slice(-6);
+}
+
+function calcSimMeta(){
+  var meta=parseFloat(document.getElementById('sim-meta-lucro').value)||0;
+  var ticket=parseFloat(document.getElementById('sim-meta-ticket').value)||0;
+  var el=document.getElementById('sim-meta-result');
+  if(!meta||!ticket){if(el) el.style.display='none';return;}
+
+  var months=getLast6Months();
+  var dre=calcDRE6m(months);
+
+  var avgMargLiq=dre.fat>0?(dre.lucroLiq/dre.fat):0.30;
+  var avgMargContrib=dre.fat>0?(dre.margContrib/dre.fat):0.35;
+  var avgFixasMes=months.length>0?(dre.fixas+dre.das-dre.fin)/months.length:0;
+
+  // Lucro líquido por venda = ticket × margContrib% - fixas médias por venda
+  // Mais preciso: usar proporção direta
+  var lucroPerVenda=ticket*avgMargLiq;
+  var vendasNec=lucroPerVenda>0?Math.ceil(meta/lucroPerVenda):0;
+  var fatNec=vendasNec*ticket;
+
+  var periodLabel=months.length>0?
+    (months[0].split('-').reverse().join('/')+ ' a '+months[months.length-1].split('-').reverse().join('/')):
+    'histórico';
+
+  if(el){
+    el.style.display='block';
+    el.innerHTML=
+      '<div style="font-size:9px;color:var(--text3);margin-bottom:6px;">📊 Baseado nos <strong style="color:#1E90FF;">últimos '+months.length+' meses</strong> ('+periodLabel+')</div>'
+      +'<div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Inclui: fixas, extras, DAS e resultado financeiro</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'
+        +'<div><div style="font-size:9px;color:var(--text3);">Marg. Contribuição</div>'
+          +'<div style="font-size:15px;font-weight:800;color:#22c55e;">'+(avgMargContrib*100).toFixed(1)+'%</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Margem Líquida (DRE)</div>'
+          +'<div style="font-size:15px;font-weight:800;color:#1E90FF;">'+(avgMargLiq*100).toFixed(1)+'%</div></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border-top:1px solid var(--border);padding-top:8px;">'
+        +'<div><div style="font-size:9px;color:var(--text3);">Vendas necessárias</div>'
+          +'<div style="font-size:20px;font-weight:800;color:#f59e0b;">'+vendasNec+'</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Faturamento necessário</div>'
+          +'<div style="font-size:20px;font-weight:800;color:#1E90FF;">'+fmt(fatNec)+'</div></div>'
+      +'</div>';
+  }
+}
+
+function calcSimPreco(){
+  var custo=parseFloat(document.getElementById('sim-preco-custo').value)||0;
+  var margLiqDesej=parseFloat(document.getElementById('sim-preco-margem').value)||0;
+  var taxaPct=parseFloat(document.getElementById('sim-preco-taxa').value)||0;
+  var freteVal=parseFloat(document.getElementById('sim-preco-frete')?document.getElementById('sim-preco-frete').value:0)||0;
+  var qtdMes=parseFloat(document.getElementById('sim-preco-qtd')?document.getElementById('sim-preco-qtd').value:0)||0;
+  var el=document.getElementById('sim-preco-result');
+  if(!custo||!margLiqDesej){if(el) el.style.display='none';return;}
+
+  // Get fixas + DAS médios dos últimos 6 meses
+  var months=getLast6Months();
+  var totalFixas=0,totalDAS=0,totalExtras=0,totalFin=0,totalVendas=0;
+  var vendas6=loadVendas();
+  var mSet6={};months.forEach(function(m){mSet6[m]=1;});
+  vendas6.forEach(function(v){if(mSet6[mkey(v.date)]) totalVendas++;});
+  months.forEach(function(mk){
+    var d=getMDesp(mk);
+    if(d.fixas) d.fixas.forEach(function(f){totalFixas+=f.valor||0;});
+    if(d.extras) d.extras.forEach(function(e){totalExtras+=e.valor||0;});
+    if(d.financeiro) d.financeiro.forEach(function(f){totalFin+=f.valor||0;});
+    totalDAS+=d.das>0?d.das:0;
+  });
+
+  // Médias mensais
+  var nMeses=months.length||1;
+  var fixasMes=(totalFixas+totalExtras)/nMeses;
+  var dasMes=totalDAS/nMeses;
+  var finMes=totalFin/nMeses;
+  var vendasMes=totalVendas/nMeses||1;
+  var qtdRef=qtdMes||vendasMes;
+
+  // Rateio de fixas + DAS por unidade
+  var fixasPorUnid=(fixasMes+dasMes-finMes)/qtdRef;
+
+  // Preço que cobre custo+frete+fixas_unit e ainda tem margem líquida desejada
+  // margLiq = (preco - taxa*preco - custo - frete - fixasPorUnid) / preco
+  // preco * (1 - taxa - margLiq) = custo + frete + fixasPorUnid
+  var t=taxaPct/100;
+  var m=margLiqDesej/100;
+  var divisor=1-t-m;
+  if(divisor<=0){
+    if(el){el.style.display='block';el.innerHTML='<span style="color:#ef4444;">Combinação inviável</span>';}
+    return;
+  }
+  var preco=(custo+freteVal+fixasPorUnid)/divisor;
+  var taxaVal=preco*t;
+  var lucroContribUnit=preco-taxaVal-custo-freteVal;
+  var lucroLiqUnit=lucroContribUnit-fixasPorUnid;
+  var margContribReal=preco>0?(lucroContribUnit/preco*100):0;
+
+  var periodLabel=months.length>0?
+    months[0].split('-').reverse().join('/')+' a '+months[months.length-1].split('-').reverse().join('/'):'-';
+
+  if(el){
+    el.style.display='block';
+    el.innerHTML=
+      '<div style="font-size:9px;color:var(--text3);margin-bottom:6px;">📊 Rateio de fixas+DAS dos <strong style="color:#1E90FF;">últimos '+nMeses+' meses</strong> ('+periodLabel+')</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'
+        +'<div><div style="font-size:9px;color:var(--text3);">Fixas+DAS/mês</div>'
+          +'<div style="font-size:13px;font-weight:700;color:#f59e0b;">'+fmt(fixasMes+dasMes-finMes)+'</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Rateio por unidade ('+Math.round(qtdRef)+'/mês)</div>'
+          +'<div style="font-size:13px;font-weight:700;color:#f59e0b;">'+fmt(fixasPorUnid)+'</div></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border-top:1px solid var(--border);padding-top:8px;">'
+        +'<div><div style="font-size:9px;color:var(--text3);">Preço Ideal</div>'
+          +'<div style="font-size:20px;font-weight:800;color:#22c55e;">'+fmt(preco)+'</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Lucro Líq./un</div>'
+          +'<div style="font-size:20px;font-weight:800;color:#1E90FF;">'+fmt(lucroLiqUnit)+'</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Markup</div>'
+          +'<div style="font-size:20px;font-weight:800;color:#a855f7;">'+(custo>0?(preco/custo).toFixed(2)+'x':'—')+'</div></div>'
+      +'</div>'
+      +'<div style="margin-top:6px;font-size:9px;color:var(--text3);">'
+        +'Marg. Contribuição: <strong style="color:#22c55e;">'+margContribReal.toFixed(1)+'%</strong>'
+        +' | Marg. Líquida: <strong style="color:#1E90FF;">'+margLiqDesej.toFixed(1)+'%</strong>'
+      +'</div>';
+    // Auto-fill preço atual from historical avg if empty
+    var elAtual=document.getElementById('sim-preco-atual');
+    var precoAtual=parseFloat(elAtual?elAtual.value:0)||0;
+    if(!precoAtual){
+      // Use avg ticket from last 6 months
+      var v6hint=loadVendas();var mSet6h={};getLast6Months().forEach(function(m){mSet6h[m]=1;});
+      var vf6h=v6hint.filter(function(v){return mSet6h[mkey(v.date)];});
+      if(vf6h.length>0){
+        var avgT=vf6h.reduce(function(s,v){return s+(v.venda||0);},0)/vf6h.length;
+        // Show hint
+        var hintEl=document.getElementById('sim-preco-atual-hint');
+        if(hintEl) hintEl.textContent='(ticket médio 6m: '+fmt(avgT)+')';
+        precoAtual=avgT;
+      }
+    }
+    if(precoAtual>0){
+      var taxaAtualVal=precoAtual*t;
+      var lcAtual=precoAtual-taxaAtualVal-custo-freteVal;
+      var llAtual=lcAtual-fixasPorUnid;
+      var mContribAtual=precoAtual>0?(lcAtual/precoAtual*100):0;
+      var mLiqAtual=precoAtual>0?(llAtual/precoAtual*100):0;
+      var diffPreco=precoAtual-preco;
+      el.innerHTML+='<div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">'
+        +'<div style="font-size:9px;color:var(--text3);font-weight:700;margin-bottom:6px;">SEU PREÇO ATUAL: '+fmt(precoAtual)+'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">'
+          +'<div><div style="font-size:9px;color:var(--text3);">Lucro Contrib./un</div>'
+            +'<div style="font-size:13px;font-weight:700;color:#22c55e;">'+fmt(lcAtual)+'</div></div>'
+          +'<div><div style="font-size:9px;color:var(--text3);">Lucro Líq./un</div>'
+            +'<div style="font-size:13px;font-weight:700;color:#1E90FF;">'+fmt(llAtual)+'</div></div>'
+          +'<div><div style="font-size:9px;color:var(--text3);">Marg. Líquida</div>'
+            +'<div style="font-size:13px;font-weight:700;color:'+(mLiqAtual>=margLiqDesej?'#22c55e':'#ef4444')+';">'+mLiqAtual.toFixed(1)+'%'
+            +(mLiqAtual>=margLiqDesej?' ✅':' ❌')+'</div></div>'
+        +'</div>'
+        +(diffPreco>0
+          ?'<div style="font-size:9px;color:#22c55e;margin-top:4px;">✅ Preço atual R$'+diffPreco.toFixed(0)+' acima do mínimo — meta atingida!</div>'
+          :'<div style="font-size:9px;color:#ef4444;margin-top:4px;">❌ Preço atual R$'+Math.abs(diffPreco).toFixed(0)+' abaixo do mínimo para '+margLiqDesej+'% margem líquida</div>')
+        +'</div>';
+    }
+  }
+}
+
+function calcSimEscala(){
+  var atual=parseFloat(document.getElementById('sim-esc-atual').value)||0;
+  var pct=parseFloat(document.getElementById('sim-esc-pct').value)||0;
+  var el=document.getElementById('sim-esc-result');
+  if(!atual||!pct){if(el) el.style.display='none';return;}
+
+  // Use last 6 months for averages
+  var months=getLast6Months();
+  var vendas=loadVendas();
+  var mSet={};months.forEach(function(m){mSet[m]=1;});
+  var v6=vendas.filter(function(v){return mSet[mkey(v.date)];});
+
+  // DRE for 6 months
+  var dre=calcDRE6m(months);
+  var nMeses=months.length||1;
+  var qtd6=v6.length;
+  var qtdMes=qtd6/nMeses;
+
+  var avgTicket=qtd6>0?dre.fat/qtd6:0;
+  // Lucro líquido médio por venda = lucroLiq total / qtd
+  var avgLucroLiqUnit=qtd6>0?dre.lucroLiq/qtd6:0;
+  var avgMargContrib=dre.fat>0?(dre.margContrib/dre.fat*100):0;
+  var avgMargLiq=dre.fat>0?(dre.lucroLiq/dre.fat*100):0;
+
+  var novoQtd=Math.round(atual*(1+pct/100));
+  var deltaQtd=novoQtd-atual;
+
+  // Fat extra: linear (each new sale = avgTicket)
+  var fatExtra=deltaQtd*avgTicket;
+  // Lucro extra: new sales contribute margContrib% minus fixed costs
+  // Fixed costs don't scale linearly — they're fixed!
+  // So extra profit = deltaQtd * avgTicket * margContrib% (fixas already paid)
+  var margContribUnit=qtd6>0?dre.margContrib/qtd6:0;
+  var lucroExtraSemFixas=deltaQtd*margContribUnit; // no extra fixas for more sales
+  var lucroExtraComFixas=deltaQtd*avgLucroLiqUnit; // if fixas scale too
+
+  var periodLabel=months.length>0?months[0].split('-').reverse().join('/')+' a '+months[months.length-1].split('-').reverse().join('/'):'-';
+
+  if(el){
+    el.style.display='block';
+    el.innerHTML=
+      '<div style="font-size:9px;color:var(--text3);margin-bottom:6px;">📊 Baseado nos <strong style="color:#1E90FF;">últimos '+nMeses+' meses</strong> ('+periodLabel+') — '+qtdMes.toFixed(0)+' vendas/mês</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">'
+        +'<div><div style="font-size:9px;color:var(--text3);">Ticket médio</div><div style="font-size:13px;font-weight:800;color:#1E90FF;">'+fmt(avgTicket)+'</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Marg. Contrib.</div><div style="font-size:13px;font-weight:800;color:#22c55e;">'+avgMargContrib.toFixed(1)+'%</div></div>'
+        +'<div><div style="font-size:9px;color:var(--text3);">Marg. Líquida</div><div style="font-size:13px;font-weight:800;color:#a855f7;">'+avgMargLiq.toFixed(1)+'%</div></div>'
+      +'</div>'
+      +'<div style="border-top:1px solid var(--border);padding-top:8px;">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">'
+          +'<div><div style="font-size:9px;color:var(--text3);">Atual/mês</div><div style="font-size:16px;font-weight:800;color:var(--text);">'+atual+'</div></div>'
+          +'<div><div style="font-size:9px;color:var(--text3);">→ Novo/mês (+'+pct+'%)</div><div style="font-size:16px;font-weight:800;color:#f59e0b;">'+novoQtd+'</div></div>'
+          +'<div><div style="font-size:9px;color:var(--text3);">Fat. adicional</div><div style="font-size:16px;font-weight:800;color:#1E90FF;">'+fmt(fatExtra)+'</div></div>'
+        +'</div>'
+        +'<div style="background:var(--bg3);border-radius:8px;padding:8px;">'
+          +'<div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:4px;">GANHO EM LUCRO (fixas já cobertas)</div>'
+          +'<div style="font-size:22px;font-weight:800;color:#22c55e;">'+fmt(lucroExtraSemFixas)+'</div>'
+          +'<div style="font-size:9px;color:var(--text3);margin-top:2px;">Cada venda extra traz R$'+fmt(margContribUnit)+' (sem rateio adicional de fixas)</div>'
+        +'</div>'
+      +'</div>';
+  }
+}
+
+function renderDash2(){
+  if(curPage!=='dash2') return;
+  var vendas=getD2Vendas();
+  var dre=calcDRE(vendas);
+  renderD2Filter();
+  renderD2DRE(dre);
+  renderD2SKUs(vendas);
+  populateD2Sels();
+  renderD2Comp();
+}
 
 </script>
 </body>
