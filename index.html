@@ -544,6 +544,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div class="card" style="border-color:#1E90FF33;">
     <div class="stitle" style="margin-top:0;color:#1E90FF;">Importar CSV</div>
     <p style="font-size:11px;color:#666;margin-bottom:10px;">Colunas: DATA, PRODUTO, CANAL, CUSTO, VENDA, TAXA ML, FRETE, NOTA FISCAL, CLIENTE (opcional)</p>
+    <button onclick="openMLSync()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#f59e0b,#d97706);">🔄 SINCRONIZAR MERCADO LIVRE</button>
     <button onclick="baixarModelo()" class="btn btn-o" style="margin-bottom:8px;">&#11015; BAIXAR MODELO (.csv)</button>
     <label style="display:block;cursor:pointer;">
       <div class="btn">&#128194; SELECIONAR ARQUIVO .CSV</div>
@@ -629,6 +630,99 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <button class="btn btn-s" onclick="closeModal('m-cont')" style="margin-top:8px;">Cancelar</button>
   </div>
 </div>
+<!-- ML SYNC MODAL -->
+<div class="ovl" id="m-ml-sync">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="mhdl"></div>
+    <div class="mtitle">🔄 Sincronizar Mercado Livre</div>
+
+    <!-- Status -->
+    <div id="ml-status-box" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div id="ml-status-text" style="font-size:12px;color:var(--text2);"></div>
+    </div>
+
+    <!-- Auth Section -->
+    <div id="ml-auth-section">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
+        Conecte sua conta do Mercado Livre para sincronizar pedidos automaticamente.
+      </div>
+      <div class="fg">
+        <label class="fl">App ID (Client ID)</label>
+        <input class="fi" id="ml-client-id" type="text" placeholder="Ex: 1234567890123456">
+      </div>
+      <div class="fg">
+        <label class="fl">Client Secret</label>
+        <input class="fi" id="ml-client-secret" type="password" placeholder="Seu client secret">
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">
+        Crie seu app em <strong>developers.mercadolivre.com.br</strong> → Seus Apps → Criar App
+      </div>
+      <button class="btn" onclick="mlSaveCredentials()" style="margin-bottom:8px;">SALVAR CREDENCIAIS</button>
+    </div>
+
+    <!-- Token Section (shown when credentials saved) -->
+    <div id="ml-token-section" style="display:none;">
+      <div style="background:#1E90FF11;border:1px solid #1E90FF33;border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:#1E90FF;font-weight:700;margin-bottom:4px;">✅ CONECTADO</div>
+        <div id="ml-user-info" style="font-size:12px;color:var(--text2);"></div>
+      </div>
+
+      <!-- TABS -->
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <button id="ml-tab-vincular" onclick="mlShowTab('vincular')"
+          style="flex:1;padding:8px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#1E90FF;color:#fff;">
+          🔗 Vincular Anúncios
+        </button>
+        <button id="ml-tab-sync" onclick="mlShowTab('sync')"
+          style="flex:1;padding:8px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">
+          🔄 Sincronizar
+        </button>
+      </div>
+
+      <!-- TAB: VINCULAR -->
+      <div id="ml-panel-vincular">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">
+          Clique em um anúncio do ML e selecione o SKU correspondente no app para vincular.
+        </div>
+        <button class="btn btn-s" onclick="mlLoadListings()" style="margin-bottom:10px;">
+          📋 Carregar meus anúncios
+        </button>
+        <div id="ml-listings-list"></div>
+      </div>
+
+      <!-- TAB: SINCRONIZAR -->
+      <div id="ml-panel-sync" style="display:none;">
+        <div class="r2" style="margin-bottom:12px;">
+          <div class="fg">
+            <label class="fl">Data início</label>
+            <input class="fi" id="ml-date-from" type="date">
+          </div>
+          <div class="fg">
+            <label class="fl">Data fim</label>
+            <input class="fi" id="ml-date-to" type="date">
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:12px;">
+          <label class="fl">Alíquota DAS estimada (%)</label>
+          <input class="fi" id="ml-das-rate" type="number" value="8.5" step="0.1">
+          <div style="font-size:9px;color:var(--text3);margin-top:3px;">Aplicada sobre o faturamento de cada venda</div>
+        </div>
+        <button class="btn" onclick="mlSyncOrders()" id="ml-sync-btn">🔄 SINCRONIZAR PEDIDOS</button>
+        <div id="ml-progress" style="display:none;margin-top:10px;">
+          <div style="background:var(--bg3);border-radius:6px;height:6px;overflow:hidden;">
+            <div id="ml-progress-bar" style="background:#1E90FF;height:100%;width:0%;transition:width 0.3s;"></div>
+          </div>
+          <div id="ml-progress-text" style="font-size:10px;color:var(--text2);margin-top:4px;text-align:center;"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-s" onclick="mlDisconnect()" style="margin-top:12px;background:#ef444411;color:#ef4444;border:1px solid #ef444433;">Desconectar</button>
+    </div>
+
+    <button class="btn btn-s" onclick="closeModal('m-ml-sync')" style="margin-top:10px;width:100%;">Fechar</button>
+  </div>
+</div>
+
 <div class="ovl" id="m-add-sku">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="mhdl"></div>
@@ -5499,6 +5593,465 @@ function renderDash2(){
   renderD2SKUs(vendas);
   populateD2Sels();
   renderD2Comp();
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+// MERCADO LIVRE API INTEGRATION
+// ══════════════════════════════════════════════════════════════════════
+
+var ML_API = 'https://api.mercadolibre.com';
+var mlCredentials = {clientId:'', clientSecret:'', accessToken:'', userId:''};
+
+function openMLSync(){
+  // Load saved credentials
+  dbGet('configuracoes','chave=eq.ml_credentials').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{
+        var creds=JSON.parse(rows[0].valor);
+        mlCredentials=creds;
+        if(creds.clientId) document.getElementById('ml-client-id').value=creds.clientId;
+        if(creds.clientSecret) document.getElementById('ml-client-secret').value=creds.clientSecret;
+        if(creds.accessToken){
+          document.getElementById('ml-auth-section').style.display='none';
+          document.getElementById('ml-token-section').style.display='block';
+          // Show user info
+          mlGetUserInfo();
+        }
+      }catch(e){}
+    }
+    // Set default dates (last 30 days)
+    var today=new Date();
+    var from=new Date(today);from.setDate(from.getDate()-30);
+    var toEl=document.getElementById('ml-date-to');
+    var fromEl=document.getElementById('ml-date-from');
+    if(toEl) toEl.value=today.toISOString().split('T')[0];
+    if(fromEl) fromEl.value=from.toISOString().split('T')[0];
+    // Set DAS rate from configuracoes
+    dbGet('configuracoes','chave=eq.ml_das_rate').then(function(r2){
+      var rate=8.5;
+      if(Array.isArray(r2)&&r2.length) rate=parseFloat(r2[0].valor)||8.5;
+      var el=document.getElementById('ml-das-rate');
+      if(el) el.value=rate;
+    });
+  }).catch(function(){});
+  openModal('m-ml-sync');
+}
+
+function mlSaveCredentials(){
+  var clientId=document.getElementById('ml-client-id').value.trim();
+  var clientSecret=document.getElementById('ml-client-secret').value.trim();
+  if(!clientId||!clientSecret){toast('Preencha o App ID e o Client Secret',true);return;}
+  mlCredentials.clientId=clientId;
+  mlCredentials.clientSecret=clientSecret;
+  // ML OAuth: redirect to authorization
+  var redirectUri=encodeURIComponent(window.location.origin+window.location.pathname);
+  var authUrl='https://auth.mercadolivre.com.br/authorization?response_type=code&client_id='+clientId+'&redirect_uri='+redirectUri;
+  // Save clientId/secret first
+  dbUpsert('configuracoes',{chave:'ml_credentials',valor:JSON.stringify(mlCredentials)});
+  // Open ML auth in new window
+  window.open(authUrl,'_blank');
+  // Show instruction
+  mlShowStatus('Autorize o app no Mercado Livre que abriu. Após autorizar, você receberá um código. Cole-o abaixo:','#f59e0b');
+  // Add code input
+  var authSection=document.getElementById('ml-auth-section');
+  authSection.innerHTML+='<div class="fg" style="margin-top:10px;"><label class="fl">Código de autorização (da URL após login ML)</label><input class="fi" id="ml-auth-code" type="text" placeholder="Cole o código aqui"></div><button class="btn" onclick="mlExchangeCode()" style="margin-top:6px;">CONFIRMAR CÓDIGO</button>';
+}
+
+function mlExchangeCode(){
+  var code=document.getElementById('ml-auth-code')?document.getElementById('ml-auth-code').value.trim():'';
+  if(!code){toast('Cole o código de autorização',true);return;}
+  mlShowStatus('Obtendo token de acesso...','#1E90FF');
+  // Exchange code for token via a proxy approach
+  // Since we can't do CORS from browser, instruct user to use ML API directly
+  // Better: use implicit flow or save code and show next steps
+  var redirectUri=window.location.origin+window.location.pathname;
+  // Try to exchange
+  fetch('https://api.mercadolibre.com/oauth/token',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
+    body:'grant_type=authorization_code&client_id='+mlCredentials.clientId+'&client_secret='+mlCredentials.clientSecret+'&code='+code+'&redirect_uri='+encodeURIComponent(redirectUri)
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data.access_token){
+      mlCredentials.accessToken=data.access_token;
+      mlCredentials.userId=data.user_id||'';
+      mlCredentials.refreshToken=data.refresh_token||'';
+      dbUpsert('configuracoes',{chave:'ml_credentials',valor:JSON.stringify(mlCredentials)});
+      document.getElementById('ml-auth-section').style.display='none';
+      document.getElementById('ml-token-section').style.display='block';
+      mlGetUserInfo();
+      toast('Mercado Livre conectado! ✅');
+    } else {
+      mlShowStatus('Erro: '+(data.message||data.error||JSON.stringify(data)),'#ef4444');
+    }
+  }).catch(function(e){
+    mlShowStatus('Erro de conexão: '+e.message,'#ef4444');
+  });
+}
+
+function mlGetUserInfo(){
+  if(!mlCredentials.accessToken) return;
+  fetch(ML_API+'/users/me',{
+    headers:{'Authorization':'Bearer '+mlCredentials.accessToken}
+  }).then(function(r){return r.json();}).then(function(data){
+    var el=document.getElementById('ml-user-info');
+    if(el&&data.nickname) el.textContent='👤 '+data.nickname+(data.email?' — '+data.email:'');
+    mlCredentials.userId=data.id||mlCredentials.userId;
+  }).catch(function(){});
+}
+
+function mlShowStatus(msg,color){
+  var box=document.getElementById('ml-status-box');
+  var txt=document.getElementById('ml-status-text');
+  if(box) box.style.display='block';
+  if(txt){txt.textContent=msg;txt.style.color=color||'var(--text2)';}
+}
+
+function mlDisconnect(){
+  mlCredentials={clientId:'',clientSecret:'',accessToken:'',userId:''};
+  dbDel('configuracoes','chave=eq.ml_credentials');
+  document.getElementById('ml-auth-section').style.display='block';
+  document.getElementById('ml-token-section').style.display='none';
+  document.getElementById('ml-client-id').value='';
+  document.getElementById('ml-client-secret').value='';
+  toast('Mercado Livre desconectado');
+}
+
+function mlSyncOrders(){
+  if(!mlCredentials.accessToken){toast('Conecte o Mercado Livre primeiro',true);return;}
+  var dateFrom=document.getElementById('ml-date-from').value;
+  var dateTo=document.getElementById('ml-date-to').value;
+  var dasRate=parseFloat(document.getElementById('ml-das-rate').value)||8.5;
+  if(!dateFrom||!dateTo){toast('Selecione o período',true);return;}
+  // Save DAS rate
+  dbUpsert('configuracoes',{chave:'ml_das_rate',valor:String(dasRate)});
+  var btn=document.getElementById('ml-sync-btn');
+  if(btn) btn.disabled=true;
+  document.getElementById('ml-progress').style.display='block';
+  mlShowStatus('Buscando pedidos...','#1E90FF');
+  mlFetchOrders(dateFrom,dateTo,dasRate,0,[]);
+}
+
+function mlFetchOrders(dateFrom,dateTo,dasRate,offset,allOrders){
+  var limit=50;
+  var url=ML_API+'/orders/search?seller='+mlCredentials.userId
+    +'&order.status=paid'
+    +'&order.date_created.from='+dateFrom+'T00:00:00.000-03:00'
+    +'&order.date_created.to='+dateTo+'T23:59:59.000-03:00'
+    +'&sort=date_desc&limit='+limit+'&offset='+offset;
+  fetch(url,{headers:{'Authorization':'Bearer '+mlCredentials.accessToken}})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.error){mlShowStatus('Erro ML: '+data.message,'#ef4444');mlSyncDone();return;}
+    var orders=data.results||[];
+    allOrders=allOrders.concat(orders);
+    var total=data.paging?data.paging.total:orders.length;
+    var pct=Math.min(100,Math.round(allOrders.length/total*100));
+    document.getElementById('ml-progress-bar').style.width=pct+'%';
+    document.getElementById('ml-progress-text').textContent=allOrders.length+' / '+total+' pedidos';
+    if(orders.length===limit&&allOrders.length<total){
+      mlFetchOrders(dateFrom,dateTo,dasRate,offset+limit,allOrders);
+    } else {
+      mlProcessOrders(allOrders,dasRate);
+    }
+  }).catch(function(e){mlShowStatus('Erro: '+e.message,'#ef4444');mlSyncDone();});
+}
+
+function mlGetCustoFromEstoque(prodName){
+  // Match SKU name to container cost
+  var allSkus=getAllSKUs();
+  var cs=loadContainers();
+  var i,j;
+  for(i=0;i<allSkus.length;i++){
+    if(allSkus[i].nome.toLowerCase()===prodName.toLowerCase()){
+      var skuId=allSkus[i].id;
+      // Find cost in containers (FIFO - oldest first)
+      var sorted=cs.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+      for(j=0;j<sorted.length;j++){
+        var sk=sorted[j].skus[skuId];
+        if(sk&&sk.custo>0) return sk.custo;
+      }
+      // Fallback to SKUS default cost
+      return allSkus[i].custo||0;
+    }
+  }
+  return 0;
+}
+
+function mlProcessOrders(orders,dasRate){
+  mlShowStatus('Processando '+orders.length+' pedidos...','#1E90FF');
+  var vendas=[];
+  var i,j;
+  for(i=0;i<orders.length;i++){
+    var o=orders[i];
+    var items=o.order_items||[];
+    for(j=0;j<items.length;j++){
+      var item=items[j];
+      var prodName=item.item?item.item.title:'';
+      var qtd=item.quantity||1;
+      var precoUnit=item.unit_price||0;
+      var custoML=item.sale_fee||0; // taxa ML por item
+      // Shipping
+      var frete=0;
+      if(o.shipping&&o.shipping.cost) frete=o.shipping.cost;
+      // Detect FULL vs Normal
+      // Full: logistic_type='fulfillment' → origem='Full'
+      // Normal: anything else → origem='Brasilia'
+      var logType=(o.shipping&&o.shipping.logistic_type)||'';
+      var isFull=logType==='fulfillment'||
+        (item.item&&item.item.fulfillment&&item.item.fulfillment.type==='fulfillment');
+      var origem=isFull?'Full':'Brasilia';
+      // Date
+      var dateStr=o.date_created?o.date_created.substring(0,10):'';
+      // DAS estimated
+      var imp=precoUnit*(dasRate/100);
+      // Get custo from estoque
+      var custo=mlGetCustoFromEstoque(prodName);
+      var taxaPct=precoUnit>0?(custoML/precoUnit*100):0;
+      var lucroSI=precoUnit-custoML-custo-(frete/qtd);
+      var lucroLL=lucroSI-imp;
+      for(var q=0;q<qtd;q++){
+        vendas.push({
+          id:Date.now()*10000+i*1000+q*100+Math.floor(Math.random()*99),
+          date:dateStr,
+          cliente:(o.buyer&&o.buyer.nickname)||'ML',
+          canal:'Mercado Livre',
+          produto:prodName,
+          prodId:null,
+          origem:origem,
+          containerId:'',
+          venda:precoUnit,
+          custo:custo,
+          taxaPct:Math.round(taxaPct*100)/100,
+          taxa:custoML,
+          impPct:dasRate,
+          imp:imp,
+          comPct:0,com:0,
+          frete:frete/qtd,
+          lucroSI:lucroSI,
+          lucroLL:lucroLL,
+          duplo:false,
+          pag1tipo:'',pag1val:0,pag1taxa:0,
+          pag2tipo:'',pag2val:0,pag2taxa:0,
+          mlOrderId:o.id,
+          mlItemId:item.item?item.item.id:''
+        });
+      }
+    }
+  }
+  // Resolve prodId and deduct stock
+  var allSkus=getAllSKUs();
+  // Load mappings then resolve prodId
+  mlLoadMappings(function(){
+    vendas.forEach(function(v){
+      // Primary: use mlMappings by mlItemId
+      if(v.mlItemId&&mlMappings[v.mlItemId]){
+        v.prodId=parseInt(mlMappings[v.mlItemId]);
+      } else {
+        // Fallback: name match
+        for(var k=0;k<allSkus.length;k++){
+          if(allSkus[k].nome.toLowerCase()===v.produto.toLowerCase()){
+            v.prodId=allSkus[k].id;break;
+          }
+        }
+      }
+      if(v.prodId&&v.origem){
+        var cid=getOldestContIdForLocal(v.origem,v.prodId);
+        if(cid) v.containerId=cid;
+      }
+    });
+    // Save to DB
+    var saved=0;
+    vendas.forEach(function(v){
+      saveVendaDB(v,true);
+      DB_VENDAS.push(v);
+      saved++;
+      if(saved===vendas.length){
+        if(DB_CONTAINERS.length>0){
+          loadContainersDB(function(fresh){
+            DB_CONTAINERS=fresh;
+            vendas.forEach(function(vv){
+              if(vv.prodId&&vv.containerId) consumeFIFO(vv.origem,vv.prodId,1);
+            });
+          });
+        }
+        renderHist();renderDash();
+        mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
+        toast(vendas.length+' vendas do ML importadas!');
+        mlSyncDone();
+      }
+    });
+  });
+  if(!vendas.length){mlShowStatus('Nenhum pedido encontrado no período','#f59e0b');mlSyncDone();return;}
+  mlShowStatus('Processando SKUs e salvando...','#22c55e');
+}
+
+function mlSyncDone(){
+  var btn=document.getElementById('ml-sync-btn');
+  if(btn) btn.disabled=false;
+}
+
+
+// ── ML VINCULAR ANÚNCIOS ─────────────────────────────────────────────────
+
+var mlMappings = {}; // {mlItemId: skuId}
+
+function mlShowTab(tab){
+  var tabs=['vincular','sync'];
+  tabs.forEach(function(t){
+    var panel=document.getElementById('ml-panel-'+t);
+    var btn=document.getElementById('ml-tab-'+t);
+    if(panel) panel.style.display=t===tab?'block':'none';
+    if(btn){
+      btn.style.background=t===tab?'#1E90FF':'var(--sbtn-bg)';
+      btn.style.color=t===tab?'#fff':'var(--text2)';
+    }
+  });
+}
+
+function mlLoadMappings(cb){
+  dbGet('configuracoes','chave=eq.ml_mappings').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{mlMappings=JSON.parse(rows[0].valor);}catch(e){mlMappings={};}
+    }
+    if(cb) cb();
+  }).catch(function(){if(cb)cb();});
+}
+
+function mlSaveMappings(){
+  dbUpsert('configuracoes',{chave:'ml_mappings',valor:JSON.stringify(mlMappings)});
+}
+
+function mlLoadListings(){
+  if(!mlCredentials.accessToken){toast('Conecte o ML primeiro',true);return;}
+  var el=document.getElementById('ml-listings-list');
+  if(el) el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px;">Carregando anúncios...</div>';
+  mlLoadMappings(function(){
+    // Fetch active listings
+    fetch(ML_API+'/users/'+mlCredentials.userId+'/items/search?status=active&limit=100',{
+      headers:{'Authorization':'Bearer '+mlCredentials.accessToken}
+    }).then(function(r){return r.json();}).then(function(data){
+      var ids=(data.results||[]).join(',');
+      if(!ids){
+        el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);">Nenhum anúncio ativo encontrado</div>';
+        return;
+      }
+      // Fetch item details in batch
+      return fetch(ML_API+'/items?ids='+ids,{
+        headers:{'Authorization':'Bearer '+mlCredentials.accessToken}
+      });
+    }).then(function(r){return r&&r.json?r.json():[];}).then(function(items){
+      mlRenderListings(Array.isArray(items)?items:[]);
+    }).catch(function(e){
+      if(el) el.innerHTML='<div style="color:#ef4444;font-size:11px;padding:8px;">Erro: '+e.message+'</div>';
+    });
+  });
+}
+
+function mlRenderListings(items){
+  var el=document.getElementById('ml-listings-list');
+  if(!el) return;
+  var allSkus=getAllSKUs();
+  if(!items.length){
+    el.innerHTML='<div style="text-align:center;color:var(--text3);font-size:11px;padding:12px;">Nenhum anúncio encontrado</div>';
+    return;
+  }
+  el.innerHTML='';
+  items.forEach(function(item){
+    // item can be {body:{...}} format from batch API
+    var it=item.body||item;
+    if(!it||!it.id) return;
+    var isLinked=!!mlMappings[it.id];
+    var linkedSku=isLinked?allSkus.find(function(s){return String(s.id)===String(mlMappings[it.id]);}):null;
+
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--bg2);border:1px solid '+(isLinked?'#22c55e44':'var(--border)')+';border-radius:10px;padding:10px;margin-bottom:8px;';
+
+    // Header: thumbnail + title + price
+    var header=document.createElement('div');
+    header.style.cssText='display:flex;gap:10px;align-items:center;margin-bottom:8px;';
+
+    // Thumbnail
+    if(it.thumbnail){
+      var img=document.createElement('img');
+      img.src=it.thumbnail;
+      img.style.cssText='width:48px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;';
+      header.appendChild(img);
+    }
+
+    var info=document.createElement('div');
+    info.style.cssText='flex:1;min-width:0;';
+    var title=document.createElement('div');
+    title.style.cssText='font-size:11px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:2px;';
+    title.textContent=it.title||it.id;
+    var sub=document.createElement('div');
+    sub.style.cssText='font-size:10px;color:var(--text2);';
+    sub.textContent=(it.id||'')+(it.price?' · R$'+it.price:'');
+    info.appendChild(title);info.appendChild(sub);
+    header.appendChild(info);
+
+    // Linked badge
+    if(isLinked&&linkedSku){
+      var badge=document.createElement('div');
+      badge.style.cssText='font-size:9px;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;border-radius:6px;padding:2px 6px;flex-shrink:0;text-align:center;';
+      badge.textContent='✅ '+linkedSku.nome;
+      header.appendChild(badge);
+    }
+
+    card.appendChild(header);
+
+    // SKU selector
+    var selRow=document.createElement('div');
+    selRow.style.cssText='display:flex;gap:6px;align-items:center;';
+
+    var sel=document.createElement('select');
+    sel.className='fs';
+    sel.style.cssText='flex:1;font-size:11px;padding:6px 8px;';
+    sel.innerHTML='<option value="">Selecionar SKU do app...</option>';
+    allSkus.forEach(function(s){
+      var o=document.createElement('option');
+      o.value=s.id;
+      o.textContent=s.nome;
+      if(isLinked&&String(mlMappings[it.id])===String(s.id)) o.selected=true;
+      sel.appendChild(o);
+    });
+
+    var btnVinc=document.createElement('button');
+    btnVinc.style.cssText='padding:6px 12px;border-radius:8px;border:none;background:#1E90FF;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;';
+    btnVinc.textContent='Vincular';
+
+    var btnDesvincular=document.createElement('button');
+    btnDesvincular.style.cssText='padding:6px 10px;border-radius:8px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;display:'+(isLinked?'block':'none');
+    btnDesvincular.textContent='✕';
+
+    var mlId=it.id;
+    btnVinc.onclick=function(){
+      var skuId=sel.value;
+      if(!skuId){toast('Selecione um SKU',true);return;}
+      mlMappings[mlId]=skuId;
+      mlSaveMappings();
+      card.style.borderColor='#22c55e44';
+      var skuName=allSkus.find(function(s){return String(s.id)===String(skuId);})||{nome:'?'};
+      badge?badge.textContent='✅ '+skuName.nome:null;
+      btnDesvincular.style.display='block';
+      toast('Vinculado: '+skuName.nome+' ✅');
+    };
+
+    btnDesvincular.onclick=function(){
+      delete mlMappings[mlId];
+      mlSaveMappings();
+      sel.value='';
+      card.style.borderColor='var(--border)';
+      btnDesvincular.style.display='none';
+      toast('Vínculo removido');
+    };
+
+    selRow.appendChild(sel);
+    selRow.appendChild(btnVinc);
+    selRow.appendChild(btnDesvincular);
+    card.appendChild(selRow);
+    el.appendChild(card);
+  });
 }
 
 </script>
