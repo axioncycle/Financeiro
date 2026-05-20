@@ -5633,7 +5633,7 @@ function mlFetchToken(url, bodyParams){
       url: url,
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
-      body: bodyParams
+      rawBody: bodyParams
     })
   }).then(function(r){ return r.json(); });
 }
@@ -5669,6 +5669,12 @@ function openMLSync(){
       if(Array.isArray(r2)&&r2.length) rate=parseFloat(r2[0].valor)||8.5;
       var el=document.getElementById('ml-das-rate');
       if(el) el.value=rate;
+    });
+    // Save default mappings to Supabase if not yet saved
+    dbGet('configuracoes','chave=eq.ml_mappings').then(function(r3){
+      if(!Array.isArray(r3)||!r3.length){
+        dbUpsert('configuracoes',{chave:'ml_mappings',valor:JSON.stringify(mlMappings)});
+      }
     });
   }).catch(function(){});
   openModal('m-ml-sync');
@@ -5807,112 +5813,168 @@ function mlGetCustoFromEstoque(prodName){
   return 0;
 }
 
-function mlProcessOrders(orders,dasRate){
-  mlShowStatus('Processando '+orders.length+' pedidos...','#1E90FF');
-  var vendas=[];
-  var i,j;
-  for(i=0;i<orders.length;i++){
-    var o=orders[i];
-    var items=o.order_items||[];
-    for(j=0;j<items.length;j++){
-      var item=items[j];
-      var prodName=item.item?item.item.title:'';
-      var qtd=item.quantity||1;
-      var precoUnit=item.unit_price||0;
-      var custoML=item.sale_fee||0; // taxa ML por item
-      // Shipping
-      var frete=0;
-      if(o.shipping&&o.shipping.cost) frete=o.shipping.cost;
-      // Detect FULL vs Normal
-      // Full: logistic_type='fulfillment' → origem='Full'
-      // Normal: anything else → origem='Brasilia'
-      var logType=(o.shipping&&o.shipping.logistic_type)||'';
-      var isFull=logType==='fulfillment'||
-        (item.item&&item.item.fulfillment&&item.item.fulfillment.type==='fulfillment');
-      var origem=isFull?'Full':'Brasilia';
-      // Date
-      var dateStr=o.date_created?o.date_created.substring(0,10):'';
-      // DAS estimated
-      var imp=precoUnit*(dasRate/100);
-      // Get custo from estoque
-      var custo=mlGetCustoFromEstoque(prodName);
-      var taxaPct=precoUnit>0?(custoML/precoUnit*100):0;
-      var lucroSI=precoUnit-custoML-custo-(frete/qtd);
-      var lucroLL=lucroSI-imp;
-      for(var q=0;q<qtd;q++){
-        vendas.push({
-          id:Date.now()*10000+i*1000+q*100+Math.floor(Math.random()*99),
-          date:dateStr,
-          cliente:(o.buyer&&o.buyer.nickname)||'ML',
-          canal:'Mercado Livre',
-          produto:prodName,
-          prodId:null,
-          origem:origem,
-          containerId:'',
-          venda:precoUnit,
-          custo:custo,
-          taxaPct:Math.round(taxaPct*100)/100,
-          taxa:custoML,
-          impPct:dasRate,
-          imp:imp,
-          comPct:0,com:0,
-          frete:frete/qtd,
-          lucroSI:lucroSI,
-          lucroLL:lucroLL,
-          duplo:false,
-          pag1tipo:'',pag1val:0,pag1taxa:0,
-          pag2tipo:'',pag2val:0,pag2taxa:0,
-          mlOrderId:o.id,
-          mlItemId:item.item?item.item.id:''
-        });
-      }
-    }
+function mlGetCustoBySkuId(skuId){
+  // Get cost from oldest container with this SKU
+  var cs=loadContainers().slice();
+  cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+  var i;
+  for(i=0;i<cs.length;i++){
+    var sk=cs[i].skus[skuId];
+    if(sk&&sk.custo>0) return sk.custo;
   }
-  // Resolve prodId and deduct stock
+  // Fallback: SKUS default
   var allSkus=getAllSKUs();
-  // Load mappings then resolve prodId
+  for(i=0;i<allSkus.length;i++){
+    if(allSkus[i].id===skuId) return allSkus[i].custo||0;
+  }
+  return 0;
+}
+
+function mlProcessOrders(orders,dasRate){
+  if(!orders.length){
+    mlShowStatus('Nenhum pedido encontrado no período','#f59e0b');
+    mlSyncDone();return;
+  }
+  mlShowStatus('Processando '+orders.length+' pedidos...','#1E90FF');
+
+  // Load mappings + fresh containers first
   mlLoadMappings(function(){
-    vendas.forEach(function(v){
-      // Primary: use mlMappings by mlItemId
-      if(v.mlItemId&&mlMappings[v.mlItemId]){
-        v.prodId=parseInt(mlMappings[v.mlItemId]);
-      } else {
-        // Fallback: name match
-        for(var k=0;k<allSkus.length;k++){
-          if(allSkus[k].nome.toLowerCase()===v.produto.toLowerCase()){
-            v.prodId=allSkus[k].id;break;
+    loadContainersDB(function(freshCs){
+      DB_CONTAINERS=freshCs;
+      var allSkus=getAllSKUs();
+      var vendas=[];
+      var i,j,q;
+
+      for(i=0;i<orders.length;i++){
+        var o=orders[i];
+        var items=o.order_items||[];
+
+        // Get buyer name
+        var cliente=(o.buyer&&(o.buyer.nickname||o.buyer.first_name))||'ML';
+
+        // Get frete from shipping
+        var freteTotal=0;
+        if(o.shipping){
+          freteTotal=o.shipping.cost||o.shipping.shipping_cost||0;
+        }
+
+        // Detect FULL vs Normal from tags or logistic_type
+        var tags=o.tags||[];
+        var logType=(o.shipping&&o.shipping.logistic_type)||'';
+        var isFull=logType==='fulfillment'||tags.indexOf('fulfillment')>=0||
+          tags.indexOf('meli_plus')>=0;
+
+        // Date
+        var dateStr=o.date_created?o.date_created.substring(0,10):'';
+
+        for(j=0;j<items.length;j++){
+          var item=items[j];
+          var mlItemId=item.item?item.item.id:'';
+          var qtd=item.quantity||1;
+          var precoUnit=item.unit_price||0;
+
+          // Taxa ML: sale_fee is the fee per unit
+          var taxaUnit=item.sale_fee||0;
+          // If sale_fee not in item, try at order level
+          if(!taxaUnit&&o.total_amount&&o.payments&&o.payments.length){
+            var mktFee=o.payments[0].marketplace_fee||0;
+            taxaUnit=qtd>0?mktFee/qtd:0;
+          }
+
+          // Full vs Normal per item (check item fulfillment)
+          var itemIsFull=isFull||
+            (item.item&&item.item.fulfillment&&
+             item.item.fulfillment.type==='fulfillment');
+          var origem=itemIsFull?'Full':'Brasilia';
+
+          // Resolve SKU from mappings
+          var prodId=null;
+          var prodNome='';
+          if(mlItemId&&mlMappings[mlItemId]){
+            prodId=parseInt(mlMappings[mlItemId]);
+          }
+          // Get SKU name from app
+          if(prodId){
+            for(var k=0;k<allSkus.length;k++){
+              if(allSkus[k].id===prodId){prodNome=allSkus[k].nome;break;}
+            }
+          }
+          if(!prodNome) prodNome=item.item?item.item.title:'Produto ML';
+
+          // Get custo from oldest container with this SKU
+          var custo=prodId?mlGetCustoBySkuId(prodId):0;
+
+          // Get containerId from oldest container at correct local
+          var containerId='';
+          if(prodId&&origem){
+            var cid=getOldestContIdForLocal(origem,prodId);
+            if(cid) containerId=cid;
+          }
+
+          // DAS estimated
+          var imp=precoUnit*(dasRate/100);
+          var freteUnit=qtd>0?freteTotal/items.length/qtd:0;
+          var taxaPct=precoUnit>0?(taxaUnit/precoUnit*100):0;
+          var lucroSI=precoUnit-taxaUnit-custo-freteUnit;
+          var lucroLL=lucroSI-imp;
+
+          for(q=0;q<qtd;q++){
+            vendas.push({
+              id:Date.now()*10000+i*1000+j*100+q*10+Math.floor(Math.random()*9),
+              date:dateStr,
+              cliente:cliente,
+              canal:'Mercado Livre',
+              produto:prodNome,
+              prodId:prodId,
+              origem:origem,
+              containerId:containerId,
+              venda:precoUnit,
+              custo:custo,
+              taxaPct:Math.round(taxaPct*100)/100,
+              taxa:taxaUnit,
+              impPct:dasRate,
+              imp:imp,
+              comPct:0,com:0,
+              frete:freteUnit,
+              lucroSI:lucroSI,
+              lucroLL:lucroLL,
+              duplo:false,
+              pag1tipo:'',pag1val:0,pag1taxa:0,
+              pag2tipo:'',pag2val:0,pag2taxa:0,
+              mlOrderId:o.id,
+              mlItemId:mlItemId
+            });
           }
         }
       }
-      if(v.prodId&&v.origem){
-        var cid=getOldestContIdForLocal(v.origem,v.prodId);
-        if(cid) v.containerId=cid;
+
+      if(!vendas.length){
+        mlShowStatus('Nenhum pedido processado','#f59e0b');
+        mlSyncDone();return;
       }
-    });
-    // Save to DB
-    var saved=0;
-    vendas.forEach(function(v){
-      saveVendaDB(v,true);
-      DB_VENDAS.push(v);
-      saved++;
-      if(saved===vendas.length){
-        if(DB_CONTAINERS.length>0){
-          loadContainersDB(function(fresh){
-            DB_CONTAINERS=fresh;
-            vendas.forEach(function(vv){
-              if(vv.prodId&&vv.containerId) consumeFIFO(vv.origem,vv.prodId,1);
-            });
+
+      mlShowStatus('Salvando '+vendas.length+' vendas...','#22c55e');
+
+      // Save all vendas to Supabase
+      var saved=0;
+      vendas.forEach(function(v){
+        saveVendaDB(v,true);
+        DB_VENDAS.push(v);
+        saved++;
+        if(saved===vendas.length){
+          // Consume stock
+          vendas.forEach(function(vv){
+            if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
           });
+          renderHist();renderDash();
+          if(curPage==='est') renderEst();
+          mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
+          toast(vendas.length+' vendas do ML importadas!');
+          mlSyncDone();
         }
-        renderHist();renderDash();
-        mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
-        toast(vendas.length+' vendas do ML importadas!');
-        mlSyncDone();
-      }
+      });
     });
   });
-  if(!vendas.length){mlShowStatus('Nenhum pedido encontrado no período','#f59e0b');mlSyncDone();return;}
-  mlShowStatus('Processando SKUs e salvando...','#22c55e');
 }
 
 function mlSyncDone(){
@@ -5923,7 +5985,7 @@ function mlSyncDone(){
 
 // ── ML VINCULAR ANÚNCIOS ─────────────────────────────────────────────────
 
-var mlMappings = {}; // {mlItemId: skuId}
+var mlMappings = {"MLBU2875063431": 5, "MLBU3764699755": 7, "MLBU3549654195": 6, "MLBU2880082638": 2, "MLBU3764683645": 4, "MLBU3556994952": 3, "MLBU3974917097": 8, "MLBU3974917095": 9, "MLBU3715291679": 10, "MLBU3903433226": 11, "MLBU3903431238": 12, "MLBU3787209772": 13, "MLBU3777705759": 17, "MLBU2875051989": 21, "MLBU3774038172": 23, "MLBU3555380495": 22, "MLBU2880044556": 24, "MLBU3764704425": 26, "MLBU3555375107": 25, "MLBU3647260848": 27, "MLBU3647257490": 28, "MLBU3910586256": 31, "MLBU3850085701": 30, "MLBU3718234438": 29, "MLBU3549624863": 35, "MLBU3461356419": 35, "MLBU3549621543": 35, "MLBU3782342702": 35}; // {mlItemId: skuId}
 
 function mlShowTab(tab){
   var tabs=['vincular','sync'];
