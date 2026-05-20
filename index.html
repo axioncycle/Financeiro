@@ -5787,9 +5787,56 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,offset,allOrders){
     if(orders.length===limit&&allOrders.length<total){
       mlFetchOrders(dateFrom,dateTo,dasRate,offset+limit,allOrders);
     } else {
-      mlProcessOrders(allOrders,dasRate);
+      // Fetch shipment details for all orders that have shipping
+      mlEnrichWithShipments(allOrders,dasRate);
     }
   }).catch(function(e){mlShowStatus('Erro: '+e.message,'#ef4444');mlSyncDone();});
+}
+
+function mlEnrichWithShipments(orders,dasRate){
+  // Get shipment IDs from orders
+  var ordersNeedingShipment=orders.filter(function(o){
+    return o.shipping&&o.shipping.id&&!(o.shipping.cost>0);
+  });
+  if(!ordersNeedingShipment.length){
+    mlProcessOrders(orders,dasRate);
+    return;
+  }
+  mlShowStatus('Buscando dados de frete ('+ordersNeedingShipment.length+' envios)...','#1E90FF');
+  var done=0;
+  var shipMap={};
+  ordersNeedingShipment.forEach(function(o){
+    var shipId=o.shipping.id;
+    mlFetch(ML_API+'/shipments/'+shipId, mlCredentials.accessToken)
+    .then(function(ship){
+      // cost.gross = total frete cobrado do comprador
+      // cost.special_cost = custo do frete para o vendedor (Full)
+      if(ship&&ship.cost){
+        shipMap[shipId]={
+          gross: ship.cost.gross||0,
+          net: ship.cost.net||0,
+          sellerCost: ship.cost.special_cost||ship.cost.sender_cost||0,
+          logisticType: ship.logistic_type||''
+        };
+      }
+      done++;
+      if(done===ordersNeedingShipment.length){
+        // Enrich orders with shipment data
+        orders.forEach(function(o){
+          if(o.shipping&&o.shipping.id&&shipMap[o.shipping.id]){
+            var s=shipMap[o.shipping.id];
+            o.shipping.cost=s.gross;
+            o.shipping.seller_cost=s.sellerCost;
+            o.shipping.logistic_type=o.shipping.logistic_type||s.logisticType;
+          }
+        });
+        mlProcessOrders(orders,dasRate);
+      }
+    }).catch(function(){
+      done++;
+      if(done===ordersNeedingShipment.length) mlProcessOrders(orders,dasRate);
+    });
+  });
 }
 
 function mlGetCustoFromEstoque(prodName){
@@ -5873,10 +5920,13 @@ function mlProcessOrders(orders,dasRate){
           var qtd=item.quantity||1;
           var precoUnit=item.unit_price||0;
 
-          // Taxa ML: sale_fee is the fee per unit
-          var taxaUnit=item.sale_fee||0;
-          // If sale_fee not in item, try at order level
-          if(!taxaUnit&&o.total_amount&&o.payments&&o.payments.length){
+          // Taxa ML: sale_fee = fee charged by ML per item (already per unit)
+          // ML returns sale_fee as total for the line (unit_price * qty * fee%)
+          // So per unit = sale_fee / qty
+          var taxaTotal=item.sale_fee||0;
+          var taxaUnit=qtd>0?taxaTotal/qtd:taxaTotal;
+          // Fallback: marketplace_fee from payments
+          if(!taxaUnit&&o.payments&&o.payments.length){
             var mktFee=o.payments[0].marketplace_fee||0;
             taxaUnit=qtd>0?mktFee/qtd:0;
           }
@@ -5913,7 +5963,11 @@ function mlProcessOrders(orders,dasRate){
 
           // DAS estimated
           var imp=precoUnit*(dasRate/100);
-          var freteUnit=qtd>0?freteTotal/items.length/qtd:0;
+          // For Full: seller pays the shipping (frete = 0 for seller usually)
+          // For Normal: seller may pay frete or pass to buyer
+          // Use seller_cost if Full, gross if Normal
+          var freteVendedor=itemIsFull?(o.shipping&&o.shipping.seller_cost||0):(freteTotal);
+          var freteUnit=items.length>0&&qtd>0?freteVendedor/items.length/qtd:0;
           var taxaPct=precoUnit>0?(taxaUnit/precoUnit*100):0;
           var lucroSI=precoUnit-taxaUnit-custo-freteUnit;
           var lucroLL=lucroSI-imp;
