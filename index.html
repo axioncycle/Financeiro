@@ -316,9 +316,28 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 <!-- FLUXO DE CAIXA -->
 <div class="pg" id="pg-caixa">
 
-  <!-- Config de prazos -->
+  <!-- Config -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">
-    <div style="font-size:10px;font-weight:700;color:#1E90FF;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">⚙️ Prazos de Recebimento</div>
+    <div style="font-size:10px;font-weight:700;color:#1E90FF;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">⚙️ Configurações do Caixa</div>
+
+    <!-- Saldo Inicial -->
+    <div style="background:#1E90FF11;border:1px solid #1E90FF33;border-radius:10px;padding:10px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:700;color:#1E90FF;margin-bottom:6px;">💰 Saldo Inicial</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">Mês/Ano de início</div>
+          <input class="fi" id="cx-inicio" type="month" value="2026-05" onchange="saveCaixaConfig();renderCaixa();">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">Saldo inicial (R$)</div>
+          <input class="fi" id="cx-saldo-inicial" type="number" placeholder="ex: 50000" onchange="saveCaixaConfig();renderCaixa();">
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-top:5px;">O caixa começa a contar a partir deste mês com este saldo</div>
+    </div>
+
+    <!-- Prazos -->
+    <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:6px;">Prazos de Recebimento</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div>
         <div style="font-size:9px;color:var(--text3);margin-bottom:3px;">ML Full (dias)</div>
@@ -6355,28 +6374,34 @@ var cxSelPeriod = 'all';
 
 function saveCaixaConfig(){
   var cfg={
-    mlFull:  parseInt(document.getElementById('cx-prazo-ml-full')&&document.getElementById('cx-prazo-ml-full').value)||10,
-    mlNormal:parseInt(document.getElementById('cx-prazo-ml-normal')&&document.getElementById('cx-prazo-ml-normal').value)||15,
-    site:    parseInt(document.getElementById('cx-prazo-site')&&document.getElementById('cx-prazo-site').value)||1
+    mlFull:   parseInt(document.getElementById('cx-prazo-ml-full')&&document.getElementById('cx-prazo-ml-full').value)||10,
+    mlNormal: parseInt(document.getElementById('cx-prazo-ml-normal')&&document.getElementById('cx-prazo-ml-normal').value)||15,
+    site:     parseInt(document.getElementById('cx-prazo-site')&&document.getElementById('cx-prazo-site').value)||1,
+    inicio:   (document.getElementById('cx-inicio')&&document.getElementById('cx-inicio').value)||'2026-05',
+    saldoIni: parseFloat(document.getElementById('cx-saldo-inicial')&&document.getElementById('cx-saldo-inicial').value)||0
   };
   dbUpsert('configuracoes',{chave:'cx_config',valor:JSON.stringify(cfg)});
 }
 
 function loadCaixaConfig(cb){
   dbGet('configuracoes','chave=eq.cx_config').then(function(rows){
-    var cfg={mlFull:10,mlNormal:15,site:1};
+    var cfg={mlFull:10,mlNormal:15,site:1,inicio:'2026-05',saldoIni:0};
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{cfg=JSON.parse(rows[0].valor);}catch(e){}
+      try{cfg=Object.assign(cfg,JSON.parse(rows[0].valor));}catch(e){}
     }
     // Set inputs
     var ef=document.getElementById('cx-prazo-ml-full');
     var en=document.getElementById('cx-prazo-ml-normal');
     var es=document.getElementById('cx-prazo-site');
+    var ei=document.getElementById('cx-inicio');
+    var esi=document.getElementById('cx-saldo-inicial');
     if(ef) ef.value=cfg.mlFull;
     if(en) en.value=cfg.mlNormal;
     if(es) es.value=cfg.site;
+    if(ei) ei.value=cfg.inicio||'2026-05';
+    if(esi&&cfg.saldoIni) esi.value=cfg.saldoIni;
     if(cb) cb(cfg);
-  }).catch(function(){if(cb)cb({mlFull:10,mlNormal:15,site:1});});
+  }).catch(function(){if(cb)cb({mlFull:10,mlNormal:15,site:1,inicio:'2026-05',saldoIni:0});});
 }
 
 function addDays(dateStr,days){
@@ -6422,11 +6447,12 @@ function buildCaixaData(cfg){
     };
   }
 
-  // 1. ENTRADAS: vendas com data de recebimento
+  // 1. ENTRADAS: vendas com data de recebimento (somente a partir do mês início)
+  var inicioMk=cfg.inicio||'2026-05';
   vendas.forEach(function(v){
     var recDate=getRecebDate(v,cfg);
     var mk=mkey3(recDate);
-    if(!mk) return;
+    if(!mk||mk<inicioMk) return; // ignora meses anteriores ao início
     ensureMk(mk);
     mMap[mk].entradas+=v.venda||0;
     mMap[mk].qtd++;
@@ -6439,9 +6465,10 @@ function buildCaixaData(cfg){
     });
   });
 
-  // 2. SAÍDAS: despesas por mês (competência = caixa para fixas)
+  // 2. SAÍDAS: despesas por mês (somente a partir do mês início)
   var allMonths=Object.keys(DB_DESP);
   allMonths.forEach(function(mk){
+    if(mk<inicioMk) return; // ignora meses anteriores
     ensureMk(mk);
     var d=DB_DESP[mk];
     if(d.fixas) d.fixas.forEach(function(f){
@@ -6513,7 +6540,7 @@ function filterCaixaMeses(mMap){
   return keys.filter(function(k){return k===cxSelPeriod;});
 }
 
-function renderCaixaResumo(mMap, meses){
+function renderCaixaResumo(mMap, meses, saldoIni){
   var el=document.getElementById('cx-resumo');
   if(!el) return;
   var totEnt=0,totSaiFix=0,totSaiExt=0,totSaiCont=0,totDas=0,totFin=0;
@@ -6545,18 +6572,18 @@ function renderCaixaResumo(mMap, meses){
       +'<div><div style="font-size:9px;color:var(--text3);">DAS pago</div><div style="font-size:13px;font-weight:700;color:#ef4444;">'+fmt(totDas)+'</div></div>'
       +'<div><div style="font-size:9px;color:var(--text3);">Compra Estoque</div><div style="font-size:13px;font-weight:700;color:#ef4444;">'+fmt(totSaiCont)+'</div></div>'
     +'</div>'
-    +'<div style="border-top:1px solid #1E90FF33;padding-top:10px;display:flex;justify-content:space-between;align-items:center;">'
-      +'<span style="font-size:13px;font-weight:700;color:var(--text);">Saldo do Período</span>'
-      +'<span style="font-size:24px;font-weight:800;color:'+sc+';">'+fmt(saldo)+'</span>'
+    +'<div style="border-top:1px solid #1E90FF33;padding-top:10px;">'
+      +(saldoIni?'<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:11px;color:var(--text2);">Saldo Inicial ('+document.getElementById('cx-inicio').value+')</span><span style="font-size:13px;font-weight:700;color:#1E90FF;">'+fmt(saldoIni)+'</span></div>':'')
+      +'<div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;color:var(--text);">Saldo do Período</span><span style="font-size:24px;font-weight:800;color:'+sc+';">'+fmt(saldo)+'</span></div>'
+      +(saldoIni?'<div style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);"><span style="font-size:11px;color:var(--text2);">Saldo Final (acumulado)</span><span style="font-size:16px;font-weight:800;color:'+((saldo+saldoIni)>=0?'#22c55e':'#ef4444')+';">'+fmt(saldo+saldoIni)+'</span></div>':'')
     +'</div>';
 }
 
-function renderCaixaSaldo(mMap, mesesFiltrados){
+function renderCaixaSaldo(mMap, mesesFiltrados, saldoIni){
   var el=document.getElementById('cx-saldo');
   if(!el) return;
-  // All months sorted for cumulative
   var allMeses=Object.keys(mMap).sort();
-  var saldoAcum=0;
+  var saldoAcum=saldoIni||0; // start from initial balance
   var h='';
   allMeses.forEach(function(mk){
     var m=mMap[mk];
@@ -6648,8 +6675,8 @@ function renderCaixa(){
     var mMap=buildCaixaData(cfg);
     renderCaixaFilter(mMap);
     var meses=filterCaixaMeses(mMap);
-    renderCaixaResumo(mMap,meses);
-    renderCaixaSaldo(mMap,meses);
+    renderCaixaResumo(mMap,meses,cfg.saldoIni||0);
+    renderCaixaSaldo(mMap,meses,cfg.saldoIni||0);
     renderCaixaMeses(mMap,meses);
   });
 }
