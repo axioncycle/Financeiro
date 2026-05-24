@@ -1,56 +1,3 @@
-function drawChart(){
-  var cc=setupCanvas('chart-main',170);
-  if(!cc) return;
-  var ctx=cc.ctx,W=cc.W,H=cc.H;
-  var isQtd=activeChart==='qtd';
-  var isLiq=activeChart==='liq';
-  var vals=isLiq?cData.liq:isQtd?cData.qtd:cData.fat;
-  var labels=cData.labels;
-  var n=labels.length; if(!n) return;
-  var COL=isLiq?'#22c55e':isQtd?'#f59e0b':'#1E90FF';
-  var pT=24,pB=6,pL=6,pR=6;
-  var cW=W-pL-pR,cH=H-pT-pB;
-  var maxV=Math.max.apply(null,vals.map(Math.abs))||1;
-  var bW=Math.max(6,Math.floor(cW/n)-5);
-  function xp(i){return pL+(i+0.5)*(cW/n);}
-
-  // Subtle gridlines
-  [0.25,0.5,0.75,1].forEach(function(f){
-    var gy=pT+cH*(1-f);
-    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
-    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
-  });
-
-  // Bars
-  vals.forEach(function(v,i){
-    var bH=Math.max(2,Math.abs(v)/maxV*cH);
-    var by=pT+cH-bH;
-    var isHigh=tipIdx===i;
-    // Gradient per bar
-    var grad=ctx.createLinearGradient(0,by,0,by+bH);
-    grad.addColorStop(0,isHigh?COL:COL+'cc');
-    grad.addColorStop(1,COL+'33');
-    drawPremiumBar(ctx,xp(i)-bW/2,by,bW,bH,grad,3);
-    // Glow on hover
-    if(isHigh){
-      ctx.shadowColor=COL;ctx.shadowBlur=8;
-      drawPremiumBar(ctx,xp(i)-bW/2,by,bW,bH,'transparent',3);
-      ctx.shadowBlur=0;
-    }
-    // Value label on hover
-    if(isHigh){
-      var lbl=isQtd?v+'un':formatK(v);
-      ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';
-      ctx.fillText(lbl,xp(i),by-4);
-    }
-    // Month label
-    ctx.fillStyle=isHigh?'#fff':'rgba(255,255,255,0.4)';
-    ctx.font=isHigh?'bold 7px Arial':'6px Arial';
-    ctx.textAlign='center';
-    ctx.fillText(labels[i],xp(i),H-1);
-  });
-}
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -440,7 +387,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <!-- Gráfico Saldo Acumulado -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;">
     <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">📈 EVOLUÇÃO DO CAIXA</div>
-    <canvas id="cx-chart-saldo" onclick="cxChartClick(event,this)" style="width:100%;height:150px;cursor:pointer;"></canvas>
+    <canvas id="cx-chart-saldo" onclick="cxChartClick(event,this)" style="width:100%;height:150px;cursor:pointer;" ontouchstart="cxChartClick(event,this)"></canvas>
     <div id="cx-chart-labels" style="display:flex;justify-content:space-between;margin-top:4px;"></div>
   </div>
 
@@ -496,7 +443,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
     <div style="font-size:10px;color:#f59e0b;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">📊 TAXA MÉDIA MENSAL (últimos 12 meses)</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Taxa média geral (ML + Site + WhatsApp) sobre o faturamento</div>
-    <canvas id="chart-taxa" onclick="chartClick(event,this,"taxa")" style="width:100%;height:140px;" onclick="chartBarClick(event,this,'taxa')"></canvas>
+    <canvas id="chart-taxa" onclick="chartClick(event,this,"taxa")" style="width:100%;height:140px;" onclick="chartBarClick(event,this,'taxa')" ontouchstart="chartClick(event,this,'taxa')"></canvas>
     <div id="chart-taxa-labels" style="display:flex;justify-content:space-between;margin-top:4px;overflow:hidden;"></div>
     <div id="chart-taxa-info" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"></div>
   </div>
@@ -511,7 +458,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
     </div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:8px;" id="canal-chart-desc">ML vs WhatsApp vs Site — faturamento mensal</div>
-    <canvas id="chart-canal-fat" style="width:100%;height:160px;" onclick="chartCanalClick(event,this)"></canvas>
+    <canvas id="chart-canal-fat" style="width:100%;height:160px;" onclick="chartCanalClick(event,this)" ontouchstart="chartCanalClick(event,this)"></canvas>
     <div id="chart-canal-fat-labels" style="display:flex;justify-content:space-between;margin-top:4px;overflow:hidden;"></div>
     <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:#ffd700;"></div><span style="font-size:9px;color:var(--text3);">ML</span></div>
@@ -525,7 +472,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
     <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">📈 MARGEM LÍQUIDA MENSAL</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">% de lucro líquido sobre faturamento mês a mês</div>
-    <canvas id="chart-marg-liq" onclick="chartClick(event,this,"marg")" style="width:100%;height:150px;" onclick="chartBarClick(event,this,'marg')"></canvas>
+    <canvas id="chart-marg-liq" onclick="chartClick(event,this,"marg")" style="width:100%;height:150px;" onclick="chartBarClick(event,this,'marg')" ontouchstart="chartClick(event,this,'marg')"></canvas>
     <div id="chart-marg-liq-labels" style="display:flex;justify-content:space-between;margin-top:4px;overflow:hidden;"></div>
     <div id="chart-marg-liq-info" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"></div>
   </div>
@@ -541,7 +488,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
     <div style="font-size:10px;color:#a855f7;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">🌊 SAZONALIDADE DE VENDAS</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Média histórica de vendas por mês do ano</div>
-    <canvas id="chart-sazon" onclick="chartClick(event,this,"sazon")" style="width:100%;height:150px;" onclick="chartBarClick(event,this,'sazon')"></canvas>
+    <canvas id="chart-sazon" onclick="chartClick(event,this,"sazon")" style="width:100%;height:150px;" onclick="chartBarClick(event,this,'sazon')" ontouchstart="chartClick(event,this,'sazon')"></canvas>
     <div style="display:flex;justify-content:space-between;margin-top:4px;">
       <span style="font-size:8px;color:#555;">Jan</span><span style="font-size:8px;color:#555;">Fev</span>
       <span style="font-size:8px;color:#555;">Mar</span><span style="font-size:8px;color:#555;">Abr</span>
@@ -2513,6 +2460,48 @@ function drawSkuFatChart(){
 }
 
 
+
+function drawChart(){
+  var cc=setupCanvas('chart-main',170);
+  if(!cc) return;
+  var ctx=cc.ctx,W=cc.W,H=cc.H;
+  var isQtd=activeChart==='qtd', isLiq=activeChart==='liq';
+  var vals=isLiq?cData.liq:isQtd?cData.qtd:cData.fat;
+  var labels=cData.labels;
+  var n=labels.length; if(!n) return;
+  var COL=isLiq?'#22c55e':isQtd?'#f59e0b':'#1E90FF';
+  var pT=24,pB=14,pL=6,pR=6;
+  var cW=W-pL-pR,cH=H-pT-pB;
+  var maxV=Math.max.apply(null,vals.map(Math.abs))||1;
+  var bW=Math.max(6,Math.floor(cW/n)-5);
+  function xp(i){return pL+(i+0.5)*(cW/n);}
+  [0.25,0.5,0.75,1].forEach(function(f){
+    var gy=pT+cH*(1-f);
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
+  });
+  vals.forEach(function(v,i){
+    var bH=Math.max(2,Math.abs(v)/maxV*cH);
+    var by=pT+cH-bH;
+    var isHigh=tipIdx===i;
+    var grad=ctx.createLinearGradient(0,by,0,by+bH);
+    grad.addColorStop(0,isHigh?COL:COL+'cc');
+    grad.addColorStop(1,COL+'22');
+    drawPremiumBar(ctx,xp(i)-bW/2,by,bW,bH,grad,3);
+    if(isHigh){
+      ctx.shadowColor=COL;ctx.shadowBlur=10;
+      ctx.shadowBlur=0;
+      var lbl=isQtd?v+'un':formatK(v);
+      ctx.fillStyle='#fff';ctx.font='bold 8px Arial';ctx.textAlign='center';
+      ctx.fillText(lbl,xp(i),by-4);
+    }
+    ctx.fillStyle=isHigh?'#fff':'rgba(255,255,255,0.4)';
+    ctx.font=isHigh?'bold 7px Arial':'6px Arial';
+    ctx.textAlign='center';
+    ctx.fillText(labels[i],xp(i),H-2);
+  });
+}
+
 function renderCharts(vendas){
   var mMap={},i;
   var chartVendas=vendas;
@@ -3098,7 +3087,6 @@ function importCSV(input){
         var taxa2=0;
         if(cols.taxa>=0&&pn(row,cols.taxa)>0) taxa2=pn(row,cols.taxa);
         else if(cols.taxaPct>=0&&pn(row,cols.taxaPct)>0) taxa2=venda2*pn(row,cols.taxaPct)/100;
-        else taxa2=pn(row,cols.nf>0?cols.nf:-1); // legacy NF fallback
         // IMPOSTO
         var nf2=0;
         if(cols.imp>=0&&pn(row,cols.imp)>0) nf2=pn(row,cols.imp);
@@ -3109,7 +3097,12 @@ function importCSV(input){
         if(cols.com>=0) com2=pn(row,cols.com);
         else if(cols.comPct>=0&&pn(row,cols.comPct)>0) com2=venda2*pn(row,cols.comPct)/100;
         // CANAL & CLIENTE & ORIGEM
-        var canal2=ps(row,cols.canal)||( taxa2>0?'Mercado Livre':'WhatsApp');
+        var rawCanal=ps(row,cols.canal).toLowerCase();
+        var canal2=cols.canal>=0&&rawCanal?
+          (rawCanal.indexOf('mercado')>=0||rawCanal==='ml'?'Mercado Livre':
+           rawCanal.indexOf('site')>=0||rawCanal.indexOf('loja')>=0?'Site':
+           rawCanal.indexOf('whats')>=0?'WhatsApp':ps(row,cols.canal))
+          :'WhatsApp';
         var cli2=(cols.cliente>=0&&ps(row,cols.cliente).trim())?ps(row,cols.cliente).trim():'Importado';
         var orig2=(cols.origem>=0&&ps(row,cols.origem).trim())?ps(row,cols.origem).trim():'';
         var txPct2=venda2>0?parseFloat((taxa2/venda2*100).toFixed(2)):0;
@@ -3146,7 +3139,8 @@ function importCSV(input){
         // Calculate lucro from CSV if available (trusted), else calculate
         var lsi2=cols.lucroSI>=0&&pn(row,cols.lucroSI)!==0?pn(row,cols.lucroSI):(venda2-custo2-taxa2-frete2-com2);
         var lll2=cols.lucroLL>=0&&pn(row,cols.lucroLL)!==0?pn(row,cols.lucroLL):(venda2-custo2-taxa2-frete2-nf2-com2);
-        vlist.push({id:Date.now()*10000+(i2*1000)+Math.floor(Math.random()*999),date:pd(ps(row,cols.data)),cliente:cli2,canal:canal2,produto:prod,prodId:resolvedProdId,origem:finalOrig,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:comPct2,com:com2,frete:frete2,lucroSI:lsi2,lucroLL:lll2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
+        var dateVal=pd(ps(row,cols.data));
+        vlist.push({id:Date.now()*10000+(i2*1000)+Math.floor(Math.random()*999),date:dateVal,cliente:cli2,canal:canal2,produto:prod,prodId:resolvedProdId,origem:finalOrig,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:comPct2,com:com2,frete:frete2,lucroSI:lsi2,lucroLL:lll2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
       }
       if(!vlist.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada.';return;}
       importPending=vlist;
@@ -7085,299 +7079,247 @@ function calcSimDesconto(){
 }
 
 
-function renderTaxaChart(){
-  var canvas=document.getElementById('chart-taxa');
-  var labelsEl=document.getElementById('chart-taxa-labels');
-  var infoEl=document.getElementById('chart-taxa-info');
-  if(!canvas) return;
 
-  var vendas=loadVendas();
+// ── CHART ENGINE ──────────────────────────────────────────────────────
+var _CD = {}; // tooltip data store
+var _cxChartData = null;
 
-  // Group by month - last 12
-  var mMap={};
-  vendas.forEach(function(v){
-    var mk=mkey(v.date);
-    if(!mk) return;
-    if(!mMap[mk]) mMap[mk]={fat:0,taxa:0,com:0,qtd:0};
-    mMap[mk].fat+=v.venda||0;
-    mMap[mk].taxa+=(v.taxa||0);
-    mMap[mk].com+=(v.com||0);
-    mMap[mk].qtd++;
-  });
-
-  var keys=Object.keys(mMap).sort().slice(-12);
-  if(!keys.length) return;
-  var msL=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var cLabels=keys.map(function(k){var p=k.split('-');return msL[parseInt(p[1])-1]+'/'+p[0].slice(2);});
-  var cExtras=keys.map(function(k){
-    var m=mMap[k]; var s='';
-    ['Mercado Livre','Site','WhatsApp','Outros'].forEach(function(c){if(m[c]>100)s+='<br>'+c+': '+fmt(m[c]);});
-    return s;
-  });
-  _storCD('canal',cLabels,[],cExtras);
-
-  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var labels=keys.map(function(k){var p=k.split('-');return ms[parseInt(p[1])-1]+'/'+p[0].slice(2);});
-  var pcts=keys.map(function(k){
-    var m=mMap[k];
-    return m.fat>0?((m.taxa+m.com)/m.fat*100):0;
-  });
-  var vals=keys.map(function(k){
-    return mMap[k].taxa+mMap[k].com;
-  });
-
-  _taxaData={labels:labels,vals:pcts};
-  _storCD('taxa',labels,pcts);
-  // Draw bar chart
-  var W=canvas.parentNode.offsetWidth-28||280;
-  var H=140;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-
-  var n=keys.length;
-  var pT=18,pB=8,pL=8,pR=8;
-  var cW=W-pL-pR, cH=H-pT-pB;
-  var maxPct=Math.max.apply(null,pcts)||1;
-  var bW=Math.max(4,Math.floor(cW/n)-4);
-  var xp=function(i){return pL+(i+0.5)*(cW/n);};
-
-  // Gridlines at 5%, 10%, 15%, 20%
-  ctx.font='7px Arial';
-  ctx.textAlign='left';
-  [5,10,15,20].forEach(function(g){
-    if(g>maxPct*1.2) return;
-    var gy=pT+cH*(1-g/maxPct);
-    ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=0.5;
-    ctx.beginPath(); ctx.moveTo(pL,gy); ctx.lineTo(W-pR,gy); ctx.stroke();
-    ctx.fillStyle='#555';
-    ctx.fillText(g+'%',pL,gy-1);
-  });
-
-  // Bars
-  pcts.forEach(function(pct,i){
-    var bH=pct/maxPct*cH;
-    var bx=xp(i)-bW/2;
-    var by=pT+cH-bH;
-    var col=pct>=15?'#ef4444':pct>=10?'#f59e0b':'#22c55e';
-    var grad=ctx.createLinearGradient(0,by,0,by+bH);
-    grad.addColorStop(0,col); grad.addColorStop(1,col+'55');
-    ctx.fillStyle=grad;
-    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,bW,bH,2);ctx.fill();}
-    else ctx.fillRect(bx,by,bW,bH);
-    // Value label
-    ctx.fillStyle=col; ctx.font='bold 7px Arial'; ctx.textAlign='center';
-    ctx.fillText(pct.toFixed(1)+'%',xp(i),by-2);
-  });
-
-  // Month labels
-  if(labelsEl){
-    labelsEl.innerHTML=labels.map(function(l){
-      return '<span style="font-size:8px;color:#555;flex:1;text-align:center;">'+l+'</span>';
-    }).join('');
-  }
-
-  // Summary info
-  var avgPct=pcts.reduce(function(a,b){return a+b;},0)/pcts.length;
-  var minPct=Math.min.apply(null,pcts);
-  var maxPctVal=Math.max.apply(null,pcts);
-  var totalTaxa=vals.reduce(function(a,b){return a+b;},0);
-
-  if(infoEl){
-    infoEl.innerHTML=
-      '<div><div style="font-size:9px;color:var(--text3);">Taxa média</div><div style="font-size:14px;font-weight:800;color:#f59e0b;">'+avgPct.toFixed(1)+'%</div></div>'
-      +'<div><div style="font-size:9px;color:var(--text3);">Total pago</div><div style="font-size:14px;font-weight:800;color:#ef4444;">'+fmt(totalTaxa)+'</div></div>'
-      +'<div><div style="font-size:9px;color:var(--text3);">Min / Max</div><div style="font-size:14px;font-weight:800;color:var(--text);">'+minPct.toFixed(1)+'% / '+maxPctVal.toFixed(1)+'%</div></div>';
-  }
+function _storCD(id, labels, vals, extras){
+  _CD[id] = {labels:labels, vals:vals, extras:extras||[]};
 }
-
-
-// ── GRÁFICOS ABA ANÁLISE ─────────────────────────────────────────────
-
-
-// ── PREMIUM CHART HELPERS ─────────────────────────────────────────────
 
 function setupCanvas(canvasId, H){
-  var canvas=document.getElementById(canvasId);
+  var canvas = document.getElementById(canvasId);
   if(!canvas) return null;
-  var W=canvas.parentNode.offsetWidth-4||300;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
+  var W = canvas.parentNode ? (canvas.parentNode.offsetWidth - 4) : 300;
+  if(W < 50) W = 300;
+  canvas.width = W*2; canvas.height = H*2;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  var ctx = canvas.getContext('2d');
   ctx.scale(2,2);
   ctx.clearRect(0,0,W,H);
-  return {canvas:canvas,ctx:ctx,W:W,H:H};
+  return {canvas:canvas, ctx:ctx, W:W, H:H};
 }
 
-function drawPremiumBar(ctx,x,y,w,h,color,radius){
-  radius=Math.min(radius||3,h/2,w/2);
-  if(h<=0){return;}
+function drawPremiumBar(ctx, x, y, w, h, color, r){
+  if(h <= 0 || w <= 0) return;
+  r = Math.min(r||3, h/2, w/2);
   ctx.beginPath();
-  ctx.moveTo(x+radius,y);
-  ctx.lineTo(x+w-radius,y);
-  ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
-  ctx.lineTo(x+w,y+h-radius);
-  ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
-  ctx.lineTo(x+radius,y+h);
-  ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
-  ctx.lineTo(x,y+radius);
-  ctx.quadraticCurveTo(x,y,x+radius,y);
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h);
+  ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r);
+  ctx.arcTo(x, y, x+r, y, r);
   ctx.closePath();
-  ctx.fillStyle=color;
+  ctx.fillStyle = color;
   ctx.fill();
 }
 
-function drawGridLines(ctx,W,pL,pR,pT,cH,maxV,steps,fmt2){
-  ctx.strokeStyle='rgba(255,255,255,0.05)';
-  ctx.lineWidth=0.5;
-  ctx.fillStyle='rgba(255,255,255,0.25)';
-  ctx.font='6px Arial';
-  ctx.textAlign='left';
-  for(var i=0;i<=steps;i++){
-    var v=maxV*(i/steps);
-    var gy=pT+cH*(1-i/steps);
-    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
-    if(i>0) ctx.fillText(fmt2?fmt2(v):Math.round(v),pL+1,gy-2);
+function showTip(e, content){
+  var tip = document.getElementById('d2-tip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'd2-tip';
+    tip.style.cssText = 'position:fixed;background:#0d0d0d;border:1px solid #333;border-radius:10px;padding:10px 14px;font-size:12px;color:#fff;z-index:9999;pointer-events:none;max-width:240px;line-height:1.7;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+    document.body.appendChild(tip);
   }
-}
-
-function showTip(e,content){
-  var tip=document.getElementById('d2-tip')||document.getElementById('chart-tip');
-  if(!tip) return;
-  tip.innerHTML=content;
-  tip.style.display='block';
-  var x=e.clientX||e.touches&&e.touches[0].clientX;
-  var y=e.clientY||e.touches&&e.touches[0].clientY;
-  tip.style.left=Math.min((x||0)+10,window.innerWidth-230)+'px';
-  tip.style.top=Math.max((y||0)-80,10)+'px';
+  tip.innerHTML = content;
+  tip.style.display = 'block';
+  var cx = (e.touches ? e.touches[0].clientX : e.clientX) || 0;
+  var cy = (e.touches ? e.touches[0].clientY : e.clientY) || 0;
+  tip.style.left = Math.min(cx+12, window.innerWidth-255)+'px';
+  tip.style.top  = Math.max(cy-90, 10)+'px';
   clearTimeout(window._tipTimer);
-  window._tipTimer=setTimeout(function(){tip.style.display='none';},4000);
+  window._tipTimer = setTimeout(function(){ if(tip) tip.style.display='none'; }, 4000);
+}
+
+function formatK(n){
+  if(!n && n!==0) return 'R$0';
+  var abs = Math.abs(n);
+  if(abs >= 1000000) return 'R$'+(n/1000000).toFixed(1)+'M';
+  if(abs >= 1000)    return 'R$'+(n/1000).toFixed(1)+'k';
+  return 'R$'+n.toFixed(0);
+}
+
+// Generic bar chart click handler
+function chartClick(e, canvas, id){
+  var d = _CD[id]; if(!d) return;
+  var rect = canvas.getBoundingClientRect();
+  var cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  var n = d.labels.length;
+  var i = Math.min(n-1, Math.max(0, Math.floor((cx/rect.width)*n)));
+  var val = d.vals[i];
+  var vs = (typeof val==='number') ? (val%1!==0 ? val.toFixed(1)+'%' : Math.round(val)+(id==='sazon'?' un/mês':'')) : String(val||'');
+  var ex = (d.extras && d.extras[i]) || '';
+  showTip(e, '<strong>'+d.labels[i]+'</strong><br>'+vs+ex);
+}
+
+function chartCanalClick(e, canvas){
+  var d = _CD['canal']; if(!d||!d.extras||!d.extras.length) return;
+  var rect = canvas.getBoundingClientRect();
+  var cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  var n = d.labels.length;
+  var i = Math.min(n-1, Math.max(0, Math.floor((cx/rect.width)*n)));
+  var mode = (_canalMode==='marg') ? 'Marg. Contrib.' : 'Faturamento';
+  showTip(e, '<strong>'+d.labels[i]+'</strong><span style="color:#888;font-size:10px"> — '+mode+'</span>'+(d.extras[i]||''));
+}
+
+function chartBarClick(e, canvas, type){
+  chartClick(e, canvas, type);
 }
 
 
-function drawBarChartSimple(canvasId, vals, color, maxVal){
-  var canvas=document.getElementById(canvasId);
-  if(!canvas) return;
-  var n=vals.length;
-  var W=canvas.parentNode.offsetWidth-28||280;
-  var H=parseInt(canvas.style.height)||150;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-  var pT=18,pB=8,pL=8,pR=8;
-  var cW=W-pL-pR, cH=H-pT-pB;
-  var maxV=maxVal||Math.max.apply(null,vals.map(Math.abs))||1;
-  var bW=Math.max(4,Math.floor(cW/n)-4);
-  var xp=function(i){return pL+(i+0.5)*(cW/n);};
-  // Zero line
-  ctx.strokeStyle='#333'; ctx.lineWidth=0.5;
-  ctx.beginPath(); ctx.moveTo(pL,pT+cH); ctx.lineTo(W-pR,pT+cH); ctx.stroke();
-  vals.forEach(function(v,i){
-    var bH=Math.abs(v)/maxV*cH;
-    var bx=xp(i)-bW/2;
-    var by=pT+cH-bH;
-    var col=typeof color==='function'?color(v,i):color;
-    var grad=ctx.createLinearGradient(0,by,0,by+bH);
-    grad.addColorStop(0,col); grad.addColorStop(1,col+'55');
-    ctx.fillStyle=grad;
-    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,bW,bH,2);ctx.fill();}
-    else ctx.fillRect(bx,by,bW,bH);
-  });
-}
-
-// 1. Receita por Canal
-function renderCanalFatChart(){
-  var canvas=document.getElementById('chart-canal-fat');
-  var labelsEl=document.getElementById('chart-canal-fat-labels');
-  if(!canvas) return;
+function renderTaxaChart(){
+  var cc=setupCanvas('chart-taxa',155);
+  if(!cc) return;
+  var ctx=cc.ctx,W=cc.W,H=cc.H;
+  var labelsEl=document.getElementById('chart-taxa-labels');
+  var infoEl=document.getElementById('chart-taxa-info');
   var vendas=loadVendas();
   var mMap={};
+  vendas.forEach(function(v){
+    var mk=mkey(v.date); if(!mk) return;
+    if(!mMap[mk]) mMap[mk]={fat:0,taxa:0,qtd:0};
+    mMap[mk].fat+=(+v.venda||0);
+    mMap[mk].taxa+=(+v.taxa||0)+(+v.com||0);
+    mMap[mk].qtd++;
+  });
+  var keys=Object.keys(mMap).sort().slice(-12);
+  if(!keys.length) return;
+  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labels=keys.map(function(k){var p=k.split('-');return ms[parseInt(p[1])-1]+'/'+p[0].slice(2);});
+  var pcts=keys.map(function(k){var m=mMap[k];return m.fat>0?((m.taxa/m.fat)*100):0;});
+  var taxaVals=keys.map(function(k){return mMap[k].taxa;});
+  var extras=keys.map(function(k,i){
+    return '<br>Taxa total: <span style="color:#f59e0b">'+fmt(taxaVals[i])+'</span>'
+      +'<br>Faturamento: '+fmt(mMap[k].fat)+'<br>Vendas: '+mMap[k].qtd;
+  });
+  _storCD('taxa',labels,pcts,extras);
+  var n=pcts.length;
+  var pT=22,pB=14,pL=8,pR=8;
+  var cW=W-pL-pR,cH=H-pT-pB;
+  var maxV=Math.max.apply(null,pcts)||1;
+  var bW=Math.max(4,Math.floor(cW/n)-4);
+  function xp(i){return pL+(i+0.5)*(cW/n);}
+  [5,10,15,20].forEach(function(g){
+    if(g>maxV*1.3) return;
+    var gy=pT+cH*(1-g/maxV);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='6px Arial';ctx.textAlign='left';
+    ctx.fillText(g+'%',pL+1,gy-1);
+  });
+  pcts.forEach(function(v,i){
+    var col=v>=18?'#ef4444':v>=13?'#f59e0b':'#22c55e';
+    var bH=Math.max(2,v/maxV*cH);
+    var by=pT+cH-bH;
+    var grad=ctx.createLinearGradient(0,by,0,by+bH);
+    grad.addColorStop(0,col+'ee');grad.addColorStop(1,col+'22');
+    drawPremiumBar(ctx,xp(i)-bW/2,by,bW,bH,grad,3);
+    ctx.fillStyle=col;ctx.font='bold 7px Arial';ctx.textAlign='center';
+    ctx.fillText(v.toFixed(1)+'%',xp(i),by-3);
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='6px Arial';
+    ctx.fillText(labels[i],xp(i),H-2);
+  });
+  if(labelsEl) labelsEl.innerHTML='';
+  var avgPct=pcts.reduce(function(a,b){return a+b;},0)/pcts.length;
+  var totalTaxa=taxaVals.reduce(function(a,b){return a+b;},0);
+  var minP=Math.min.apply(null,pcts),maxP=Math.max.apply(null,pcts);
+  if(infoEl) infoEl.innerHTML=
+    '<div><div style="font-size:9px;color:var(--text3);">Taxa média</div><div style="font-size:14px;font-weight:800;color:#f59e0b;">'+avgPct.toFixed(1)+'%</div></div>'
+    +'<div><div style="font-size:9px;color:var(--text3);">Total pago</div><div style="font-size:14px;font-weight:800;color:#ef4444;">'+fmt(totalTaxa)+'</div></div>'
+    +'<div><div style="font-size:9px;color:var(--text3);">Min / Max</div><div style="font-size:14px;font-weight:800;color:var(--text);">'+minP.toFixed(1)+'% / '+maxP.toFixed(1)+'%</div></div>';
+}
+
+
+function renderCanalFatChart(){
+  var cc=setupCanvas('chart-canal-fat',170);
+  if(!cc) return;
+  var ctx=cc.ctx,W=cc.W,H=cc.H;
+  var labelsEl=document.getElementById('chart-canal-fat-labels');
+  var vendas=loadVendas();
   var CANAIS=['Mercado Livre','Site','WhatsApp','Outros'];
   var COLS={'Mercado Livre':'#ffd700','Site':'#1E90FF','WhatsApp':'#a855f7','Outros':'#666'};
-
+  var mMap={};
   vendas.forEach(function(v){
     var mk=mkey(v.date); if(!mk) return;
     if(!mMap[mk]) mMap[mk]={'Mercado Livre':0,'Site':0,'WhatsApp':0,'Outros':0};
+    var val=_canalMode==='marg'?(+v.venda||0)-(+v.taxa||0)-(+v.com||0)-(+v.custo||0)-(+v.frete||0):(+v.venda||0);
     var canal=(v.canal||'').toLowerCase();
-    var val=_canalMode==='marg'?(v.venda-(v.taxa||0)-(v.com||0)-(v.custo||0)-(v.frete||0)):(v.venda||0);
     if(canal.indexOf('mercado')>=0||canal==='ml') mMap[mk]['Mercado Livre']+=val;
     else if(canal.indexOf('site')>=0) mMap[mk]['Site']+=val;
     else if(canal.indexOf('whats')>=0||canal.indexOf('zap')>=0) mMap[mk]['WhatsApp']+=val;
     else mMap[mk]['Outros']+=val;
   });
-
   var keys=Object.keys(mMap).sort().slice(-12);
   if(!keys.length) return;
   var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var labels=keys.map(function(k){var p=k.split('-');return ms[parseInt(p[1])-1]+'/'+p[0].slice(2);});
-  // Store tooltip data
-  var CANAIS_ALL=['Mercado Livre','Site','WhatsApp','Outros'];
-  var COLS_ALL={'Mercado Livre':'#ffd700','Site':'#1E90FF','WhatsApp':'#a855f7','Outros':'#666'};
+  var cLabels=keys.map(function(k){var p=k.split('-');return ms[parseInt(p[1])-1]+'/'+p[0].slice(2);});
   var cExtras=keys.map(function(k){
     var m=mMap[k];
-    var total=CANAIS_ALL.reduce(function(s,c){return s+(m[c]||0);},0);
-    var s='<br><span style="color:#888;font-size:10px;">Total: '+fmt(total)+'</span>';
-    CANAIS_ALL.forEach(function(c){
-      if((m[c]||0)>0){
+    var total=CANAIS.reduce(function(s,c){return s+(m[c]||0);},0);
+    var s='<br><span style="color:#888">Total: '+fmt(total)+'</span>';
+    CANAIS.forEach(function(c){
+      if((m[c]||0)>100){
         var pct=total>0?((m[c]/total)*100).toFixed(0):'0';
-        s+='<br><span style="color:'+COLS_ALL[c]+'">■ '+c+': '+fmt(m[c])+' ('+pct+'%)</span>';
+        s+='<br><span style="color:'+COLS[c]+'">■ '+c+': '+fmt(m[c])+' ('+pct+'%)</span>';
       }
     });
     return s;
   });
-  _storCD('canal',labels,[],cExtras);
+  _storCD('canal',cLabels,[],cExtras);
 
-  // Stacked bar chart
-  var W=canvas.parentNode.offsetWidth-28||280;
-  var H=160;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-  var pT=8,pB=8,pL=8,pR=8;
-  var cW=W-pL-pR, cH=H-pT-pB;
+  var n=keys.length;
+  var pT=12,pB=14,pL=6,pR=6;
+  var cW=W-pL-pR,cH=H-pT-pB;
   var maxTotal=Math.max.apply(null,keys.map(function(k){
-    return CANAIS.reduce(function(s,c){return s+(mMap[k][c]||0);},0);
+    return CANAIS.reduce(function(s,c){return s+Math.max(0,mMap[k][c]||0);},0);
   }))||1;
-  var bW=Math.max(4,Math.floor(cW/keys.length)-4);
-  var xp=function(i){return pL+(i+0.5)*(cW/keys.length);};
+  var bW=Math.max(4,Math.floor(cW/n)-4);
+  function xp(i){return pL+(i+0.5)*(cW/n);}
+
+  // Gridlines
+  [0.25,0.5,0.75,1].forEach(function(f){
+    var gy=pT+cH*(1-f);
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
+  });
 
   keys.forEach(function(mk,i){
     var yOff=pT+cH;
     CANAIS.forEach(function(canal){
-      var v=mMap[mk][canal]||0;
-      if(!v) return;
-      var bH=v/maxTotal*cH;
+      var v=Math.max(0,mMap[mk][canal]||0); if(!v) return;
+      var bH=Math.max(1,v/maxTotal*cH);
       yOff-=bH;
-      ctx.fillStyle=COLS[canal];
-      if(ctx.roundRect&&yOff===pT+cH-bH){ctx.beginPath();ctx.roundRect(xp(i)-bW/2,yOff,bW,bH,2);ctx.fill();}
-      else ctx.fillRect(xp(i)-bW/2,yOff,bW,bH);
+      var col=COLS[canal];
+      var grad=ctx.createLinearGradient(0,yOff,0,yOff+bH);
+      grad.addColorStop(0,col+'dd');grad.addColorStop(1,col+'44');
+      drawPremiumBar(ctx,xp(i)-bW/2,yOff,bW,bH,grad,2);
     });
-    // Total label
-    var total=CANAIS.reduce(function(s,c){return s+(mMap[mk][c]||0);},0);
-    ctx.fillStyle='#888'; ctx.font='bold 7px Arial'; ctx.textAlign='center';
-    var topY=pT+cH-total/maxTotal*cH;
-    ctx.fillText(formatK(total),xp(i),topY-2);
+    // Total on top
+    var total=CANAIS.reduce(function(s,c){return s+Math.max(0,mMap[mk][c]||0);},0);
+    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='6px Arial';ctx.textAlign='center';
+    ctx.fillText(formatK(total),xp(i),pT+cH-total/maxTotal*cH-3);
+    // Month label
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='6px Arial';
+    ctx.fillText(cLabels[i],xp(i),H-2);
   });
 
-  if(labelsEl){
-    labelsEl.innerHTML=labels.map(function(l){
-      return '<span style="font-size:8px;color:#555;flex:1;text-align:center;">'+l+'</span>';
-    }).join('');
-  }
+  if(labelsEl) labelsEl.innerHTML='';
 }
+
 
 // 2. Margem Líquida por Mês
 function renderMargLiqChart(){
-  var canvas=document.getElementById('chart-marg-liq');
   var labelsEl=document.getElementById('chart-marg-liq-labels');
   var infoEl=document.getElementById('chart-marg-liq-info');
-  if(!canvas) return;
+  var cc=setupCanvas('chart-marg-liq',150);
+  if(!cc) return;
+  var W=cc.W,H=cc.H;
 
   var vendas=loadVendas();
   var mMap={};
@@ -7421,31 +7363,25 @@ function renderMargLiqChart(){
   });
   _storCD('marg',labels,pcts,extras);
 
-  // Draw chart
-  var W=canvas.parentNode.offsetWidth-28||280;
-  var H=150;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-
+  // Draw chart using cc
+  var ctx=cc.ctx, W=cc.W, H=cc.H;
   var n=pcts.length;
-  var pT=20,pB=8,pL=8,pR=8;
+  var pT=22,pB=14,pL=8,pR=8;
   var cW=W-pL-pR, cH=H-pT-pB;
   var maxV=Math.max.apply(null,pcts.map(Math.abs))*1.2||30;
   var bW=Math.max(4,Math.floor(cW/n)-4);
-
   function xp(i){return pL+(i+0.5)*(cW/n);}
-  function yp(v){return pT+cH-Math.abs(v)/maxV*cH;}
 
   // Gridlines
+  [0.25,0.5,0.75,1].forEach(function(f){
+    var gy=pT+cH*(1-f);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(pL,gy); ctx.lineTo(W-pR,gy); ctx.stroke();
+  });
   [10,20,30].forEach(function(g){
     if(g>maxV) return;
-    var gy=pT+cH-g/maxV*cH;
-    ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=0.5;
-    ctx.beginPath(); ctx.moveTo(pL,gy); ctx.lineTo(W-pR,gy); ctx.stroke();
-    ctx.fillStyle='#444'; ctx.font='6px Arial'; ctx.textAlign='left';
+    var gy=pT+cH*(1-g/maxV);
+    ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='6px Arial'; ctx.textAlign='left';
     ctx.fillText(g+'%',pL+1,gy-1);
   });
 
@@ -7455,22 +7391,14 @@ function renderMargLiqChart(){
     var by=pT+cH-bH;
     var col=v>=20?'#22c55e':v>=10?'#f59e0b':'#ef4444';
     var grad=ctx.createLinearGradient(0,by,0,by+bH);
-    grad.addColorStop(0,col);
-    grad.addColorStop(1,col+'55');
-    ctx.fillStyle=grad;
-    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(xp(i)-bW/2,by,bW,bH,2);ctx.fill();}
-    else ctx.fillRect(xp(i)-bW/2,by,bW,bH);
-    // Value label
+    grad.addColorStop(0,col+'ee'); grad.addColorStop(1,col+'22');
+    drawPremiumBar(ctx,xp(i)-bW/2,by,bW,bH,grad,3);
     ctx.fillStyle=col; ctx.font='bold 7px Arial'; ctx.textAlign='center';
-    ctx.fillText(v.toFixed(1)+'%',xp(i),by-2);
+    ctx.fillText(v.toFixed(1)+'%',xp(i),by-3);
+    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='6px Arial';
+    ctx.fillText(labels[i],xp(i),H-2);
   });
-
-  // Month labels
-  if(labelsEl){
-    labelsEl.innerHTML=labels.map(function(l){
-      return '<span style="font-size:8px;color:#555;flex:1;text-align:center;">'+l+'</span>';
-    }).join('');
-  }
+  if(labelsEl) labelsEl.innerHTML='';
 
   // Summary
   var avgPct=pcts.reduce(function(a,b){return a+b;},0)/pcts.length;
@@ -7488,263 +7416,119 @@ function renderMargLiqChart(){
 function renderTicketCanalChart(){
   var el=document.getElementById('chart-ticket-canal');
   if(!el) return;
-  // Last 6 months only
-  var months=getLast6Months();
-  var mSet={};months.forEach(function(m){mSet[m]=1;});
-  var vendas=loadVendas().filter(function(v){return mSet[mkey(v.date)];});
+  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var months6=getLast6Months();
+  var mSet6={};months6.forEach(function(m){mSet6[m]=1;});
+  var vendas=loadVendas().filter(function(v){return mSet6[mkey(v.date)];});
   var cMap={};
   vendas.forEach(function(v){
     var canal=(v.canal||'Outros');
     if(!cMap[canal]) cMap[canal]={fat:0,qtd:0};
-    cMap[canal].fat+=v.venda||0;
+    cMap[canal].fat+=(+v.venda||0);
     cMap[canal].qtd++;
   });
-
   var canais=Object.keys(cMap).sort(function(a,b){
-    return (cMap[b].fat/cMap[b].qtd)-(cMap[a].fat/cMap[a].qtd);
+    return (cMap[b].fat/Math.max(1,cMap[b].qtd))-(cMap[a].fat/Math.max(1,cMap[a].qtd));
   });
-
-  var maxTicket=Math.max.apply(null,canais.map(function(c){return cMap[c].fat/cMap[c].qtd;}));
+  var maxTicket=Math.max.apply(null,canais.map(function(c){return cMap[c].fat/Math.max(1,cMap[c].qtd);}));
   var COLS={'Mercado Livre':'#ffd700','Site':'#1E90FF','WhatsApp':'#a855f7'};
-
   var h='';
   canais.forEach(function(canal){
-    var ticket=cMap[canal].fat/cMap[canal].qtd;
+    var ticket=cMap[canal].fat/Math.max(1,cMap[canal].qtd);
     var qtd=cMap[canal].qtd;
     var pct=maxTicket>0?(ticket/maxTicket*100):0;
-    var col=COLS[canal]||'#666';
-    h+='<div style="margin-bottom:10px;">'
-      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
-        +'<span style="font-size:12px;font-weight:700;color:var(--text);">'+canal+'</span>'
-        +'<div style="text-align:right;">'
-          +'<span style="font-size:14px;font-weight:800;color:'+col+';">'+fmt(ticket)+'</span>'
+    var col=COLS[canal]||'#888';
+    h+='<div style="margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+        +'<div>'
+          +'<span style="font-size:12px;font-weight:700;color:var(--text);">'+canal+'</span>'
           +'<span style="font-size:9px;color:var(--text3);margin-left:6px;">'+qtd+' vendas</span>'
         +'</div>'
+        +'<span style="font-size:16px;font-weight:800;color:'+col+';">'+fmt(ticket)+'</span>'
       +'</div>'
-      +'<div style="background:var(--bg3);border-radius:4px;height:8px;">'
-        +'<div style="width:'+pct+'%;height:100%;border-radius:4px;background:'+col+';"></div>'
+      +'<div style="background:var(--bg3);border-radius:6px;height:10px;overflow:hidden;">'
+        +'<div style="width:'+pct.toFixed(1)+'%;height:100%;border-radius:6px;'
+          +'background:linear-gradient(90deg,'+col+','+col+'66);'
+          +'transition:width 0.3s;"></div>'
       +'</div>'
     +'</div>';
   });
-  el.innerHTML=h||'<div style="color:var(--text3);font-size:12px;">Sem dados</div>';
+  el.innerHTML=h||'<div style="color:var(--text3);font-size:12px;padding:8px;">Sem dados</div>';
 }
+
 
 // 4. Sazonalidade
 function renderSazonChart(){
-  var canvas=document.getElementById('chart-sazon');
+  var cc=setupCanvas('chart-sazon',160);
+  if(!cc) return;
+  var ctx=cc.ctx,W=cc.W,H=cc.H;
   var infoEl=document.getElementById('chart-sazon-info');
-  if(!canvas) return;
   var vendas=loadVendas();
-
-  // Group by month number (1-12), aggregate across all years
-  var byMonth=Array(12).fill(0).map(function(){return {fat:0,qtd:0,anos:{}};});
+  var byMonth=Array(12).fill(0).map(function(){return{fat:0,qtd:0,anos:{}};});
   vendas.forEach(function(v){
     if(!v.date) return;
-    // Parse manual: 'YYYY-MM-DD' → mês e ano sem timezone shift
     var parts=v.date.substring(0,10).split('-');
     if(parts.length<2) return;
-    var yr=parseInt(parts[0]);
-    var m=parseInt(parts[1])-1; // 0-11
+    var yr=parseInt(parts[0]); var m=parseInt(parts[1])-1;
     if(m<0||m>11) return;
-    byMonth[m].fat+=v.venda||0;
+    byMonth[m].fat+=(+v.venda||0);
     byMonth[m].qtd++;
     byMonth[m].anos[yr]=1;
   });
-
-  // Average by number of years with data
-  var avgFat=byMonth.map(function(m){
-    var nAnos=Object.keys(m.anos).length||1;
-    return m.fat/nAnos;
-  });
-  var avgQtd=byMonth.map(function(m){
-    var nAnos=Object.keys(m.anos).length||1;
-    return m.qtd/nAnos;
-  });
-
-  var maxAvg=Math.max.apply(null,avgFat)||1;
-  var W=canvas.parentNode.offsetWidth-28||280;
-  var H=150;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-  var pT=14,pB=8,pL=8,pR=8;
-  var cW=W-pL-pR, cH=H-pT-pB;
-  var bW=Math.max(4,Math.floor(cW/12)-4);
-  var xp=function(i){return pL+(i+0.5)*(cW/12);};
-
-  // Find best and worst months
+  var avgFat=byMonth.map(function(m){var n=Object.keys(m.anos).length||1;return m.fat/n;});
+  var avgQtd=byMonth.map(function(m){var n=Object.keys(m.anos).length||1;return m.qtd/n;});
   var msN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  _storCD('sazon',msN,avgQtd);
+  // Rich extras for tooltip
+  var extras=avgFat.map(function(v,i){
+    var nAnos=Object.keys(byMonth[i].anos).length;
+    return '<br>Fat médio: '+fmt(v)
+      +'<br>Qtd média: '+avgQtd[i].toFixed(1)
+      +'<br>Anos com dados: '+nAnos;
+  });
+  _storCD('sazon',msN,avgQtd,extras);
+
+  var maxFat=Math.max.apply(null,avgFat)||1;
+  var maxQtd=Math.max.apply(null,avgQtd)||1;
   var maxIdx=avgFat.indexOf(Math.max.apply(null,avgFat));
-  var minIdx=avgFat.indexOf(Math.min.apply(null,avgFat.filter(function(v){return v>0;})));
+  var nonZero=avgFat.filter(function(v){return v>0;});
+  var minIdx=nonZero.length?avgFat.indexOf(Math.min.apply(null,nonZero.filter(function(v){return v>0;}))):0;
+
+  var pT=20,pB=18,pL=8,pR=8;
+  var cW=W-pL-pR,cH=H-pT-pB;
+  var bW=Math.max(4,Math.floor(cW/12)-4);
+  function xp(i){return pL+(i+0.5)*(cW/12);}
+
+  // Gridlines
+  [0.25,0.5,0.75,1].forEach(function(f){
+    var gy=pT+cH*(1-f);
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(pL,gy);ctx.lineTo(W-pR,gy);ctx.stroke();
+  });
 
   avgFat.forEach(function(v,i){
-    var bH=v/maxAvg*cH;
-    var bx=xp(i)-bW/2;
+    if(!v) return;
+    var bH=Math.max(2,v/maxFat*cH);
     var by=pT+cH-bH;
-    var col=i===maxIdx?'#22c55e':i===minIdx&&v>0?'#ef4444':'#a855f7';
+    var col=i===maxIdx?'#22c55e':i===minIdx?'#ef4444':'#a855f7';
     var grad=ctx.createLinearGradient(0,by,0,by+bH);
-    grad.addColorStop(0,col); grad.addColorStop(1,col+'55');
-    ctx.fillStyle=grad;
-    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(bx,by,bW,bH,2);ctx.fill();}
-    else ctx.fillRect(bx,by,bW,bH);
-    // Qty label
-    if(avgQtd[i]>0){
-      ctx.fillStyle='#888'; ctx.font='bold 6px Arial'; ctx.textAlign='center';
-      ctx.fillText(Math.round(avgQtd[i])+'un',xp(i),by-2);
-    }
+    grad.addColorStop(0,col+'ee');grad.addColorStop(1,col+'22');
+    drawPremiumBar(ctx,xp(i)-bW/2,by,bW,bH,grad,3);
+    // Qty label on top
+    ctx.fillStyle=col;ctx.font='bold 6px Arial';ctx.textAlign='center';
+    ctx.fillText(Math.round(avgQtd[i])+'un',xp(i),by-3);
+    // Month label
+    ctx.fillStyle=i===maxIdx||i===minIdx?col:'rgba(255,255,255,0.35)';
+    ctx.font=i===maxIdx||i===minIdx?'bold 6px Arial':'6px Arial';
+    ctx.fillText(msN[i],xp(i),H-4);
   });
 
-  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  if(infoEl){
-    infoEl.innerHTML=
-      '<div style="display:flex;gap:10px;flex-wrap:wrap;">'
-      +'<div><span style="font-size:9px;color:#22c55e;">🟢 Melhor mês: </span><span style="font-size:11px;font-weight:700;color:#22c55e;">'+ms[maxIdx]+' ('+formatK(avgFat[maxIdx])+')</span></div>'
-      +(avgFat.some(function(v){return v>0;})&&minIdx>=0?'<div><span style="font-size:9px;color:#ef4444;">🔴 Mais fraco: </span><span style="font-size:11px;font-weight:700;color:#ef4444;">'+ms[minIdx]+'</span></div>':'')
-      +'</div>';
-  }
+  if(infoEl) infoEl.innerHTML=
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+    +'<div><span style="font-size:9px;color:#22c55e;">🟢 Melhor: </span><span style="font-size:11px;font-weight:700;color:#22c55e;">'+msN[maxIdx]+' ('+formatK(avgFat[maxIdx])+')</span></div>'
+    +(nonZero.length?'<div><span style="font-size:9px;color:#ef4444;">🔴 Mais fraco: </span><span style="font-size:11px;font-weight:700;color:#ef4444;">'+msN[minIdx]+'</span></div>':'')
+    +'</div>';
 }
 
-
-var _dashHidden=false;
-function toggleDashHide(){
-  _dashHidden=!_dashHidden;
-  var btn=document.getElementById('hbtn-hide');
-  if(btn) btn.innerHTML=_dashHidden?'🙈':'👁';
-  // Blur all KPI values on dashboard
-  var kpis=document.querySelectorAll('.kval,.kpi .kval');
-  kpis.forEach(function(el){
-    el.style.filter=_dashHidden?'blur(8px)':'none';
-    el.style.userSelect=_dashHidden?'none':'auto';
-  });
-  // Also blur chart canvas
-  var charts=document.querySelectorAll('#chart-main,#chart-alt');
-  charts.forEach(function(el){el.style.filter=_dashHidden?'blur(12px)':'none';});
-}
-
-
-var _canalMode='fat';
-function setCanalMode(mode){
-  _canalMode=mode;
-  var bf=document.getElementById('btn-canal-fat');
-  var bm=document.getElementById('btn-canal-marg');
-  var desc=document.getElementById('canal-chart-desc');
-  if(bf){bf.style.background=mode==='fat'?'#1E90FF':'var(--sbtn-bg)';bf.style.color=mode==='fat'?'#fff':'var(--text2)';}
-  if(bm){bm.style.background=mode==='marg'?'#22c55e':'var(--sbtn-bg)';bm.style.color=mode==='marg'?'#fff':'var(--text2)';}
-  if(desc) desc.textContent=mode==='fat'?'ML vs WhatsApp vs Site — faturamento mensal':'ML vs WhatsApp vs Site — margem de contribuição mensal';
-  renderCanalFatChart();
-}
-
-
-// ── CHART INTERACTIVITY ──────────────────────────────────────────────
-
-var _canalData=null; // stored chart data for tooltips
-var _margData=null;
-var _taxaData=null;
-var _sazonData=null;
-
-function showChartTooltip(x,y,content){
-  var tip=document.getElementById('d2-chart-tip');
-  if(!tip){
-    tip=document.createElement('div');
-    tip.id='d2-chart-tip';
-    tip.style.cssText='position:fixed;background:#0a0a0a;border:1px solid #333;border-radius:8px;padding:8px 12px;font-size:11px;color:#fff;z-index:999;pointer-events:none;max-width:200px;';
-    document.body.appendChild(tip);
-  }
-  tip.innerHTML=content;
-  tip.style.display='block';
-  tip.style.left=(x+10)+'px';
-  tip.style.top=(y-40)+'px';
-  setTimeout(function(){if(tip)tip.style.display='none';},3000);
-}
-
-function chartBarClick(e,canvas,type){
-  var rect=canvas.getBoundingClientRect();
-  var x=(e.clientX-rect.left)/(rect.width);
-  var data=type==='marg'?_margData:type==='taxa'?_taxaData:_sazonData;
-  if(!data||!data.labels) return;
-  var n=data.labels.length;
-  var idx=Math.floor(x*n);
-  if(idx<0||idx>=n) return;
-  var label=data.labels[idx];
-  var val=data.vals[idx];
-  var content='<strong>'+label+'</strong><br>'+(type==='sazon'?Math.round(val)+' vendas':val.toFixed(1)+'%');
-  showChartTooltip(e.clientX,e.clientY,content);
-}
-
-function chartCanalClick(e,canvas){
-  var rect=canvas.getBoundingClientRect();
-  var x=(e.clientX-rect.left)/rect.width;
-  if(!_canalData) return;
-  var n=_canalData.keys.length;
-  var idx=Math.floor(x*n);
-  if(idx<0||idx>=n) return;
-  var mk=_canalData.keys[idx];
-  var mdata=_canalData.mMap[mk];
-  var CANAIS=['Mercado Livre','Site','WhatsApp','Outros'];
-  var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var p=mk.split('-');
-  var label=ms[parseInt(p[1])-1]+'/'+p[0].slice(2);
-  var lines='<strong>'+label+'</strong>';
-  CANAIS.forEach(function(c){
-    if(mdata[c]>0) lines+='<br>'+c+': R$'+Math.round(mdata[c]/1000)+'k';
-  });
-  showChartTooltip(e.clientX,e.clientY,lines);
-}
-
-
-// ── CHART TOOLTIP ENGINE ─────────────────────────────────────────────
-var _CD={}; // chart data store: {id: {labels:[], vals:[], extras:[]}}
-
-function _storCD(id,labels,vals,extras){
-  _CD[id]={labels:labels,vals:vals,extras:extras||[]};
-}
-
-function chartClick(e,canvas,id){
-  var d=_CD[id];
-  if(!d) return;
-  var rect=canvas.getBoundingClientRect();
-  var xPct=(e.clientX-rect.left)/rect.width;
-  var n=d.labels.length;
-  var i=Math.min(n-1,Math.floor(xPct*n));
-  var val=d.vals[i];
-  var tip=document.getElementById('d2-tip');
-  if(!tip) return;
-  tip.innerHTML='<strong>'+d.labels[i]+'</strong><br>'
-    +(typeof val==='number'&&val%1!==0?val.toFixed(1)+'%':Math.round(val)+(id==='sazon'?' vendas/mês':''));
-  tip.style.display='block';
-  tip.style.left=Math.min(e.clientX+10,window.innerWidth-230)+'px';
-  tip.style.top=Math.max(e.clientY-60,10)+'px';
-  clearTimeout(window._tipTimer);
-  window._tipTimer=setTimeout(function(){tip.style.display='none';},3000);
-}
-
-function chartCanalClick(e,canvas){
-  var d=_CD['canal'];
-  if(!d||!d.extras||!d.extras.length) return;
-  var rect=canvas.getBoundingClientRect();
-  var xPct=(e.clientX-rect.left)/rect.width;
-  var n=d.labels.length;
-  var i=Math.min(n-1,Math.max(0,Math.floor(xPct*n)));
-  var tip=document.getElementById('d2-tip');
-  if(!tip) return;
-  var mode=_canalMode==='marg'?'Marg. Contrib.':'Faturamento';
-  tip.innerHTML='<strong>'+d.labels[i]+'</strong>'
-    +'<span style="font-size:9px;color:#888;"> — '+mode+'</span>'
-    +(d.extras[i]||'');
-  tip.style.display='block';
-  tip.style.left=Math.min(e.clientX+10,window.innerWidth-230)+'px';
-  tip.style.top=Math.max(e.clientY-100,10)+'px';
-  clearTimeout(window._tipTimer);
-  window._tipTimer=setTimeout(function(){tip.style.display='none';},3000);
-}
-
-
-// ── CAIXA: GRÁFICO, PROJEÇÃO, ALERTAS ───────────────────────────────
-
-var _cxChartData=null;
 
 function renderCaixaAlertas(mMap, meses, saldoIni, cfg){
   var el=document.getElementById('cx-alertas');
@@ -7806,13 +7590,14 @@ function renderCaixaAlertas(mMap, meses, saldoIni, cfg){
 }
 
 function renderCaixaGrafico(mMap, meses, saldoIni){
-  var canvas=document.getElementById('cx-chart-saldo');
+  var cc=setupCanvas('cx-chart-saldo',160);
   var labelsEl=document.getElementById('cx-chart-labels');
-  if(!canvas) return;
+  if(!cc) return;
+  var ctx=cc.ctx,W=cc.W,H=cc.H;
 
   var allMeses=Object.keys(mMap).sort();
   var saldoAcum=saldoIni||0;
-  var chartMeses=[]; var chartSaldos=[]; var chartEntradas=[]; var chartSaidas=[];
+  var chartMeses=[],chartSaldos=[],chartEntradas=[],chartSaidas=[];
 
   allMeses.forEach(function(mk){
     if(meses.indexOf(mk)<0) return;
@@ -7827,72 +7612,66 @@ function renderCaixaGrafico(mMap, meses, saldoIni){
 
   _cxChartData={labels:chartMeses.map(buildMLabel),saldos:chartSaldos,entradas:chartEntradas,saidas:chartSaidas};
 
-  var W=canvas.parentNode.offsetWidth-28||280;
-  var H=150;
-  canvas.width=W*2; canvas.height=H*2;
-  canvas.style.width=W+'px'; canvas.style.height=H+'px';
-  var ctx=canvas.getContext('2d');
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,W,H);
-
-  var n=chartSaldos.length;
-  if(!n) return;
-  var pT=12,pB=8,pL=8,pR=8;
-  var cW=W-pL-pR, cH=H-pT-pB;
+  var n=chartSaldos.length; if(!n) return;
+  var pT=18,pB=18,pL=10,pR=10;
+  var cW=W-pL-pR,cH=H-pT-pB;
   var allVals=chartSaldos.concat([0]);
   var maxV=Math.max.apply(null,allVals);
   var minV=Math.min.apply(null,allVals);
   var range=maxV-minV||1;
 
-  function yPos(v){ return pT+cH-(v-minV)/range*cH; }
-  function xPos(i){ return pL+(i/(n-1||1))*cW; }
+  function yPos(v){return pT+cH-(v-minV)/range*cH;}
+  function xPos(i){return pL+(n>1?i/(n-1):0.5)*cW;}
 
   // Zero line
   var zy=yPos(0);
-  if(zy>=pT&&zy<=pT+cH){
-    ctx.strokeStyle='#333'; ctx.lineWidth=0.5; ctx.setLineDash([4,4]);
-    ctx.beginPath(); ctx.moveTo(pL,zy); ctx.lineTo(W-pR,zy); ctx.stroke();
+  if(zy>pT&&zy<pT+cH){
+    ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=0.5;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(pL,zy);ctx.lineTo(W-pR,zy);ctx.stroke();
     ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='6px Arial';ctx.textAlign='left';
+    ctx.fillText('0',pL+1,zy-1);
   }
 
-  // Area gradient
+  // Area fill
   if(n>1){
     var grad=ctx.createLinearGradient(0,pT,0,pT+cH);
-    grad.addColorStop(0,'#1E90FF44');
-    grad.addColorStop(1,'#1E90FF00');
+    grad.addColorStop(0,'rgba(30,144,255,0.3)');
+    grad.addColorStop(1,'rgba(30,144,255,0.02)');
     ctx.fillStyle=grad;
     ctx.beginPath();
     ctx.moveTo(xPos(0),pT+cH);
-    chartSaldos.forEach(function(v,i){ ctx.lineTo(xPos(i),yPos(v)); });
+    chartSaldos.forEach(function(v,i){ctx.lineTo(xPos(i),yPos(v));});
     ctx.lineTo(xPos(n-1),pT+cH);
-    ctx.closePath(); ctx.fill();
+    ctx.closePath();ctx.fill();
   }
 
   // Line
-  ctx.strokeStyle='#1E90FF'; ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.strokeStyle='#1E90FF';ctx.lineWidth=2;ctx.setLineDash([]);
   ctx.beginPath();
-  chartSaldos.forEach(function(v,i){
-    i===0?ctx.moveTo(xPos(i),yPos(v)):ctx.lineTo(xPos(i),yPos(v));
-  });
+  chartSaldos.forEach(function(v,i){i===0?ctx.moveTo(xPos(i),yPos(v)):ctx.lineTo(xPos(i),yPos(v));});
   ctx.stroke();
 
-  // Dots + values
+  // Dots + value labels
   chartSaldos.forEach(function(v,i){
     var col=v>=0?'#22c55e':'#ef4444';
     ctx.fillStyle=col;
-    ctx.beginPath(); ctx.arc(xPos(i),yPos(v),3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#888'; ctx.font='bold 7px Arial'; ctx.textAlign='center';
-    var lbl=v>=0?'+R$'+Math.round(v/1000)+'k':'R$'+Math.round(v/1000)+'k';
-    ctx.fillText(lbl,xPos(i),yPos(v)-5);
+    ctx.beginPath();ctx.arc(xPos(i),yPos(v),3,0,Math.PI*2);ctx.fill();
+    // White ring
+    ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(xPos(i),yPos(v),3,0,Math.PI*2);ctx.stroke();
+    // Value
+    ctx.fillStyle=col;ctx.font='bold 7px Arial';ctx.textAlign='center';
+    var lbl=(v>=0?'+':'')+formatK(v);
+    ctx.fillText(lbl,xPos(i),yPos(v)-(v>=0?8:-2));
+    // Month label
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='6px Arial';
+    ctx.fillText(buildMLabel(chartMeses[i]),xPos(i),H-4);
   });
 
-  // Month labels
-  if(labelsEl){
-    labelsEl.innerHTML=(_cxChartData.labels||[]).map(function(l){
-      return '<span style="font-size:8px;color:#555;flex:1;text-align:center;">'+l+'</span>';
-    }).join('');
-  }
+  if(labelsEl) labelsEl.innerHTML='';
 }
+
 
 function cxChartClick(e,canvas){
   if(!_cxChartData||!_cxChartData.labels.length) return;
@@ -8061,6 +7840,76 @@ function renderMargProd(){
   });
 
   el.innerHTML=h||'<div style="color:var(--text3);font-size:12px;padding:8px;">Sem dados</div>';
+}
+
+
+// ── CHART TOOLTIP HANDLERS ────────────────────────────────────────────
+
+var _canalMode='fat';
+
+function setCanalMode(mode){
+  _canalMode=mode;
+  ['fat','marg'].forEach(function(m){
+    var btn=document.getElementById('btn-canal-'+m);
+    if(btn){
+      btn.style.background=m===mode?'#1E90FF':'var(--sbtn-bg)';
+      btn.style.color=m===mode?'#fff':'var(--text2)';
+    }
+  });
+  var desc=document.getElementById('canal-chart-desc');
+  if(desc) desc.textContent=mode==='fat'?'ML vs WhatsApp vs Site — faturamento mensal':'ML vs WhatsApp vs Site — margem de contribuição mensal';
+  renderCanalFatChart();
+}
+
+var _dashHidden=false;
+function toggleDashHide(){
+  _dashHidden=!_dashHidden;
+  var btn=document.getElementById('hbtn-hide');
+  if(btn) btn.innerHTML=_dashHidden?'🙈':'👁';
+  var kpis=document.querySelectorAll('.kval');
+  kpis.forEach(function(el){
+    el.style.filter=_dashHidden?'blur(8px)':'none';
+    el.style.userSelect=_dashHidden?'none':'auto';
+  });
+  var charts=document.querySelectorAll('#chart-main,#chart-alt');
+  charts.forEach(function(el){el.style.filter=_dashHidden?'blur(12px)':'none';});
+}
+
+function chartBarClick(e,canvas,type){
+  var d=_CD[type];
+  if(!d) return;
+  var rect=canvas.getBoundingClientRect();
+  var xPct=(e.clientX-rect.left)/rect.width;
+  var n=d.labels.length;
+  var i=Math.min(n-1,Math.max(0,Math.floor(xPct*n)));
+  var val=d.vals[i];
+  var valStr=typeof val==='number'?(val%1!==0?val.toFixed(1)+'%':Math.round(val)+(type==='sazon'?' vendas/mês':'')):String(val||'');
+  var extra=(d.extras&&d.extras[i])||'';
+  showTip(e,'<strong>'+d.labels[i]+'</strong><br>'+valStr+extra);
+}
+
+function chartCanalClick(e,canvas){
+  var d=_CD['canal'];
+  if(!d||!d.extras||!d.extras.length) return;
+  var rect=canvas.getBoundingClientRect();
+  var xPct=(e.clientX-rect.left)/rect.width;
+  var n=d.labels.length;
+  var i=Math.min(n-1,Math.max(0,Math.floor(xPct*n)));
+  var mode=_canalMode==='marg'?'Marg. Contrib.':'Faturamento';
+  showTip(e,'<strong>'+d.labels[i]+'</strong><span style="font-size:9px;color:#888"> — '+mode+'</span>'+(d.extras[i]||''));
+}
+
+function chartClick(e,canvas,id){
+  var d=_CD[id];
+  if(!d) return;
+  var rect=canvas.getBoundingClientRect();
+  var xPct=(e.clientX-rect.left)/rect.width;
+  var n=d.labels.length;
+  var i=Math.min(n-1,Math.max(0,Math.floor(xPct*n)));
+  var val=d.vals[i];
+  var valStr=typeof val==='number'?(val%1!==0?val.toFixed(1)+'%':Math.round(val)+(id==='sazon'?' vendas/mês':'')):String(val||'');
+  var extra=(d.extras&&d.extras[i])||'';
+  showTip(e,'<strong>'+d.labels[i]+'</strong><br>'+valStr+extra);
 }
 
 </script>
