@@ -6368,7 +6368,7 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
         if(resp.body&&typeof resp.body==='object') ship=resp.body;
         else if(resp.status&&resp.response) ship=resp.response;
       }
-      console.log('[FRETE] shipId='+shipId+' base_cost='+ship.base_cost+' resp_keys='+Object.keys(resp||{}).slice(0,6));
+      console.log('[SHIP FULL] '+shipId+':', JSON.stringify(resp).slice(0,800));
       var cost=0,sellerCost=0,logType='';
       if(ship){
         logType=ship.logistic_type||ship.mode||'';
