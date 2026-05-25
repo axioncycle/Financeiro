@@ -1400,7 +1400,24 @@ function saveEstoque(containerId,skuId,local,qty){
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
 function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
-function saveVendaDB(v){var row={id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,prod_id:v.prodId,origem:v.origem,container_id:v.containerId,venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa,ml_order_id:v.mlOrderId||null};dbUpsert("vendas",row).then(function(r){if(Array.isArray(r)&&r.length)console.log("DB OK",r[0].id);else console.warn("DB?",JSON.stringify(r).slice(0,80));});}
+function saveVendaDB(v){
+  var row={
+    id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,
+    prod_id:v.prodId,origem:v.origem,container_id:v.containerId,
+    venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,
+    imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,
+    lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,
+    pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,
+    pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa,
+    ml_order_id:v.mlOrderId||null
+  };
+  return dbUpsert('vendas',row).then(function(r){
+    if(!Array.isArray(r)||!r.length){
+      console.warn('saveVendaDB failed for id='+v.id,JSON.stringify(r).slice(0,100));
+    }
+    return r;
+  });
+}
 function deleteVendaDB(id, mlOrderId){
   // Primary: delete by id
   dbDel("vendas","id=eq."+id).then(function(r){
@@ -6653,26 +6670,26 @@ function mlProcessOrders(orders,dasRate,comRate){
         mlSyncDone();return;
       }
 
-      // Save all vendas to Supabase
-      var saved=0;
-      vendas.forEach(function(v){
-        saveVendaDB(v,true);
-        DB_VENDAS.push(v);
-        saved++;
-        if(saved===vendas.length){
-          loadContainersDB(function(freshCs2){
-            DB_CONTAINERS=freshCs2;
-            vendas.forEach(function(vv){
-              if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
-            });
-            renderHist();
-            renderDash();
-            if(curPage==='est') renderEst();
-            mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
-            toast(vendas.length+' vendas do ML importadas!');
-            mlSyncDone();
+      // Save all vendas to Supabase - wait for ALL saves before proceeding
+      vendas.forEach(function(v){DB_VENDAS.push(v);});
+      var savePromises=vendas.map(function(v){return saveVendaDB(v);});
+      Promise.all(savePromises).then(function(){
+        loadContainersDB(function(freshCs2){
+          DB_CONTAINERS=freshCs2;
+          vendas.forEach(function(vv){
+            if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
           });
-        }
+          renderHist();
+          renderDash();
+          if(curPage==='est') renderEst();
+          mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
+          toast(vendas.length+' vendas do ML importadas!');
+          mlSyncDone();
+        });
+      }).catch(function(err){
+        console.error('Save error:',err);
+        mlShowStatus('Erro ao salvar vendas','#ef4444');
+        mlSyncDone();
       });
     });
   });
