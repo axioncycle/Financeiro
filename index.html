@@ -6368,7 +6368,13 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
         if(resp.body&&typeof resp.body==='object') ship=resp.body;
         else if(resp.status&&resp.response) ship=resp.response;
       }
-      console.log('[SHIP FULL] '+shipId+':', JSON.stringify(resp).slice(0,800));
+      console.log('[SHIP] '+shipId+' base_cost='+ship.base_cost+' order_cost='+ship.order_cost+' mode='+ship.mode+' logistic_type='+ship.logistic_type);
+      if(ship.cost) console.log('[SHIP cost]', JSON.stringify(ship.cost));
+      if(ship.shipping_costs) console.log('[SHIP shipping_costs]', JSON.stringify(ship.shipping_costs));
+      // Fetch cost breakdown from /shipments/{id}/costs endpoint
+      mlFetch(ML_API+'/shipments/'+shipId+'/costs', mlCredentials.accessToken).then(function(costs){
+        console.log('[SHIP COSTS] '+shipId+':', JSON.stringify(costs).slice(0,400));
+      }).catch(function(){});
       var cost=0,sellerCost=0,logType='';
       if(ship){
         logType=ship.logistic_type||ship.mode||'';
