@@ -6370,16 +6370,32 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
     var shipId=o.shipping.id;
     mlFetch(ML_API+'/shipments/'+shipId, mlCredentials.accessToken)
     .then(function(ship){
-      // cost.gross = total frete cobrado do comprador
-      // cost.special_cost = custo do frete para o vendedor (Full)
-      if(ship&&ship.cost){
-        shipMap[shipId]={
-          gross: ship.cost.gross||0,
-          net: ship.cost.net||0,
-          sellerCost: ship.cost.special_cost||ship.cost.sender_cost||0,
-          logisticType: ship.logistic_type||''
-        };
+      console.log('[SHIP] id='+shipId+' keys='+JSON.stringify(Object.keys(ship||{})));
+      if(ship&&ship.cost) console.log('[SHIP] cost='+JSON.stringify(ship.cost));
+      if(ship&&ship.shipping_items) console.log('[SHIP] shipping_items='+JSON.stringify(ship.shipping_items));
+      // Try multiple possible cost fields from ML API
+      var gross=0, sellerCost=0, logType='';
+      if(ship){
+        logType=ship.logistic_type||ship.type||'';
+        if(ship.cost){
+          gross=ship.cost.gross||ship.cost.amount||0;
+          sellerCost=ship.cost.special_cost||ship.cost.sender_cost||ship.cost.cost_components||0;
+          if(typeof sellerCost==='object') sellerCost=0; // cost_components is object
+        }
+        // Some ML responses have base_cost at root level
+        if(!gross) gross=ship.base_cost||0;
+        // shipping_items may have costs
+        if(!sellerCost&&ship.shipping_items&&ship.shipping_items.length){
+          ship.shipping_items.forEach(function(si){
+            if(si.sender_cost) sellerCost+=si.sender_cost;
+          });
+        }
       }
+      shipMap[shipId]={
+        gross: gross,
+        sellerCost: sellerCost,
+        logisticType: logType
+      };
       done++;
       if(done===ordersNeedingShipment.length){
         // Enrich orders with shipment data
@@ -6488,11 +6504,12 @@ function mlProcessOrders(orders,dasRate,comRate){
           freteTotal=o.shipping.cost||o.shipping.shipping_cost||0;
         }
 
-        // Full vs Normal
+        // Full vs Normal - check multiple fields
         var tags=o.tags||[];
-        var logType=(o.shipping&&o.shipping.logistic_type)||'';
-        var isFull=logType==='fulfillment'||tags.indexOf('fulfillment')>=0||
-          tags.indexOf('meli_plus')>=0;
+        var logType=(o.shipping&&o.shipping.logistic_type)||(o.shipping&&o.shipping.type)||'';
+        var isFull=logType==='fulfillment'||logType.indexOf('fulfillment')>=0||
+          tags.indexOf('fulfillment')>=0||tags.indexOf('meli_plus')>=0||
+          (o.fulfillment&&o.fulfillment.type==='fulfillment');
 
         // Data
         var dateStr=o.date_created?o.date_created.substring(0,10):'';
@@ -6560,7 +6577,8 @@ function mlProcessOrders(orders,dasRate,comRate){
           // Full vs Normal por item
           var itemIsFull=isFull||
             (item.item&&item.item.fulfillment&&
-             item.item.fulfillment.type==='fulfillment');
+             item.item.fulfillment.type==='fulfillment')||
+            (item.fulfillment&&item.fulfillment.type==='fulfillment');
           var origem=itemIsFull?'Full':'Brasilia';
 
           // SKU e nome do produto
@@ -6573,7 +6591,11 @@ function mlProcessOrders(orders,dasRate,comRate){
               if(allSkus[k].id===prodId){prodNome=allSkus[k].nome;break;}
             }
           }
-          if(!prodNome) prodNome=item.item?item.item.title:'Produto ML';
+          if(!prodNome) prodNome=(item.item&&item.item.title)||'Produto ML';
+          // If prodId not mapped, log it for user to add mapping
+          if(!prodId){
+            console.warn('[ML] Item não mapeado: '+mlItemId+' "'+prodNome+'" — vincule na aba Configurações do ML');
+          }
 
           // ── FIX 5: Custo FIFO — container mais antigo com estoque ─
           var custo=0, containerId='';
@@ -6711,7 +6733,7 @@ function mlSyncDone(){
 
 // ── ML VINCULAR ANÚNCIOS ─────────────────────────────────────────────────
 
-var mlMappings = {"MLBU2875063431": 5, "MLBU3764699755": 7, "MLBU3549654195": 6, "MLBU2880082638": 2, "MLBU3764683645": 4, "MLBU3556994952": 3, "MLBU3974917097": 8, "MLBU3974917095": 9, "MLBU3715291679": 10, "MLBU3903433226": 11, "MLBU3903431238": 12, "MLBU3787209772": 13, "MLBU3777705759": 17, "MLBU2875051989": 21, "MLBU3774038172": 23, "MLBU3555380495": 22, "MLBU2880044556": 24, "MLBU3764704425": 26, "MLBU3555375107": 25, "MLBU3647260848": 27, "MLBU3647257490": 28, "MLBU3910586256": 31, "MLBU3850085701": 30, "MLBU3718234438": 29, "MLBU3549624863": 35, "MLBU3461356419": 35, "MLBU3549621543": 35, "MLBU3782342702": 35}; // {mlItemId: skuId}
+var mlMappings = {"MLBU2875063431": 5, "MLBU3764699755": 7, "MLBU3549654195": 6, "MLBU2880082638": 2, "MLBU3764683645": 4, "MLBU3556994952": 3, "MLBU3974917097": 8, "MLBU3974917095": 9, "MLBU3715291679": 10, "MLBU3903433226": 11, "MLBU3903431238": 12, "MLBU3787209772": 13, "MLBU3777705759": 17, "MLBU2875051989": 21, "MLBU3774038172": 23, "MLBU3555380495": 22, "MLBU2880044556": 24, "MLBU3764704425": 26, "MLBU3555375107": 25, "MLBU3647260848": 27, "MLBU3647257490": 28, "MLBU3910586256": 31, "MLBU3850085701": 30, "MLBU3718234438": 29, "MLBU3549624863": 35, "MLBU3461356419": 35, "MLBU3549621543": 35, "MLBU3782342702": 35, "MLB6712607614": 29, "MLB6632849504": 35}; // {mlItemId: skuId}
 
 function mlShowTab(tab){
   var tabs=['vincular','sync'];
