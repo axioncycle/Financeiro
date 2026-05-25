@@ -1399,9 +1399,17 @@ function saveEstoque(containerId,skuId,local,qty){
     if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque error:",t);});
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
-function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
-function saveVendaDB(v){var row={id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,prod_id:v.prodId,origem:v.origem,container_id:v.containerId,venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa};dbUpsert("vendas",row).then(function(r){if(Array.isArray(r)&&r.length)console.log("DB OK",r[0].id);else console.warn("DB?",JSON.stringify(r).slice(0,80));});}
-function deleteVendaDB(id){dbDel("vendas","id=eq."+id);}
+function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
+function saveVendaDB(v){var row={id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,prod_id:v.prodId,origem:v.origem,container_id:v.containerId,venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo,pag1_tipo:v.pag1tipo,pag1_val:v.pag1val,pag1_taxa:v.pag1taxa,pag2_tipo:v.pag2tipo,pag2_val:v.pag2val,pag2_taxa:v.pag2taxa,ml_order_id:v.mlOrderId||null};dbUpsert("vendas",row).then(function(r){if(Array.isArray(r)&&r.length)console.log("DB OK",r[0].id);else console.warn("DB?",JSON.stringify(r).slice(0,80));});}
+function deleteVendaDB(id, mlOrderId){
+  // Primary: delete by id
+  dbDel("vendas","id=eq."+id).then(function(r){
+    // If nothing deleted (id mismatch due to overflow), try by ml_order_id
+    if(mlOrderId&&(!r||!r.length)){
+      dbDel("vendas","ml_order_id=eq."+mlOrderId);
+    }
+  });
+}
 function loadContainersDB(cb){
   dbGet("containers","order=data.desc").then(function(rows){
     if(!Array.isArray(rows)||!rows.length){cb([]);return;}
@@ -3134,7 +3142,7 @@ function salvarVenda(){
   var containerId=orig?getOldestContIdForLocal(orig,prodId):'';
 
   var vend={
-    id:editId||(Date.now()*10000+Math.floor(Math.random()*9999)),date:dateISO,cliente:cli,canal:canal,
+    id:editId||(Math.floor(Date.now()/1000)*1000+Math.floor(Math.random()*999)),date:dateISO,cliente:cli,canal:canal,
     produto:sku.nome,prodId:prodId,origem:orig,containerId:containerId,
     venda:venda,custo:custo,taxaPct:taxaPct,taxa:taxa,
     impPct:impPct,imp:imp,comPct:comPct,com:com,frete:frete,
@@ -3291,7 +3299,32 @@ function confirmarDelVenda(){
       deleteVendaDB(rv.id);
       _undoDelData=null;
     }
+  },function(){
+    // CONFIRM delete: now actually delete from DB + restore stock if needed
+    if(_undoDelData&&_undoDelData.venda){
+      var rv=_undoDelData.venda;
+      if(_undoDelData.devolver&&rv.origem&&rv.prodId){
+        restoreStock(rv.origem, rv.prodId, rv.containerId);
+      }
+      deleteVendaDB(rv.id, rv.mlOrderId);
+      _undoDelData=null;
+    }
   });
+}
+
+// Execute pending delete immediately if page is about to unload
+window.addEventListener('beforeunload',function(){
+  if(_undoDelData&&_undoDelData.venda){
+    var rv=_undoDelData.venda;
+    if(_undoDelTimer) clearTimeout(_undoDelTimer);
+    if(_undoDelData.devolver&&rv.origem&&rv.prodId){
+      restoreStock(rv.origem,rv.prodId,rv.containerId);
+    }
+    deleteVendaDB(rv.id, rv.mlOrderId);
+    _undoDelData=null;
+  }
+});
+function _placeholder_do_not_remove(){
 }
 
 function toastUndo(msg, onUndo, onConfirm){
@@ -3543,7 +3576,7 @@ function importCSV(input){
         var lsi2=cols.lucroSI>=0&&pn(row,cols.lucroSI)!==0?pn(row,cols.lucroSI):(venda2-custo2-taxa2-frete2-com2);
         var lll2=cols.lucroLL>=0&&pn(row,cols.lucroLL)!==0?pn(row,cols.lucroLL):(venda2-custo2-taxa2-frete2-nf2-com2);
         var dateVal=pd(ps(row,cols.data));
-        vlist.push({id:Date.now()*10000+(i2*1000)+Math.floor(Math.random()*999),date:dateVal,cliente:cli2,canal:canal2,produto:prod,prodId:resolvedProdId,origem:finalOrig,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:comPct2,com:com2,frete:frete2,lucroSI:lsi2,lucroLL:lll2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
+        vlist.push({id:Math.floor(Date.now()/1000)*10000+(i2*10)+Math.floor(Math.random()*9),date:dateVal,cliente:cli2,canal:canal2,produto:prod,prodId:resolvedProdId,origem:finalOrig,containerId:resolvedContId,venda:venda2,custo:custo2,taxaPct:txPct2,taxa:taxa2,impPct:impPct2,imp:nf2,comPct:comPct2,com:com2,frete:frete2,lucroSI:lsi2,lucroLL:lll2,duplo:false,pag1tipo:'',pag1val:0,pag1taxa:0,pag2tipo:'',pag2val:0,pag2taxa:0});
       }
       if(!vlist.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada.';return;}
       importPending=vlist;
@@ -6298,9 +6331,10 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset,allOrders){
 }
 
 function mlEnrichWithShipments(orders,dasRate,comRate){
-  // Get shipment IDs from orders
+  // Fetch shipment for ALL orders with a shipping ID
+  // We need seller_cost which is only in /shipments/{id} endpoint
   var ordersNeedingShipment=orders.filter(function(o){
-    return o.shipping&&o.shipping.id&&!(o.shipping.cost>0);
+    return o.shipping&&o.shipping.id;
   });
   if(!ordersNeedingShipment.length){
     mlProcessOrders(orders,dasRate,comRate||0);
@@ -6519,9 +6553,13 @@ function mlProcessOrders(orders,dasRate,comRate){
           // ── FIX 5: Custo FIFO — container mais antigo com estoque ─
           var custo=0, containerId='';
           if(prodId){
-            // prodId is always integer (from mlMappings values + parseInt)
-            // freshCs.skus keys are now normalized to integers in loadContainersDB
+            // Debug: log container lookup
             var cid=getOldestContIdForLocal(origem,prodId);
+            console.log('CUSTO debug: prodId='+prodId+' origem='+origem+' cid='+cid+' freshCs.length='+freshCs.length);
+            if(freshCs.length>0){
+              var sampleKeys=Object.keys(freshCs[0].skus||{}).slice(0,5);
+              console.log('  freshCs[0].skus keys (sample):',sampleKeys,'types:',sampleKeys.map(function(k){return typeof k;}));
+            }
             if(cid){
               containerId=cid;
               var targetCont=null;
@@ -6530,23 +6568,28 @@ function mlProcessOrders(orders,dasRate,comRate){
                   targetCont=freshCs[tc];break;
                 }
               }
-              if(targetCont&&targetCont.skus&&targetCont.skus[prodId]){
-                custo=targetCont.skus[prodId].custo||0;
-                if(!custo){
-                  // Try string key just in case
-                  var skFb=targetCont.skus[String(prodId)];
-                  if(skFb) custo=skFb.custo||0;
+              if(targetCont){
+                // Try int key first, then string
+                var skEntry=targetCont.skus[prodId]||targetCont.skus[String(prodId)];
+                if(skEntry){
+                  custo=skEntry.custo||0;
+                  console.log('  FOUND custo='+custo+' in container '+cid);
+                } else {
+                  console.log('  SKU '+prodId+' NOT in targetCont.skus. Keys:',Object.keys(targetCont.skus||{}));
                 }
               }
+            } else {
+              console.log('  No container found for prodId='+prodId+' local='+origem);
+              console.log('  Available containers:',freshCs.map(function(c){return c.id+':'+Object.keys(c.skus||{}).join(',')}));
             }
             if(!custo) custo=mlGetCustoBySkuId(prodId);
             if(!custo){
-              // Last resort: SKUS default cost
               var allSk=getAllSKUs();
               for(var si=0;si<allSk.length;si++){
                 if(allSk[si].id===prodId){custo=allSk[si].custo||0;break;}
               }
             }
+            console.log('  FINAL custo='+custo+' for prodId='+prodId);
           }
 
           // DAS estimado
@@ -6557,14 +6600,22 @@ function mlProcessOrders(orders,dasRate,comRate){
           // Full: vendedor paga o custo de fulfillment (seller_cost)
           // Normal: vendedor paga o frete de envio (freteTotal)
           // Site/WApp: frete combinado separadamente
+          // Frete: para o VENDEDOR
+          // Full: vendedor paga custo de fulfillment = shipping.seller_cost (vem do /shipments endpoint)
+          // Normal: vendedor paga o envio = shipping.cost (custo real do envio)
           var freteVendedor=0;
+          var shipData=o.shipping||{};
           if(itemIsFull){
-            freteVendedor=o.shipping&&(o.shipping.seller_cost||o.shipping.special_cost)||0;
+            // seller_cost = custo fulfillment cobrado do vendedor pelo ML
+            freteVendedor=shipData.seller_cost||shipData.special_cost||shipData.sender_cost||0;
           } else {
-            freteVendedor=freteTotal||0;
+            // Para envio normal: cost = valor do frete (pago pelo vendedor ou comprador)
+            // sender_cost = custo para o remetente (vendedor)
+            freteVendedor=shipData.sender_cost||shipData.seller_cost||shipData.cost||0;
           }
           var nItems=Math.max(1,items.length);
-          var freteUnit=freteVendedor>0?Math.round((freteVendedor/nItems/qtd)*100)/100:0;
+          var freteUnit=freteVendedor>0?Math.round((freteVendedor/nItems/Math.max(1,qtd))*100)/100:0;
+          console.log('FRETE debug:',o.id,'Full:',itemIsFull,'shipData:',JSON.stringify({cost:shipData.cost,seller_cost:shipData.seller_cost,sender_cost:shipData.sender_cost,special_cost:shipData.special_cost}),'freteVendedor:',freteVendedor,'freteUnit:',freteUnit);
 
           var taxaPct=precoUnit>0?(taxaUnit/precoUnit*100):0;
           var lucroSI=precoUnit-taxaUnit-comUnit-custo-freteUnit;
@@ -6572,7 +6623,7 @@ function mlProcessOrders(orders,dasRate,comRate){
 
           for(q=0;q<qtd;q++){
             vendas.push({
-              id:Date.now()*10000+i*1000+j*100+q*10+Math.floor(Math.random()*9),
+              id:Math.floor(Date.now()/1000)*10000+i*100+j*10+q+Math.floor(Math.random()*9),
               date:dateStr,
               cliente:cliente,
               canal:'Mercado Livre',
