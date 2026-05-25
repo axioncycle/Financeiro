@@ -1720,18 +1720,22 @@ function consumeFIFO(local,skuId,qty){
 }
 
 function getOldestContIdForLocal(local,skuId){
+  return getOldestContIdForLocalStr(local,String(skuId));
+}
+
+function getOldestContIdForLocalStr(local,skuIdStr){
   var cs=loadContainers().slice();
   cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
-  var i;
-  // Primary: container with stock in this local (FIFO)
+  var i,sk;
+  // Primary: container with stock in this local (FIFO) - try both string and int key
   for(i=0;i<cs.length;i++){
-    var sk=cs[i].skus[skuId];
+    sk=cs[i].skus[skuIdStr]||cs[i].skus[parseInt(skuIdStr)];
     if(sk&&sk.un&&(sk.un[local]||0)>0) return cs[i].id;
   }
-  // Fallback: oldest container with this SKU planned
+  // Fallback: oldest container with this SKU (any stock)
   for(i=0;i<cs.length;i++){
-    var sk2=cs[i].skus[skuId];
-    if(sk2&&sk2.custoQty>0) return cs[i].id;
+    sk=cs[i].skus[skuIdStr]||cs[i].skus[parseInt(skuIdStr)];
+    if(sk&&(sk.custoQty>0||sk.custo>0)) return cs[i].id;
   }
   return '';
 }
@@ -6494,16 +6498,21 @@ function mlProcessOrders(orders,dasRate,comRate){
           var custo=0, containerId='';
           if(prodId){
             // Get oldest container with stock in correct local
-            var cid=getOldestContIdForLocal(origem,prodId);
+            // Use String(prodId) to match container skus keys (stored as strings)
+            var pidStr=String(prodId);
+            var cid=getOldestContIdForLocalStr(origem,pidStr);
             if(cid){
               containerId=cid;
-              // Get custo from THAT specific container
-              var targetCont=freshCs.find(function(c){return c.id===cid;});
-              if(targetCont&&targetCont.skus&&targetCont.skus[prodId]){
-                custo=targetCont.skus[prodId].custo||0;
+              var targetCont=null;
+              for(var tc=0;tc<freshCs.length;tc++){
+                if(String(freshCs[tc].id)===String(cid)){targetCont=freshCs[tc];break;}
+              }
+              if(targetCont&&targetCont.skus){
+                var skData=targetCont.skus[pidStr]||targetCont.skus[prodId];
+                if(skData) custo=skData.custo||0;
               }
             }
-            // Fallback: mlGetCustoBySkuId
+            // Fallback: mlGetCustoBySkuId (tries both string and int keys)
             if(!custo) custo=mlGetCustoBySkuId(prodId);
           }
 
@@ -6512,8 +6521,17 @@ function mlProcessOrders(orders,dasRate,comRate){
           var comUnit=precoUnit*((comRate||0)/100);
 
           // Frete por unidade
-          var freteVendedor=itemIsFull?(o.shipping&&o.shipping.seller_cost||0):freteTotal;
-          var freteUnit=items.length>0&&qtd>0?Math.round((freteVendedor/items.length/qtd)*100)/100:0;
+          // Full: vendedor paga o custo de fulfillment (seller_cost)
+          // Normal: vendedor paga o frete de envio (freteTotal)
+          // Site/WApp: frete combinado separadamente
+          var freteVendedor=0;
+          if(itemIsFull){
+            freteVendedor=o.shipping&&(o.shipping.seller_cost||o.shipping.special_cost)||0;
+          } else {
+            freteVendedor=freteTotal||0;
+          }
+          var nItems=Math.max(1,items.length);
+          var freteUnit=freteVendedor>0?Math.round((freteVendedor/nItems/qtd)*100)/100:0;
 
           var taxaPct=precoUnit>0?(taxaUnit/precoUnit*100):0;
           var lucroSI=precoUnit-taxaUnit-comUnit-custo-freteUnit;
@@ -6925,11 +6943,16 @@ function buildCaixaData(cfg, cb){
     var mk=mkey3(recDate);
     if(!mk||mk<inicioMk) return;
     ensureMk(mk);
-    mMap[mk].entradas+=(+v.venda||0);
+    // Valor líquido recebido = venda - taxa ML - comissão - frete pago pelo vendedor
+    var valorLiq=Math.max(0,(+v.venda||0)-(+v.taxa||0)-(+v.com||0)-(+v.frete||0));
+    mMap[mk].entradas+=valorLiq;
     mMap[mk].qtd++;
     mMap[mk].rows_entrada.push({
       desc:(v.produto||'Venda')+' — '+(v.cliente||''),
-      valor:(+v.venda||0),
+      valor:valorLiq,
+      valorBruto:(+v.venda||0),
+      taxa:(+v.taxa||0)+(+v.com||0),
+      frete:(+v.frete||0),
       canal:v.canal||''
     });
   });
