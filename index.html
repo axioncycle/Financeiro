@@ -6470,6 +6470,7 @@ function mlProcessOrders(orders,dasRate,comRate){
         return true;
       });
       if(skipped>0) mlShowStatus('Ignorando '+skipped+' pedidos já cadastrados. Processando '+orders.length+' novos...','#1E90FF');
+      console.log('[ML] orders to process:',orders.length);
       if(!orders.length){
         mlShowStatus('Todos os pedidos já estão cadastrados ✅','#22c55e');
         mlSyncDone();return;
@@ -6671,16 +6672,20 @@ function mlProcessOrders(orders,dasRate,comRate){
         }
       }
 
+      console.log('[ML] vendas built:',vendas.length);
       if(!vendas.length){
         mlShowStatus('Nenhuma venda nova para importar ✅','#22c55e');
         mlSyncDone();return;
       }
 
       // Save all vendas to Supabase - wait for ALL saves before proceeding
+      console.log('[ML] saving',vendas.length,'vendas. First id:',vendas[0]&&vendas[0].id);
       vendas.forEach(function(v){DB_VENDAS.push(v);});
       var savePromises=vendas.map(function(v){return saveVendaDB(v);});
       console.log('Saving '+savePromises.length+' vendas to Supabase...');
       Promise.all(savePromises).then(function(results){
+        var ok=results.filter(function(r){return Array.isArray(r)&&r.length>0;}).length;
+        console.log('[ML] Promise.all: '+ok+'/'+results.length+' saved. First result:',JSON.stringify(results[0]).slice(0,100));
         var saved=results.filter(function(r){return Array.isArray(r)&&r.length>0;}).length;
         loadContainersDB(function(freshCs2){
           DB_CONTAINERS=freshCs2;
