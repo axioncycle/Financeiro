@@ -6363,7 +6363,12 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
     mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
     .then(function(resp){
       // Proxy wraps response: {status:200, body:{...}} or direct object
-      var ship=resp&&resp.body?resp.body:resp;
+      var ship=resp;
+      if(resp&&typeof resp==='object'){
+        if(resp.body&&typeof resp.body==='object') ship=resp.body;
+        else if(resp.status&&resp.response) ship=resp.response;
+      }
+      console.log('[FRETE] shipId='+shipId+' base_cost='+ship.base_cost+' resp_keys='+Object.keys(resp||{}).slice(0,6));
       var cost=0,sellerCost=0,logType='';
       if(ship){
         logType=ship.logistic_type||ship.mode||'';
@@ -6504,18 +6509,18 @@ function mlProcessOrders(orders,dasRate,comRate){
         var totalPedido=0;
         var totalQtd=0;
         items.forEach(function(it){totalQtd+=it.quantity||1;});
-        // total_amount = valor total do pedido (sem frete) = o que o vendedor recebe bruto
-        // NÃO usar payments.total_paid_amount pois inclui frete pago pelo comprador
-        // e pode ter descontos de cupom que reduzem o valor além do esperado
+        // total_amount = preço do item no pedido (base)
+        // coupon.amount = desconto de cupom pago pelo ML ao comprador
+        //   → reduz o que o vendedor recebe (ML repassa o desconto)
+        // paid_amount em payments = o que o vendedor realmente recebe
         totalPedido=o.total_amount||0;
-        // Se total_amount não disponível, usar payments mas subtrair shipping
+        // Aplicar desconto de cupom se existir (cupom reduz receita do vendedor)
+        if(totalPedido&&o.coupon&&o.coupon.amount>0){
+          totalPedido-=o.coupon.amount;
+        }
+        // Se ainda sem valor, usar payments
         if(!totalPedido&&o.payments&&o.payments.length){
-          var firstPay=o.payments[0];
-          totalPedido=firstPay.total_paid_amount||firstPay.transaction_amount||0;
-          // Subtrair frete pago pelo comprador se incluído
-          if(totalPedido&&o.shipping&&o.shipping.buyer_cost>0){
-            totalPedido-=o.shipping.buyer_cost;
-          }
+          totalPedido=o.payments[0].total_paid_amount||o.payments[0].transaction_amount||0;
         }
 
         for(j=0;j<items.length;j++){
