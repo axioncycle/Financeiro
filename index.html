@@ -6385,12 +6385,17 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
       shipMap[shipId]={cost:cost,sellerCost:sellerCost,logType:logType};
       done++;
       if(done===ordersWithShip.length){
+        console.log('[ENRICH] shipMap:',JSON.stringify(shipMap));
         orders.forEach(function(o2){
-          if(o2.shipping&&o2.shipping.id&&shipMap[o2.shipping.id]){
-            var s=shipMap[o2.shipping.id];
+          var sid2=o2.shipping&&o2.shipping.id;
+          if(sid2&&shipMap[sid2]){
+            var s=shipMap[sid2];
             o2.shipping.cost=s.cost;
             o2.shipping.seller_cost=s.sellerCost;
             o2.shipping.logistic_type=o2.shipping.logistic_type||s.logType;
+            console.log('[ENRICH] orderId='+o2.id+' set cost='+s.cost+' sellerCost='+s.sellerCost);
+          } else {
+            console.log('[ENRICH] orderId='+o2.id+' shipId='+sid2+' NOT in shipMap keys:'+Object.keys(shipMap));
           }
         });
         mlProcessOrders(orders,dasRate,comRate);
