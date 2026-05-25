@@ -6544,6 +6544,7 @@ function mlProcessOrders(orders,dasRate,comRate){
             precoUnit=item.unit_price||0;
           }
           precoUnit=Math.round(precoUnit*100)/100;
+          console.log('[PRECO] orderId='+o.id+' itemId='+mlItemId+' totalPedido='+totalPedido+' totalQtd='+totalQtd+' qtd='+qtd+' unit_price='+item.unit_price+' precoUnit='+precoUnit);
 
           // ── FIX 4: Taxa real já descontada (sale_fee = valor real cobrado pelo ML) ──
           // sale_fee JÁ reflete benefícios/descontos de taxa (ML Gold, pacotes, etc)
@@ -6623,6 +6624,7 @@ function mlProcessOrders(orders,dasRate,comRate){
           // Normal: vendedor paga o envio = shipping.cost (custo real do envio)
           var freteVendedor=0;
           var shipData=o.shipping||{};
+          console.log('[FRETE] orderId='+o.id+' shipping keys:'+JSON.stringify(Object.keys(shipData))+' cost='+shipData.cost+' seller_cost='+shipData.seller_cost+' sender_cost='+shipData.sender_cost+' special_cost='+shipData.special_cost+' isFull='+itemIsFull);
           if(itemIsFull){
             // seller_cost = custo fulfillment cobrado do vendedor pelo ML
             freteVendedor=shipData.seller_cost||shipData.special_cost||shipData.sender_cost||0;
@@ -6638,6 +6640,7 @@ function mlProcessOrders(orders,dasRate,comRate){
           var lucroSI=precoUnit-taxaUnit-comUnit-custo-freteUnit;
           var lucroLL=lucroSI-imp;
 
+          console.log('[VENDA] final: preco='+precoUnit+' taxa='+taxaUnit+' frete='+freteUnit+' custo='+custo+' cid='+containerId);
           for(q=0;q<qtd;q++){
             vendas.push({
               id:Math.floor(Date.now()/1000)*10000+i*100+j*10+q+Math.floor(Math.random()*9),
