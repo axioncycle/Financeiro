@@ -6370,7 +6370,6 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
     var shipId=o.shipping.id;
     mlFetch(ML_API+'/shipments/'+shipId, mlCredentials.accessToken)
     .then(function(ship){
-      console.log('[SHIP] FULL RESPONSE id='+shipId+':', JSON.stringify(ship).slice(0,500));
       // Try multiple possible cost fields from ML API
       var gross=0, sellerCost=0, logType='';
       if(ship){
@@ -6398,7 +6397,7 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
         orders.forEach(function(o){
           if(o.shipping&&o.shipping.id&&shipMap[o.shipping.id]){
             var s=shipMap[o.shipping.id];
-            o.shipping.cost=s.net||s.gross; // net = custo real para o vendedor
+            o.shipping.cost=s.gross; // gross = base_cost = frete real do vendedor
             o.shipping.seller_cost=s.sellerCost;
             o.shipping.logistic_type=o.shipping.logistic_type||s.logisticType;
           }
@@ -6475,8 +6474,7 @@ function mlProcessOrders(orders,dasRate,comRate){
         return true;
       });
       if(skipped>0) mlShowStatus('Ignorando '+skipped+' pedidos já cadastrados. Processando '+orders.length+' novos...','#1E90FF');
-      console.log('[ML] orders to process:',orders.length);
-      if(!orders.length){
+            if(!orders.length){
         mlShowStatus('Todos os pedidos já estão cadastrados ✅','#22c55e');
         mlSyncDone();return;
       }
@@ -6560,7 +6558,6 @@ function mlProcessOrders(orders,dasRate,comRate){
             precoUnit=item.unit_price||0;
           }
           precoUnit=Math.round(precoUnit*100)/100;
-          console.log('[PRECO] orderId='+o.id+' itemId='+mlItemId+' totalPedido='+totalPedido+' totalQtd='+totalQtd+' qtd='+qtd+' unit_price='+item.unit_price+' precoUnit='+precoUnit);
 
           // ── FIX 4: Taxa real já descontada (sale_fee = valor real cobrado pelo ML) ──
           // sale_fee JÁ reflete benefícios/descontos de taxa (ML Gold, pacotes, etc)
@@ -6599,8 +6596,7 @@ function mlProcessOrders(orders,dasRate,comRate){
               if(titleLow.indexOf(allSk[si].nome.toLowerCase())>=0||
                  allSk[si].nome.toLowerCase().indexOf(titleLow)>=0){
                 prodId=allSk[si].id;
-                console.log('[ML] Auto-matched "'+prodNome+'" to SKU '+prodId+' ('+allSk[si].nome+')');
-                break;
+                                break;
               }
             }
             if(!prodId) console.warn('[ML] Não mapeado: '+mlItemId+' "'+prodNome+'"');
@@ -6657,7 +6653,7 @@ function mlProcessOrders(orders,dasRate,comRate){
           var shipData=o.shipping||{};
           // logistic_type from enriched shipment data
           var shipLogType=shipData.logistic_type||'';
-          var isFullItem=shipLogType==='fulfillment'||shipLogType==='xd_drop_off';
+          var isFullItem=shipLogType==='fulfillment'||shipLogType==='xd_drop_off'||(itemIsFull&&!shipLogType);
           if(isFullItem){
             // Full: seller_cost = custo de fulfillment para o vendedor
             // If seller_cost=0, fulfillment is often included in the fee
@@ -6673,7 +6669,6 @@ function mlProcessOrders(orders,dasRate,comRate){
           var lucroSI=precoUnit-taxaUnit-comUnit-custo-freteUnit;
           var lucroLL=lucroSI-imp;
 
-          console.log('[VENDA] final: preco='+precoUnit+' taxa='+taxaUnit+' frete='+freteUnit+' custo='+custo+' cid='+containerId);
           for(q=0;q<qtd;q++){
             vendas.push({
               id:Math.floor(Date.now()/1000)*10000+i*100+j*10+q+Math.floor(Math.random()*9),
