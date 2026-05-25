@@ -6361,10 +6361,13 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
   ordersWithShip.forEach(function(o){
     var shipId=o.shipping.id;
     mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
-    .then(function(ship){
+    .then(function(resp){
+      // Proxy wraps response: {status:200, body:{...}} or direct object
+      var ship=resp&&resp.body?resp.body:resp;
       var cost=0,sellerCost=0,logType='';
       if(ship){
         logType=ship.logistic_type||ship.mode||'';
+        // base_cost = frete real do vendedor para Normal/me2
         cost=+(ship.base_cost)||0;
         if(ship.cost){
           if(!cost&&typeof ship.cost.gross==='number') cost=ship.cost.gross;
@@ -6372,6 +6375,7 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
           if(typeof ship.cost.special_cost==='number') sellerCost=ship.cost.special_cost;
           else if(typeof ship.cost.sender_cost==='number') sellerCost=ship.cost.sender_cost;
         }
+        if(!cost&&!sellerCost) console.log('[FRETE] raw resp keys:',Object.keys(resp||{}), 'ship keys:',Object.keys(ship||{}), 'base_cost:',ship.base_cost);
       }
       shipMap[shipId]={cost:cost,sellerCost:sellerCost,logType:logType};
       done++;
@@ -6500,24 +6504,19 @@ function mlProcessOrders(orders,dasRate,comRate){
         var totalPedido=0;
         var totalQtd=0;
         items.forEach(function(it){totalQtd+=it.quantity||1;});
-        // ML payments: each entry may be an installment of the same sale
-        // total_paid_amount on the FIRST payment = total paid by buyer
-        // Don't sum all payments - they represent installments not separate transactions
-        if(o.payments&&o.payments.length){
-          // Use first payment total_paid_amount (represents full order value after discounts)
+        // total_amount = valor total do pedido (sem frete) = o que o vendedor recebe bruto
+        // NÃO usar payments.total_paid_amount pois inclui frete pago pelo comprador
+        // e pode ter descontos de cupom que reduzem o valor além do esperado
+        totalPedido=o.total_amount||0;
+        // Se total_amount não disponível, usar payments mas subtrair shipping
+        if(!totalPedido&&o.payments&&o.payments.length){
           var firstPay=o.payments[0];
-          totalPedido=firstPay.total_paid_amount||firstPay.amount_paid||firstPay.transaction_amount||0;
-          // If still 0, sum only unique transaction amounts (avoid double-counting installments)
-          if(!totalPedido){
-            var seen={};
-            o.payments.forEach(function(p){
-              var tid=p.id||Math.random();
-              if(!seen[tid]){seen[tid]=1;totalPedido+=(p.total_paid_amount||p.amount||0);}
-            });
+          totalPedido=firstPay.total_paid_amount||firstPay.transaction_amount||0;
+          // Subtrair frete pago pelo comprador se incluído
+          if(totalPedido&&o.shipping&&o.shipping.buyer_cost>0){
+            totalPedido-=o.shipping.buyer_cost;
           }
         }
-        // Fallback: total_amount do pedido (excludes shipping)
-        if(!totalPedido) totalPedido=(o.total_amount||0)+(o.shipping&&o.shipping.cost>0?0:0);
 
         for(j=0;j<items.length;j++){
           var item=items[j];
