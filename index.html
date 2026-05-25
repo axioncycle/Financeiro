@@ -1485,7 +1485,7 @@ function saveContainersDB(cs){
       if(!sk) continue;
       // Save container_skus if has custoQty
       if(sk.custoQty>0){
-        dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||0,custo_qty:sk.custoQty||0});
+        supaFetch("PATCH","container_skus",{custo:sk.custo||0,custo_qty:sk.custoQty||0},"container_id=eq."+c.id+"&sku_id=eq."+parseInt(sid));
       }
       // Save ALL unit distributions regardless of custoQty
       if(sk.un){
@@ -1603,7 +1603,7 @@ function saveContainer(cid){
         if(!sk) continue;
         if(sk.custoQty>0){
           validSkuIds.push(parseInt(sid));
-          dbUpsert("container_skus",{container_id:c.id,sku_id:parseInt(sid),custo:sk.custo||0,custo_qty:sk.custoQty||0});
+          supaFetch("PATCH","container_skus",{custo:sk.custo||0,custo_qty:sk.custoQty||0},"container_id=eq."+c.id+"&sku_id=eq."+parseInt(sid));
         }
         if(sk.un){
           for(loc in sk.un){
@@ -1745,7 +1745,7 @@ function consumeFIFO(local,skuId,qty){
     var skRef=sk;
     // Save sequentially: container_skus first, then estoque_distribuicao
     (function(containerId,qty2,skData){
-      dbUpsert("container_skus",{container_id:containerId,sku_id:parseInt(skuId),custo:skData.custo||0,custo_qty:skData.custoQty||0}).then(function(){
+      supaFetch("PATCH","container_skus",{custo:skData.custo||0,custo_qty:skData.custoQty||0},"container_id=eq."+containerId+"&sku_id=eq."+parseInt(skuId)).then(function(){
         if(qty2>0){
           return saveEstoque(containerId,skuId,local,qty2);
         } else {
@@ -6354,59 +6354,41 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset,allOrders){
 }
 
 function mlEnrichWithShipments(orders,dasRate,comRate){
-  // Fetch shipment for ALL orders with a shipping ID
-  // We need seller_cost which is only in /shipments/{id} endpoint
-  var ordersNeedingShipment=orders.filter(function(o){
-    return o.shipping&&o.shipping.id;
-  });
-  if(!ordersNeedingShipment.length){
-    mlProcessOrders(orders,dasRate,comRate||0);
-    return;
-  }
-  mlShowStatus('Buscando dados de frete ('+ordersNeedingShipment.length+' envios)...','#1E90FF');
-  var done=0;
-  var shipMap={};
-  ordersNeedingShipment.forEach(function(o){
+  var ordersWithShip=orders.filter(function(o){return o.shipping&&o.shipping.id;});
+  if(!ordersWithShip.length){mlProcessOrders(orders,dasRate,comRate||0);return;}
+  mlShowStatus('Buscando frete ('+ordersWithShip.length+' envios)...','#1E90FF');
+  var done=0,shipMap={};
+  ordersWithShip.forEach(function(o){
     var shipId=o.shipping.id;
-    mlFetch(ML_API+'/shipments/'+shipId, mlCredentials.accessToken)
+    mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
     .then(function(ship){
-      // Try multiple possible cost fields from ML API
-      var gross=0, sellerCost=0, logType='';
+      var cost=0,sellerCost=0,logType='';
       if(ship){
-        logType=ship.logistic_type||ship.type||'';
+        logType=ship.logistic_type||ship.mode||'';
+        cost=+(ship.base_cost)||0;
         if(ship.cost){
-          gross=ship.cost.gross||ship.cost.amount||0;
-          sellerCost=ship.cost.special_cost||ship.cost.sender_cost||ship.cost.cost_components||0;
-          if(typeof sellerCost==='object') sellerCost=0; // cost_components is object
-        }
-        // Some ML responses have base_cost at root level
-        if(!gross) gross=ship.base_cost||0;
-        // shipping_items may have costs
-        if(!sellerCost&&ship.shipping_items&&ship.shipping_items.length){
-          ship.shipping_items.forEach(function(si){
-            if(si.sender_cost) sellerCost+=si.sender_cost;
-          });
+          if(!cost&&typeof ship.cost.gross==='number') cost=ship.cost.gross;
+          if(!cost&&typeof ship.cost.amount==='number') cost=ship.cost.amount;
+          if(typeof ship.cost.special_cost==='number') sellerCost=ship.cost.special_cost;
+          else if(typeof ship.cost.sender_cost==='number') sellerCost=ship.cost.sender_cost;
         }
       }
-      var net2=0;
-      if(ship&&ship.cost) net2=+ship.cost.net||gross;
-      shipMap[shipId]={gross:gross,net:net2,sellerCost:sellerCost,logisticType:logType};
+      shipMap[shipId]={cost:cost,sellerCost:sellerCost,logType:logType};
       done++;
-      if(done===ordersNeedingShipment.length){
-        // Enrich orders with shipment data
-        orders.forEach(function(o){
-          if(o.shipping&&o.shipping.id&&shipMap[o.shipping.id]){
-            var s=shipMap[o.shipping.id];
-            o.shipping.cost=s.gross; // gross = base_cost = frete real do vendedor
-            o.shipping.seller_cost=s.sellerCost;
-            o.shipping.logistic_type=o.shipping.logistic_type||s.logisticType;
+      if(done===ordersWithShip.length){
+        orders.forEach(function(o2){
+          if(o2.shipping&&o2.shipping.id&&shipMap[o2.shipping.id]){
+            var s=shipMap[o2.shipping.id];
+            o2.shipping.cost=s.cost;
+            o2.shipping.seller_cost=s.sellerCost;
+            o2.shipping.logistic_type=o2.shipping.logistic_type||s.logType;
           }
         });
         mlProcessOrders(orders,dasRate,comRate);
       }
     }).catch(function(){
       done++;
-      if(done===ordersNeedingShipment.length) mlProcessOrders(orders,dasRate,comRate);
+      if(done===ordersWithShip.length) mlProcessOrders(orders,dasRate,comRate);
     });
   });
 }
@@ -6653,15 +6635,10 @@ function mlProcessOrders(orders,dasRate,comRate){
           var shipData=o.shipping||{};
           // logistic_type from enriched shipment data
           var shipLogType=shipData.logistic_type||'';
+          var shipData=o.shipping||{};
+          var shipLogType=shipData.logistic_type||'';
           var isFullItem=shipLogType==='fulfillment'||shipLogType==='xd_drop_off'||(itemIsFull&&!shipLogType);
-          if(isFullItem){
-            // Full: seller_cost = custo de fulfillment para o vendedor
-            // If seller_cost=0, fulfillment is often included in the fee
-            freteVendedor=shipData.seller_cost||0;
-          } else {
-            // Normal: shipping.cost = valor real do frete pago pelo vendedor
-            freteVendedor=shipData.cost||0; // Normal: cost = gross = frete pago pelo vendedor
-          }
+          freteVendedor=isFullItem?(+shipData.seller_cost||0):(+shipData.cost||0);
           var nItems=Math.max(1,items.length);
           var freteUnit=freteVendedor>0?Math.round((freteVendedor/nItems/Math.max(1,qtd))*100)/100:0;
 
