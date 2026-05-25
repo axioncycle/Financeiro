@@ -6391,18 +6391,16 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
           });
         }
       }
-      shipMap[shipId]={
-        gross: gross,
-        sellerCost: sellerCost,
-        logisticType: logType
-      };
+      var net2=0;
+      if(ship&&ship.cost) net2=+ship.cost.net||gross;
+      shipMap[shipId]={gross:gross,net:net2,sellerCost:sellerCost,logisticType:logType};
       done++;
       if(done===ordersNeedingShipment.length){
         // Enrich orders with shipment data
         orders.forEach(function(o){
           if(o.shipping&&o.shipping.id&&shipMap[o.shipping.id]){
             var s=shipMap[o.shipping.id];
-            o.shipping.cost=s.gross;
+            o.shipping.cost=s.net||s.gross; // net = custo real para o vendedor
             o.shipping.seller_cost=s.sellerCost;
             o.shipping.logistic_type=o.shipping.logistic_type||s.logisticType;
           }
@@ -6504,11 +6502,14 @@ function mlProcessOrders(orders,dasRate,comRate){
           freteTotal=o.shipping.cost||o.shipping.shipping_cost||0;
         }
 
-        // Full vs Normal - check multiple fields
+        // Full vs Normal
         var tags=o.tags||[];
-        var logType=(o.shipping&&o.shipping.logistic_type)||(o.shipping&&o.shipping.type)||'';
-        var isFull=logType==='fulfillment'||logType.indexOf('fulfillment')>=0||
-          tags.indexOf('fulfillment')>=0||tags.indexOf('meli_plus')>=0||
+        // logistic_type is enriched from /shipments endpoint by mlEnrichWithShipments
+        var logType=(o.shipping&&o.shipping.logistic_type)||'';
+        var isFull=logType==='fulfillment'||
+          logType.indexOf('fulfillment')>=0||
+          logType.indexOf('self_service')>=0||
+          tags.indexOf('fulfillment')>=0||
           (o.fulfillment&&o.fulfillment.type==='fulfillment');
 
         // Data
@@ -6592,9 +6593,19 @@ function mlProcessOrders(orders,dasRate,comRate){
             }
           }
           if(!prodNome) prodNome=(item.item&&item.item.title)||'Produto ML';
-          // If prodId not mapped, log it for user to add mapping
-          if(!prodId){
-            console.warn('[ML] Item não mapeado: '+mlItemId+' "'+prodNome+'" — vincule na aba Configurações do ML');
+          // If prodId not mapped, try to match by title similarity
+          if(!prodId&&prodNome){
+            var allSk=getAllSKUs();
+            var titleLow=prodNome.toLowerCase();
+            for(var si=0;si<allSk.length;si++){
+              if(titleLow.indexOf(allSk[si].nome.toLowerCase())>=0||
+                 allSk[si].nome.toLowerCase().indexOf(titleLow)>=0){
+                prodId=allSk[si].id;
+                console.log('[ML] Auto-matched "'+prodNome+'" to SKU '+prodId+' ('+allSk[si].nome+')');
+                break;
+              }
+            }
+            if(!prodId) console.warn('[ML] Não mapeado: '+mlItemId+' "'+prodNome+'"');
           }
 
           // ── FIX 5: Custo FIFO — container mais antigo com estoque ─
@@ -6646,14 +6657,16 @@ function mlProcessOrders(orders,dasRate,comRate){
           // Normal: vendedor paga o envio = shipping.cost (custo real do envio)
           var freteVendedor=0;
           var shipData=o.shipping||{};
-          console.log('[FRETE] orderId='+o.id+' shipping keys:'+JSON.stringify(Object.keys(shipData))+' cost='+shipData.cost+' seller_cost='+shipData.seller_cost+' sender_cost='+shipData.sender_cost+' special_cost='+shipData.special_cost+' isFull='+itemIsFull);
-          if(itemIsFull){
-            // seller_cost = custo fulfillment cobrado do vendedor pelo ML
-            freteVendedor=shipData.seller_cost||shipData.special_cost||shipData.sender_cost||0;
+          // logistic_type from enriched shipment data
+          var shipLogType=shipData.logistic_type||'';
+          var isFullItem=shipLogType==='fulfillment'||shipLogType==='xd_drop_off';
+          if(isFullItem){
+            // Full: seller_cost = custo de fulfillment para o vendedor
+            // If seller_cost=0, fulfillment is often included in the fee
+            freteVendedor=shipData.seller_cost||0;
           } else {
-            // Para envio normal: cost = valor do frete (pago pelo vendedor ou comprador)
-            // sender_cost = custo para o remetente (vendedor)
-            freteVendedor=shipData.sender_cost||shipData.seller_cost||shipData.cost||0;
+            // Normal: shipping.cost = valor real do frete pago pelo vendedor
+            freteVendedor=shipData.cost||0; // Normal: cost = gross = frete pago pelo vendedor
           }
           var nItems=Math.max(1,items.length);
           var freteUnit=freteVendedor>0?Math.round((freteVendedor/nItems/Math.max(1,qtd))*100)/100:0;
@@ -6751,7 +6764,14 @@ function mlShowTab(tab){
 function mlLoadMappings(cb){
   dbGet('configuracoes','chave=eq.ml_mappings').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{mlMappings=JSON.parse(rows[0].valor);}catch(e){mlMappings={};}
+      try{
+        var saved=JSON.parse(rows[0].valor);
+        // Merge: hardcoded defaults + saved (saved takes priority)
+        var merged={};
+        Object.keys(mlMappings).forEach(function(k){merged[k]=mlMappings[k];});
+        Object.keys(saved).forEach(function(k){merged[k]=saved[k];});
+        mlMappings=merged;
+      }catch(e){}
     }
     if(cb) cb();
   }).catch(function(){if(cb)cb();});
@@ -6765,19 +6785,44 @@ function mlLoadListings(){
   if(!mlCredentials.accessToken){toast('Conecte o ML primeiro',true);return;}
   var el=document.getElementById('ml-listings-list');
   if(el) el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px;">Carregando anúncios...</div>';
+
   mlLoadMappings(function(){
-    // Fetch active listings
-    mlFetch(ML_API+'/users/'+mlCredentials.userId+'/items/search?status=active&limit=100', mlCredentials.accessToken).then(function(data){
-      var ids=(data.results||[]).join(',');
-      if(!ids){
-        el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);">Nenhum anúncio ativo encontrado</div>';
+    // Step 1: get item IDs
+    mlFetch(ML_API+'/users/'+mlCredentials.userId+'/items/search?status=active&limit=100', mlCredentials.accessToken)
+    .then(function(data){
+      var results=data.results||data.body&&data.body.results||[];
+      console.log('[LISTINGS] search results:', results.length, 'ids');
+      if(!results.length){
+        if(el) el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);">Nenhum anúncio ativo encontrado</div>';
+        return Promise.resolve([]);
+      }
+      // Batch by 20 (ML API limit)
+      var batches=[];
+      for(var i=0;i<results.length;i+=20){
+        batches.push(results.slice(i,i+20).join(','));
+      }
+      // Fetch all batches
+      return Promise.all(batches.map(function(ids){
+        return mlFetch(ML_API+'/items?ids='+ids, mlCredentials.accessToken);
+      }));
+    })
+    .then(function(batchResults){
+      if(!batchResults||!batchResults.length){
+        mlRenderListings([]);
         return;
       }
-      return mlFetch(ML_API+'/items?ids='+ids, mlCredentials.accessToken);
-    }).then(function(items){
-      mlRenderListings(Array.isArray(items)?items:[]);
-    }).catch(function(e){
-      if(el) el.innerHTML='<div style="color:#ef4444;font-size:11px;padding:8px;">Erro: '+e.message+'</div>';
+      // Flatten batches - each batch returns array or {body:[...]}
+      var items=[];
+      batchResults.forEach(function(batch){
+        var arr=Array.isArray(batch)?batch:(batch&&Array.isArray(batch.body)?batch.body:[]);
+        arr.forEach(function(item){items.push(item);});
+      });
+      console.log('[LISTINGS] items fetched:', items.length);
+      mlRenderListings(items);
+    })
+    .catch(function(e){
+      console.error('[LISTINGS] error:', e);
+      if(el) el.innerHTML='<div style="color:#ef4444;font-size:11px;padding:8px;">Erro ao carregar: '+e.message+'</div>';
     });
   });
 }
@@ -6786,6 +6831,7 @@ function mlRenderListings(items){
   var el=document.getElementById('ml-listings-list');
   if(!el) return;
   var allSkus=getAllSKUs();
+  console.log('[LISTINGS] rendering', items.length, 'items, SKUs:', allSkus.length);
   if(!items.length){
     el.innerHTML='<div style="text-align:center;color:var(--text3);font-size:11px;padding:12px;">Nenhum anúncio encontrado</div>';
     return;
@@ -8813,6 +8859,28 @@ document.addEventListener('click',function(e){
   }
 });
 
+
+// ── SWIPE NAVIGATION ────────────────────────────────────────────────
+(function(){
+  var PAGES=['dash','dash2','vend','est','res','custo','caixa'];
+  var _tx=0,_ty=0,_active=false;
+  document.addEventListener('touchstart',function(e){
+    var t=(e.target.tagName||'').toLowerCase();
+    if(t==='input'||t==='select'||t==='textarea'||t==='button'||t==='canvas') return;
+    _tx=e.touches[0].clientX; _ty=e.touches[0].clientY; _active=true;
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!_active) return; _active=false;
+    var dx=e.changedTouches[0].clientX-_tx;
+    var dy=e.changedTouches[0].clientY-_ty;
+    if(Math.abs(dx)<55||Math.abs(dy)>80) return;
+    var idx=PAGES.indexOf(curPage); if(idx<0) return;
+    var next=dx<0?PAGES[idx+1]:PAGES[idx-1]; if(!next) return;
+    goTo(next);
+    var nb=document.getElementById('nb-'+next);
+    if(nb) setTimeout(function(){nb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});},50);
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
