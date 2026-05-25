@@ -1415,17 +1415,22 @@ function loadContainersDB(cb){
           c=cs[i];
           for(j=0;j<skRows.length;j++){
             s=skRows[j];
-            if(s.container_id===c.id){
-              if(!c.skus[s.sku_id])c.skus[s.sku_id]={custo:+s.custo||0,custoQty:+s.custo_qty||0,un:{}};
-              else{c.skus[s.sku_id].custo=+s.custo||0;c.skus[s.sku_id].custoQty=+s.custo_qty||0;}
+            // Normalize: container_id and sku_id both as integers for consistent lookup
+            var cid2=parseInt(s.container_id)||s.container_id;
+            var sid2=parseInt(s.sku_id);
+            if(cid2===c.id||s.container_id===c.id){
+              if(!c.skus[sid2])c.skus[sid2]={custo:+s.custo||0,custoQty:+s.custo_qty||0,un:{}};
+              else{c.skus[sid2].custo=+s.custo||0;c.skus[sid2].custoQty=+s.custo_qty||0;}
             }
           }
           for(j=0;j<dRows.length;j++){
             d=dRows[j];
-            if(d.container_id===c.id){
-              if(!c.skus[d.sku_id])c.skus[d.sku_id]={custo:2000,custoQty:0,un:{}};
-              if(!c.skus[d.sku_id].un)c.skus[d.sku_id].un={};
-              c.skus[d.sku_id].un[d.local]=+d.qty||0;
+            var dcid=parseInt(d.container_id)||d.container_id;
+            var dsid=parseInt(d.sku_id);
+            if(dcid===c.id||d.container_id===c.id){
+              if(!c.skus[dsid])c.skus[dsid]={custo:0,custoQty:0,un:{}};
+              if(!c.skus[dsid].un)c.skus[dsid].un={};
+              c.skus[dsid].un[d.local]=+d.qty||0;
             }
           }
         }
@@ -1720,22 +1725,27 @@ function consumeFIFO(local,skuId,qty){
 }
 
 function getOldestContIdForLocal(local,skuId){
-  return getOldestContIdForLocalStr(local,String(skuId));
-}
-
-function getOldestContIdForLocalStr(local,skuIdStr){
+  var sid=parseInt(skuId); // always use int
   var cs=loadContainers().slice();
   cs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
   var i,sk;
-  // Primary: container with stock in this local (FIFO) - try both string and int key
+  // Primary: FIFO - oldest container with stock in this local
   for(i=0;i<cs.length;i++){
-    sk=cs[i].skus[skuIdStr]||cs[i].skus[parseInt(skuIdStr)];
+    sk=cs[i].skus[sid];
     if(sk&&sk.un&&(sk.un[local]||0)>0) return cs[i].id;
   }
-  // Fallback: oldest container with this SKU (any stock)
+  // Secondary: any local with stock
   for(i=0;i<cs.length;i++){
-    sk=cs[i].skus[skuIdStr]||cs[i].skus[parseInt(skuIdStr)];
-    if(sk&&(sk.custoQty>0||sk.custo>0)) return cs[i].id;
+    sk=cs[i].skus[sid];
+    if(sk&&sk.un){
+      var hasStock=Object.keys(sk.un).some(function(l){return (sk.un[l]||0)>0;});
+      if(hasStock) return cs[i].id;
+    }
+  }
+  // Fallback: oldest with this SKU registered (even if 0 stock)
+  for(i=0;i<cs.length;i++){
+    sk=cs[i].skus[sid];
+    if(sk&&sk.custo>0) return cs[i].id;
   }
   return '';
 }
@@ -6436,12 +6446,24 @@ function mlProcessOrders(orders,dasRate,comRate){
         var totalPedido=0;
         var totalQtd=0;
         items.forEach(function(it){totalQtd+=it.quantity||1;});
-        // Use payments total_paid_amount if available (valor real recebido pelo vendedor)
+        // ML payments: each entry may be an installment of the same sale
+        // total_paid_amount on the FIRST payment = total paid by buyer
+        // Don't sum all payments - they represent installments not separate transactions
         if(o.payments&&o.payments.length){
-          o.payments.forEach(function(p){totalPedido+=(p.total_paid_amount||p.amount||0);});
+          // Use first payment total_paid_amount (represents full order value after discounts)
+          var firstPay=o.payments[0];
+          totalPedido=firstPay.total_paid_amount||firstPay.amount_paid||firstPay.transaction_amount||0;
+          // If still 0, sum only unique transaction amounts (avoid double-counting installments)
+          if(!totalPedido){
+            var seen={};
+            o.payments.forEach(function(p){
+              var tid=p.id||Math.random();
+              if(!seen[tid]){seen[tid]=1;totalPedido+=(p.total_paid_amount||p.amount||0);}
+            });
+          }
         }
-        // Fallback: total_amount do pedido
-        if(!totalPedido) totalPedido=o.total_amount||0;
+        // Fallback: total_amount do pedido (excludes shipping)
+        if(!totalPedido) totalPedido=(o.total_amount||0)+(o.shipping&&o.shipping.cost>0?0:0);
 
         for(j=0;j<items.length;j++){
           var item=items[j];
@@ -6497,23 +6519,34 @@ function mlProcessOrders(orders,dasRate,comRate){
           // ── FIX 5: Custo FIFO — container mais antigo com estoque ─
           var custo=0, containerId='';
           if(prodId){
-            // Get oldest container with stock in correct local
-            // Use String(prodId) to match container skus keys (stored as strings)
-            var pidStr=String(prodId);
-            var cid=getOldestContIdForLocalStr(origem,pidStr);
+            // prodId is always integer (from mlMappings values + parseInt)
+            // freshCs.skus keys are now normalized to integers in loadContainersDB
+            var cid=getOldestContIdForLocal(origem,prodId);
             if(cid){
               containerId=cid;
               var targetCont=null;
               for(var tc=0;tc<freshCs.length;tc++){
-                if(String(freshCs[tc].id)===String(cid)){targetCont=freshCs[tc];break;}
+                if(freshCs[tc].id===cid||String(freshCs[tc].id)===String(cid)){
+                  targetCont=freshCs[tc];break;
+                }
               }
-              if(targetCont&&targetCont.skus){
-                var skData=targetCont.skus[pidStr]||targetCont.skus[prodId];
-                if(skData) custo=skData.custo||0;
+              if(targetCont&&targetCont.skus&&targetCont.skus[prodId]){
+                custo=targetCont.skus[prodId].custo||0;
+                if(!custo){
+                  // Try string key just in case
+                  var skFb=targetCont.skus[String(prodId)];
+                  if(skFb) custo=skFb.custo||0;
+                }
               }
             }
-            // Fallback: mlGetCustoBySkuId (tries both string and int keys)
             if(!custo) custo=mlGetCustoBySkuId(prodId);
+            if(!custo){
+              // Last resort: SKUS default cost
+              var allSk=getAllSKUs();
+              for(var si=0;si<allSk.length;si++){
+                if(allSk[si].id===prodId){custo=allSk[si].custo||0;break;}
+              }
+            }
           }
 
           // DAS estimado
