@@ -6370,9 +6370,7 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
     var shipId=o.shipping.id;
     mlFetch(ML_API+'/shipments/'+shipId, mlCredentials.accessToken)
     .then(function(ship){
-      console.log('[SHIP] id='+shipId+' keys='+JSON.stringify(Object.keys(ship||{})));
-      if(ship&&ship.cost) console.log('[SHIP] cost='+JSON.stringify(ship.cost));
-      if(ship&&ship.shipping_items) console.log('[SHIP] shipping_items='+JSON.stringify(ship.shipping_items));
+      console.log('[SHIP] FULL RESPONSE id='+shipId+':', JSON.stringify(ship).slice(0,500));
       // Try multiple possible cost fields from ML API
       var gross=0, sellerCost=0, logType='';
       if(ship){
