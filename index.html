@@ -3277,103 +3277,36 @@ function abrirDelVenda(id){
   }
   openModal('m-del-v');
 }
-var _undoDelTimer=null;
-var _undoDelData=null;
-
 function confirmarDelVenda(){
   if(!delId) return;
   var id=delId;
   var vendas=loadVendas();
   var removedVend=null;
-  var nv=[],i;
-  for(i=0;i<vendas.length;i++){
+  var nv=[]; 
+  for(var i=0;i<vendas.length;i++){
     if(vendas[i].id!==id) nv.push(vendas[i]);
     else removedVend=vendas[i];
   }
   var devolverCheck=document.getElementById('del-v-devolver');
   var devolver=!devolverCheck||devolverCheck.checked;
-  // Remove from memory immediately (UI updates fast)
+  // Delete from DB immediately
+  deleteVendaDB(id);
+  if(devolver&&removedVend&&removedVend.origem&&removedVend.prodId){
+    restoreStock(removedVend.origem,removedVend.prodId,removedVend.containerId);
+    toast('Venda removida — estoque devolvido');
+  } else {
+    toast('Venda removida');
+  }
   DB_VENDAS=nv;
   closeModal('m-del-v');
   delId=null;
   renderHist();
   if(curPage==='dash') renderDash();
   if(curPage==='est') renderEst();
-  // Store undo data
-  _undoDelData={venda:removedVend,devolver:devolver};
-  // Cancel previous pending delete if any
-  if(_undoDelTimer) clearTimeout(_undoDelTimer);
-  // Show undo toast for 5s
-  toastUndo('Venda removida',function(){
-    // UNDO: restore to memory
-    if(_undoDelData&&_undoDelData.venda){
-      DB_VENDAS.push(_undoDelData.venda);
-      DB_VENDAS.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
-      renderHist();
-      if(curPage==='dash') renderDash();
-      if(curPage==='est') renderEst();
-      _undoDelData=null;
-    }
-  },function(){
-    // CONFIRM delete: now actually delete from DB + restore stock if needed
-    if(_undoDelData&&_undoDelData.venda){
-      var rv=_undoDelData.venda;
-      if(_undoDelData.devolver&&rv.origem&&rv.prodId){
-        restoreStock(rv.origem, rv.prodId, rv.containerId);
-      }
-      deleteVendaDB(rv.id);
-      _undoDelData=null;
-    }
-  },function(){
-    // CONFIRM delete: now actually delete from DB + restore stock if needed
-    if(_undoDelData&&_undoDelData.venda){
-      var rv=_undoDelData.venda;
-      if(_undoDelData.devolver&&rv.origem&&rv.prodId){
-        restoreStock(rv.origem, rv.prodId, rv.containerId);
-      }
-      deleteVendaDB(rv.id);
-      _undoDelData=null;
-    }
-  });
 }
 
-// Execute pending delete immediately if page is about to unload
-window.addEventListener('beforeunload',function(){
-  if(_undoDelData&&_undoDelData.venda){
-    var rv=_undoDelData.venda;
-    if(_undoDelTimer) clearTimeout(_undoDelTimer);
-    if(_undoDelData.devolver&&rv.origem&&rv.prodId){
-      restoreStock(rv.origem,rv.prodId,rv.containerId);
-    }
-    deleteVendaDB(rv.id);
-    _undoDelData=null;
-  }
-});
 
-function toastUndo(msg, onUndo, onConfirm){
-  var existing=document.getElementById('toast-undo');
-  if(existing) existing.remove();
-  if(_undoDelTimer) clearTimeout(_undoDelTimer);
-  var el=document.createElement('div');
-  el.id='toast-undo';
-  el.innerHTML=msg+'<button onclick="undoDelete()" style="margin-left:12px;background:#1E90FF;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">DESFAZER</button>';
-  el.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#222;color:#fff;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:600;z-index:9999;display:flex;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);white-space:nowrap;';
-  document.body.appendChild(el);
-  window._undoFn=onUndo;
-  _undoDelTimer=setTimeout(function(){
-    el.remove();
-    if(onConfirm) onConfirm();
-    _undoDelTimer=null;
-  },5000);
-}
 
-function undoDelete(){
-  if(_undoDelTimer) clearTimeout(_undoDelTimer);
-  var el=document.getElementById('toast-undo');
-  if(el) el.remove();
-  if(window._undoFn) window._undoFn();
-  _undoDelTimer=null;
-}
 
 function clearSearch(){
   document.getElementById('srch-nome').value='';
