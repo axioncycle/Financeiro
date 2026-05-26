@@ -6358,60 +6358,35 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
   if(!ordersWithShip.length){mlProcessOrders(orders,dasRate,comRate||0);return;}
   mlShowStatus('Buscando frete ('+ordersWithShip.length+' envios)...','#1E90FF');
   var done=0,shipMap={};
+  function checkDone(){
+    if(done===ordersWithShip.length){
+      orders.forEach(function(o2){
+        var sid2=o2.shipping&&o2.shipping.id;
+        if(sid2&&shipMap[sid2]) o2.shipping.cost=shipMap[sid2];
+      });
+      mlProcessOrders(orders,dasRate,comRate);
+    }
+  }
   ordersWithShip.forEach(function(o){
     var shipId=o.shipping.id;
-    mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
+    mlFetch(ML_API+'/shipments/'+shipId+'/costs',mlCredentials.accessToken)
     .then(function(resp){
-      // Proxy wraps response: {status:200, body:{...}} or direct object
-      var ship=resp;
-      if(resp&&typeof resp==='object'){
-        if(resp.body&&typeof resp.body==='object') ship=resp.body;
-        else if(resp.status&&resp.response) ship=resp.response;
-      }
-      console.log('[SHIP] '+shipId+' base_cost='+ship.base_cost+' order_cost='+ship.order_cost+' mode='+ship.mode+' logistic_type='+ship.logistic_type);
-      if(ship.cost) console.log('[SHIP cost]', JSON.stringify(ship.cost));
-      if(ship.shipping_costs) console.log('[SHIP shipping_costs]', JSON.stringify(ship.shipping_costs));
-      // Fetch cost breakdown from /shipments/{id}/costs endpoint
-      mlFetch(ML_API+'/shipments/'+shipId+'/costs', mlCredentials.accessToken).then(function(costs){
-        console.log('[SHIP COSTS] '+shipId+':', JSON.stringify(costs).slice(0,400));
-      }).catch(function(){});
-      var cost=0,sellerCost=0,logType='';
-      if(ship){
-        logType=ship.logistic_type||ship.mode||'';
-        // base_cost = frete real do vendedor para Normal/me2
-        cost=+(ship.base_cost)||0;
-        if(ship.cost){
-          if(!cost&&typeof ship.cost.gross==='number') cost=ship.cost.gross;
-          if(!cost&&typeof ship.cost.amount==='number') cost=ship.cost.amount;
-          if(typeof ship.cost.special_cost==='number') sellerCost=ship.cost.special_cost;
-          else if(typeof ship.cost.sender_cost==='number') sellerCost=ship.cost.sender_cost;
-        }
-        if(!cost&&!sellerCost) console.log('[FRETE] raw resp keys:',Object.keys(resp||{}), 'ship keys:',Object.keys(ship||{}), 'base_cost:',ship.base_cost);
-      }
-      shipMap[shipId]={cost:cost,sellerCost:sellerCost,logType:logType};
-      done++;
-      if(done===ordersWithShip.length){
-        console.log('[ENRICH] shipMap:',JSON.stringify(shipMap));
-        orders.forEach(function(o2){
-          var sid2=o2.shipping&&o2.shipping.id;
-          if(sid2&&shipMap[sid2]){
-            var s=shipMap[sid2];
-            o2.shipping.cost=s.cost;
-            o2.shipping.seller_cost=s.sellerCost;
-            o2.shipping.logistic_type=o2.shipping.logistic_type||s.logType;
-            console.log('[ENRICH] orderId='+o2.id+' set cost='+s.cost+' sellerCost='+s.sellerCost);
-          } else {
-            console.log('[ENRICH] orderId='+o2.id+' shipId='+sid2+' NOT in shipMap keys:'+Object.keys(shipMap));
-          }
-        });
-        mlProcessOrders(orders,dasRate,comRate);
-      }
+      var c=resp&&resp.body?resp.body:resp;
+      var sellerCost=0;
+      if(c&&c.senders&&c.senders.length) sellerCost=+(c.senders[0].cost)||0;
+      shipMap[shipId]=sellerCost;
+      done++; checkDone();
     }).catch(function(){
-      done++;
-      if(done===ordersWithShip.length) mlProcessOrders(orders,dasRate,comRate);
+      mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
+      .then(function(r2){
+        var s=r2&&r2.body?r2.body:r2;
+        shipMap[shipId]=+(s&&s.base_cost)||0;
+        done++; checkDone();
+      }).catch(function(){done++;checkDone();});
     });
   });
 }
+
 
 function mlGetCustoFromEstoque(prodName){
   // Match SKU name to container cost
@@ -6555,6 +6530,13 @@ function mlProcessOrders(orders,dasRate,comRate){
             precoUnit=item.unit_price||0;
           }
           precoUnit=Math.round(precoUnit*100)/100;
+          console.log('[ORDER] id='+o.id
+            +' unit_price='+item.unit_price
+            +' total_amount='+o.total_amount
+            +' coupon='+(o.coupon?o.coupon.amount:0)
+            +' paid='+((o.payments&&o.payments[0])?o.payments[0].total_paid_amount:0)
+            +' precoUnit='+precoUnit
+          );
 
           // ── FIX 4: Taxa real já descontada (sale_fee = valor real cobrado pelo ML) ──
           // sale_fee JÁ reflete benefícios/descontos de taxa (ML Gold, pacotes, etc)
@@ -6646,14 +6628,7 @@ function mlProcessOrders(orders,dasRate,comRate){
           // Frete: para o VENDEDOR
           // Full: vendedor paga custo de fulfillment = shipping.seller_cost (vem do /shipments endpoint)
           // Normal: vendedor paga o envio = shipping.cost (custo real do envio)
-          var freteVendedor=0;
-          var shipData=o.shipping||{};
-          // logistic_type from enriched shipment data
-          var shipLogType=shipData.logistic_type||'';
-          var shipData=o.shipping||{};
-          var shipLogType=shipData.logistic_type||'';
-          var isFullItem=shipLogType==='fulfillment'||shipLogType==='xd_drop_off'||(itemIsFull&&!shipLogType);
-          freteVendedor=isFullItem?(+shipData.seller_cost||0):(+shipData.cost||0);
+          var freteVendedor=+(o.shipping&&o.shipping.cost)||0;
           var nItems=Math.max(1,items.length);
           var freteUnit=freteVendedor>0?Math.round((freteVendedor/nItems/Math.max(1,qtd))*100)/100:0;
 
