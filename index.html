@@ -6530,13 +6530,7 @@ function mlProcessOrders(orders,dasRate,comRate){
             precoUnit=item.unit_price||0;
           }
           precoUnit=Math.round(precoUnit*100)/100;
-          console.log('[ORDER] id='+o.id
-            +' unit_price='+item.unit_price
-            +' total_amount='+o.total_amount
-            +' coupon='+(o.coupon?o.coupon.amount:0)
-            +' paid='+((o.payments&&o.payments[0])?o.payments[0].total_paid_amount:0)
-            +' precoUnit='+precoUnit
-          );
+
 
           // ── FIX 4: Taxa real já descontada (sale_fee = valor real cobrado pelo ML) ──
           // sale_fee JÁ reflete benefícios/descontos de taxa (ML Gold, pacotes, etc)
@@ -7458,7 +7452,7 @@ function verVenda(id){
     {label:'🧾 DAS/Imposto',val:fmt(v.imp||0)+' ('+impPct.toFixed(1)+'%)',color:'#ef4444'},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
-    {label:'✅ Lucro Líquido',val:fmt(v.lucroLL||0),color:(v.lucroLL||0)>=0?'#22c55e':'#ef4444',bold:true,big:true},
+    {label:'✅ Lucro Líquido',val:fmt(v.lucroLL||0)+' ('+(v.venda>0?((v.lucroLL||0)/v.venda*100).toFixed(1):0)+'%)',color:(v.lucroLL||0)>=0?'#22c55e':'#ef4444',bold:true,big:true},
   ];
 
   if(v.duplo){
