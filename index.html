@@ -1446,21 +1446,19 @@ function loadContainersDB(cb){
         var i,j,c,s,d;
         for(i=0;i<cs.length;i++){
           c=cs[i];
+          var cStr=String(c.id); // normalize container id to string
           for(j=0;j<skRows.length;j++){
             s=skRows[j];
-            // Normalize: container_id and sku_id both as integers for consistent lookup
-            var cid2=parseInt(s.container_id)||s.container_id;
             var sid2=parseInt(s.sku_id);
-            if(cid2===c.id||s.container_id===c.id){
+            if(String(s.container_id)===cStr){
               if(!c.skus[sid2])c.skus[sid2]={custo:+s.custo||0,custoQty:+s.custo_qty||0,un:{}};
               else{c.skus[sid2].custo=+s.custo||0;c.skus[sid2].custoQty=+s.custo_qty||0;}
             }
           }
           for(j=0;j<dRows.length;j++){
             d=dRows[j];
-            var dcid=parseInt(d.container_id)||d.container_id;
             var dsid=parseInt(d.sku_id);
-            if(dcid===c.id||d.container_id===c.id){
+            if(String(d.container_id)===cStr){
               if(!c.skus[dsid])c.skus[dsid]={custo:0,custoQty:0,un:{}};
               if(!c.skus[dsid].un)c.skus[dsid].un={};
               c.skus[dsid].un[d.local]=+d.qty||0;
