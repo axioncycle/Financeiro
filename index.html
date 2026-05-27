@@ -87,7 +87,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;bac
 input,select,button,textarea{font-family:inherit;}
 input[type=number]{-webkit-appearance:none;-moz-appearance:textfield;}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
-.hdr{position:sticky;top:0;z-index:10;background:var(--hdr-bg);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.hdr{position:sticky;top:0;z-index:10;background:var(--hdr-bg);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;}
 .logo-img{width:38px;height:38px;border-radius:8px;object-fit:contain;}
 .logo-txt{font-size:17px;font-weight:900;color:#1E90FF;letter-spacing:1px;}
 .logo-sub{font-size:9px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;}
@@ -250,7 +250,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="logo-txt">AXION CYCLE</div>
     <div class="logo-sub">Gestao de Performance</div>
   </div>
-  <button onclick="toggleDashHide()" id="hbtn-hide" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;margin-left:auto;" title="Exibir/Ocultar dados">👁</button><button onclick="toggleTheme()" id="theme-btn" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" title="Alternar tema">🌑</button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:2px;flex-shrink:0;"><button onclick="toggleDashHide()" id="hbtn-hide" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" title="Exibir/Ocultar dados">👁</button><button onclick="toggleTheme()" id="theme-btn" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" title="Alternar tema">🌑</button></div>
   <button onclick="refreshApp()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px;" title="Atualizar dados">&#8635;</button>
   <button class="hdr-gear" onclick="openPinConfig()" style="margin-left:8px;">&#9881;</button>
 </header>
