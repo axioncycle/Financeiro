@@ -9086,70 +9086,7 @@ async function siteSync(){
 </script>
 
 <!-- SITE SYNC MODAL -->
-<div class="overlay" id="m-site-sync" onclick="if(event.target===this)closeModal('m-site-sync')">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="mhdl">🌐 Sincronizar Site (Vowt)<button class="mclose" onclick="closeModal('m-site-sync')">×</button></div>
 
-    <div id="site-sync-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;"></div>
-
-    <!-- Credenciais -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Credenciais Vowt</div>
-      <div style="margin-bottom:8px;">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Consumer Key</div>
-        <input class="fi" id="site-ck" type="text" placeholder="ck_..." style="font-size:11px;">
-      </div>
-      <div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Consumer Secret</div>
-        <input class="fi" id="site-cs" type="password" placeholder="cs_..." style="font-size:11px;">
-      </div>
-    </div>
-
-    <!-- Período -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Período</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data início</div>
-          <input class="fi" id="site-date-from" type="date" style="font-size:11px;">
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data fim</div>
-          <input class="fi" id="site-date-to" type="date" style="font-size:11px;">
-        </div>
-      </div>
-    </div>
-
-    <!-- Custos da operação -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Custos da Operação</div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">DAS / Imposto (%)</div>
-          <input class="fi" id="site-das" type="number" value="6" step="0.1" min="0" max="100" style="font-size:12px;">
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Comissão (%)</div>
-          <input class="fi" id="site-com" type="number" value="0" step="0.1" min="0" max="100" style="font-size:12px;">
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Frete médio por venda (R$)</div>
-        <input class="fi" id="site-frete" type="number" value="0" step="0.01" min="0" style="font-size:12px;" placeholder="ex: 78.65">
-        <div style="font-size:9px;color:var(--text3);margin-top:3px;">Pode editar individualmente após importar</div>
-      </div>
-
-      <div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:8px;font-size:10px;color:var(--text2);">
-        📊 <strong>Taxa de parcelamento</strong> será extraída automaticamente de cada pedido
-      </div>
-    </div>
-
-    <button id="site-sync-btn" class="btn" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;margin-bottom:8px;" onclick="siteSync()">🌐 SINCRONIZAR VENDAS DO SITE</button>
-    <button class="btn btn-s" onclick="closeModal('m-site-sync')" style="width:100%;">Fechar</button>
-  </div>
-</div>
 
 
 <!-- SITE SYNC MODAL -->
