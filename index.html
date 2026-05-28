@@ -9128,10 +9128,23 @@ function openSiteMapping(){
 async function loadSiteProducts(){
   var statusEl=document.getElementById('site-mapping-status');
   var listEl=document.getElementById('site-mapping-list');
-  if(statusEl) statusEl.textContent='Carregando produtos...';
+  if(statusEl) statusEl.textContent='Carregando...';
+  if(listEl) listEl.innerHTML='';
+
+  // Ensure mappings loaded from DB
+  await new Promise(function(res){
+    dbGet('configuracoes','chave=eq.site_product_mappings').then(function(rows){
+      if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+        try{_siteMappings=JSON.parse(rows[0].valor)||{};}catch(e){_siteMappings={};}
+      } else {
+        _siteMappings={};
+      }
+      res();
+    }).catch(function(){_siteMappings={};res();});
+  });
 
   var token=await siteGetToken();
-  if(!token) return;
+  if(!token){if(statusEl)statusEl.textContent='';return;}
 
   try{
     var resp=await fetch('https://api.vowtecommerce.com.br/api/products?limit=100&status=1',{
@@ -9143,57 +9156,48 @@ async function loadSiteProducts(){
       return;
     }
     var products=data.data||[];
-    if(statusEl) statusEl.textContent=products.length+' produtos encontrados';
+    if(statusEl) statusEl.textContent='Carregando variações de '+products.length+' produtos...';
 
-    // For products with variations, fetch variations
-    var allItems=[]; // {key, productName, variationName, displayName}
+    var allItems=[];
     for(var i=0;i<products.length;i++){
       var p=products[i];
       if(p.tem_versoes){
-        // Fetch variations
         var vResp=await fetch('https://api.vowtecommerce.com.br/api/products/'+p.id+'/variations',{
           headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':'axioncycle'}
         });
         var vData=await vResp.json();
-        var variations=vData.data||[];
+        var variations=(vData&&vData.data)||[];
         if(variations.length){
           variations.forEach(function(v){
-            var attrs=v.attributes?Object.values(v.attributes).join(' - '):'';
+            var attrs=v.attributes?Object.values(v.attributes).join(' · '):'';
             allItems.push({
-              key:p.id+':'+v.id,
-              productName:p.name,
-              variationName:attrs||v.sku||'Variação '+v.id,
+              key:String(p.id)+':'+String(v.id),
               displayName:p.name+(attrs?' — '+attrs:''),
               sku:v.sku||''
             });
           });
         } else {
-          allItems.push({key:String(p.id),productName:p.name,variationName:'',displayName:p.name,sku:p.sku||''});
+          allItems.push({key:String(p.id),displayName:p.name,sku:p.sku||''});
         }
       } else {
-        allItems.push({key:String(p.id),productName:p.name,variationName:'',displayName:p.name,sku:p.sku||''});
+        allItems.push({key:String(p.id),displayName:p.name,sku:p.sku||''});
       }
     }
 
-    // Build SKU options
-    var allSkus=getAllSKUs();
-    var skuOptions='<option value="">— Não vincular —</option>'+
-      allSkus.map(function(s){return '<option value="'+s.id+'">'+s.nome+'</option>';}).join('');
+    if(statusEl) statusEl.textContent=allItems.length+' itens encontrados';
 
-    // Render list
-    var h='<div style="display:grid;gap:6px;">';
+    var allSkus=getAllSKUs();
+    var h='<div style="display:grid;gap:6px;padding-bottom:8px;">';
     allItems.forEach(function(item){
       var cur=String(_siteMappings[item.key]||'');
-      // Build options with selected state
       var opts='<option value="">— Não vincular —</option>';
       allSkus.forEach(function(s){
-        var sel=String(s.id)===cur?' selected':'';
-        opts+='<option value="'+s.id+'"'+sel+'>'+s.nome+'</option>';
+        opts+='<option value="'+s.id+'"'+(String(s.id)===cur?' selected':'')+'>'+s.nome+'</option>';
       });
       h+='<div style="background:var(--bg2);border-radius:8px;padding:8px;">'
-        +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">'+item.displayName+'</div>'
-        +(item.sku?'<div style="font-size:9px;color:var(--text3);margin-bottom:4px;">SKU site: '+item.sku+'</div>':'')
-        +'<select class="fi" data-mapkey="'+item.key+'" style="font-size:11px;">'+opts+'</select>'
+        +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.3;">'+item.displayName+'</div>'
+        +(item.sku?'<div style="font-size:9px;color:var(--text3);margin-bottom:4px;">SKU: '+item.sku+'</div>':'')
+        +'<select class="fi" data-mapkey="'+item.key+'" style="font-size:11px;width:100%;">'+opts+'</select>'
         +'</div>';
     });
     h+='</div>';
@@ -9308,7 +9312,7 @@ function getSiteSkuId(productId, variationId){
 
 <!-- SITE MAPPING MODAL -->
 <div class="ovl" id="m-site-mapping" onclick="if(event.target===this)closeModal('m-site-mapping')">
-  <div class="modal" style="max-height:92vh;overflow-y:auto;">
+  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
     <div class="mhdl">🔗 Vincular Produtos do Site<button class="mclose" onclick="closeModal('m-site-mapping')">×</button></div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">
       Vincule cada produto/variação do site ao SKU correspondente no app. Salvo automaticamente.
@@ -9317,7 +9321,7 @@ function getSiteSkuId(productId, variationId){
       🔄 Carregar produtos do site
     </button>
     <div id="site-mapping-status" style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:8px;"></div>
-    <div id="site-mapping-list"></div>
+    <div id="site-mapping-list" style="flex:1;overflow-y:auto;min-height:0;"></div>
     <button class="btn" onclick="saveSiteMapping()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#1E90FF,#0066cc);color:#fff;font-weight:700;">
       💾 Salvar Mapeamento
     </button>
