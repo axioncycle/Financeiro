@@ -810,6 +810,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="stitle" style="margin-top:0;color:#1E90FF;">Importar CSV</div>
     <p style="font-size:11px;color:#666;margin-bottom:10px;">Colunas: DATA, PRODUTO, CANAL, CUSTO, VENDA, TAXA ML, FRETE, NOTA FISCAL, CLIENTE (opcional)</p>
     <button onclick="openMLSync()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#f59e0b,#d97706);">🔄 SINCRONIZAR MERCADO LIVRE</button>
+    <button onclick="openSiteSync()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;width:100%;">
+      🌐 Sincronizar Site (Vowt)
+    </button>
+    
     <button onclick="baixarModelo()" class="btn btn-o" style="margin-bottom:8px;">&#11015; BAIXAR MODELO (.csv)</button>
     <label style="display:block;cursor:pointer;">
       <div class="btn">&#128194; SELECIONAR ARQUIVO .CSV</div>
@@ -8769,6 +8773,435 @@ document.addEventListener('click',function(e){
     if(nb) setTimeout(function(){nb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});},50);
   },{passive:true});
 })();
+
+// ── SITE SYNC (Vowt) ─────────────────────────────────────────────────
+var VOWT_PROXY = 'https://qbnnxdqmxiwdgzciqhvx.supabase.co/functions/v1/vowt-proxy';
+
+function siteSetStatus(id){var el=document.getElementById("site-status-id");if(el)el.value=id;}
+function openSiteSync(){
+  // Load saved credentials
+  dbGet('configuracoes','chave=eq.vowt_ck').then(function(rows){
+    if(rows&&rows[0]) document.getElementById('site-ck').value=rows[0].valor||'';
+  });
+  dbGet('configuracoes','chave=eq.vowt_cs').then(function(rows){
+    if(rows&&rows[0]) document.getElementById('site-cs').value=rows[0].valor||'';
+  });
+  // Default dates: current month
+  var today=new Date();
+  var firstDay=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-01';
+  var todayStr=today.toISOString().slice(0,10);
+  document.getElementById('site-date-from').value=firstDay;
+  document.getElementById('site-date-to').value=todayStr;
+  openModal('m-site-sync');
+}
+
+function siteSyncStatus(msg,col){
+  var el=document.getElementById('site-sync-status');
+  if(!el) return;
+  el.textContent=msg;
+  el.style.background=col+'22';
+  el.style.color=col;
+  el.style.display='block';
+}
+
+async function siteSync(){
+  var btn=document.getElementById('site-sync-btn');
+  if(btn) btn.disabled=true;
+  try{
+    var token=await siteGetToken(); if(!token){if(btn)btn.disabled=false;return;}
+    var store=document.getElementById('site-store')||{value:'axioncycle'};
+    var storeVal=(store.value||'axioncycle').trim()||'axioncycle';
+    var dateFrom=document.getElementById('site-date-from').value;
+    var dateTo=document.getElementById('site-date-to').value;
+    var dasRate=parseFloat(document.getElementById('site-das').value)||6;
+    var comRate=parseFloat(document.getElementById('site-com').value)||0;
+    var freteUnit=parseFloat(document.getElementById('site-frete').value)||0;
+    // Save rates for next time
+    dbUpsert('configuracoes',{chave:'site_sync_rates',valor:JSON.stringify({das:dasRate,com:comRate,frete:freteUnit})});
+
+    siteShowStatus('Buscando pedidos...','#1E90FF');
+    // Fetch only orders with payment_status approved (status_id varies per store)
+    // Fetch all and filter by status name containing "pago/aprovado"
+    var orders=await siteFetchOrders(token,storeVal,dateFrom,dateTo,null,1,[]);
+    // Filter approved/paid
+    var approved=orders.filter(function(o){
+      var s=(o.status_name||'').toLowerCase();
+      return s.indexOf('pago')>=0||s.indexOf('aprovado')>=0||
+             s.indexOf('paid')>=0||s.indexOf('complet')>=0||
+             s.indexOf('entregue')>=0||s.indexOf('enviado')>=0;
+    });
+    siteShowStatus('Encontrados '+approved.length+' pedidos aprovados de '+orders.length+' total. Processando...','#1E90FF');
+
+    // Dedup
+    var existing=loadVendas();
+    var existingIds={};
+    existing.forEach(function(v){if(v.siteOrderId) existingIds[String(v.siteOrderId)]=true;});
+
+    var vendas=[];
+    var skipped=0;
+
+    for(var i=0;i<approved.length;i++){
+      var o=approved[i];
+      var oid=String(o.order_id||'');
+      if(existingIds[oid]){skipped++;continue;}
+
+      siteShowStatus('Processando pedido '+(i+1)+'/'+approved.length+'...','#1E90FF');
+
+      var clientName=((o.firstname||'')+' '+(o.lastname||'')).trim()||'Site';
+      var date=(o.date_added||'').slice(0,10)||new Date().toISOString().slice(0,10);
+
+      // Fetch full order for products + totals
+      var detailResp=await fetch('https://api.vowtecommerce.com.br/api/orders/'+o.order_id,{
+        headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':storeVal}
+      });
+      var detail=await detailResp.json();
+      var full=detail.data||o;
+      var products=full.products||[];
+      var totals=full.totals||[];
+
+      // Extract discount from totals (coupon, desconto)
+      var discountVal=0;
+      totals.forEach(function(t){
+        var code=(t.code||'').toLowerCase();
+        if(code==='coupon'||code==='discount'||code.indexOf('descont')>=0){
+          discountVal+=Math.abs(+t.value||0);
+        }
+      });
+
+      // Extract taxa de parcelamento from totals
+      // Typically code='payment' or 'tax' with positive value = installment fee
+      var taxaParcelamento=0;
+      totals.forEach(function(t){
+        var code=(t.code||'').toLowerCase();
+        var title=(t.title||'').toLowerCase();
+        if(code==='payment'||code==='tax'||
+           title.indexOf('parcela')>=0||title.indexOf('juros')>=0||
+           title.indexOf('taxa')>=0||title.indexOf('acréscimo')>=0){
+          if(+t.value>0) taxaParcelamento+=+t.value||0;
+        }
+      });
+
+      var subtotal=products.reduce(function(s,p){return s+(+p.price||0)*(+p.quantity||1);},0)||1;
+
+      for(var j=0;j<products.length;j++){
+        var p=products[j];
+        var qty=parseInt(p.quantity||1)||1;
+        var price=+p.price||0;
+
+        // Distribute discount proportionally across items
+        var itemProp=(price*qty)/subtotal;
+        var discItem=discountVal>0?discountVal*itemProp:0;
+        var unitPrice=Math.round((price-discItem/qty)*100)/100;
+
+        // Distribute taxa de parcelamento proportionally
+        var taxaItem=taxaParcelamento>0?Math.round((taxaParcelamento*itemProp/qty)*100)/100:0;
+
+        var name=p.name||'Produto Site';
+        var skuId=findSiteSkuId(name,p.sku||'');
+        var imp=Math.round(unitPrice*(dasRate/100)*100)/100;
+        var comVal=Math.round(unitPrice*(comRate/100)*100)/100;
+        var lucroSI=unitPrice-taxaItem-comVal-freteUnit;
+        var lucroLL=lucroSI-imp;
+
+        for(var q=0;q<qty;q++){
+          vendas.push({
+            id:Math.floor(Date.now()/1000)*1000+i*100+j*10+q+Math.floor(Math.random()*9),
+            date:date,
+            cliente:clientName,
+            canal:'Site',
+            produto:name,
+            prodId:skuId,
+            origem:'Brasilia',
+            containerId:null,
+            venda:unitPrice,
+            custo:0,
+            taxaPct:unitPrice>0?Math.round(taxaItem/unitPrice*10000)/100:0,
+            taxa:taxaItem,
+            impPct:dasRate, imp:imp,
+            comPct:comRate, com:comVal,
+            frete:freteUnit,
+            lucroSI:lucroSI,
+            lucroLL:lucroLL,
+            siteOrderId:oid,
+          });
+        }
+      }
+    }
+
+    if(skipped>0) siteShowStatus('Ignorando '+skipped+' já cadastrados. Salvando '+vendas.length+' novas...','#1E90FF');
+
+    if(!vendas.length){
+      siteShowStatus('Nenhuma venda nova para importar ✅','#22c55e');
+      if(btn)btn.disabled=false;return;
+    }
+
+    siteShowStatus('Salvando '+vendas.length+' vendas no banco...','#1E90FF');
+    vendas.forEach(function(v){DB_VENDAS.push(v);});
+    await Promise.all(vendas.map(function(v){return saveVendaDB(v);}));
+
+    renderHist();
+    renderDash();
+    if(curPage==='est') renderEst();
+    siteShowStatus(vendas.length+' vendas do Site importadas! ✅','#22c55e');
+    toast(vendas.length+' vendas do Site sincronizadas!');
+
+  }catch(e){
+    siteShowStatus('Erro: '+e.message,'#ef4444');
+    console.error('Site sync error:',e);
+  }
+  if(btn)btn.disabled=false;
+}
+
+
+async function siteFetchOrders(token, store, dateFrom, dateTo, statusId, page, allOrders){
+  var url='https://api.vowtecommerce.com.br/api/orders?limit=100&page='+page;
+  if(dateFrom) url+='&date_from='+dateFrom;
+  if(dateTo)   url+='&date_to='+dateTo;
+  if(statusId) url+='&order_status_id='+statusId;
+  var resp=await fetch(url,{
+    headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':store}
+  });
+  var data=await resp.json();
+  if(!data.success) throw new Error(data.message||'Erro ao buscar pedidos');
+  var orders=data.data||[];
+  allOrders=allOrders.concat(orders);
+  // Paginate
+  var pg=data.pagination||{};
+  if(pg.current_page&&pg.last_page&&pg.current_page<pg.last_page){
+    return siteFetchOrders(token,store,dateFrom,dateTo,statusId,page+1,allOrders);
+  }
+  return allOrders;
+}
+
+async function siteSync(){
+  var btn=document.getElementById('site-sync-btn');
+  if(btn) btn.disabled=true;
+  try{
+    var token=await siteGetToken(); if(!token){if(btn)btn.disabled=false;return;}
+    var store=document.getElementById('site-store').value.trim();
+    var dateFrom=document.getElementById('site-date-from').value;
+    var dateTo=document.getElementById('site-date-to').value;
+    var statusId=document.getElementById('site-status-id').value||'';
+    var dasRate=parseFloat(document.getElementById('site-das-rate').value)||6;
+
+    siteShowStatus('Buscando pedidos...','#1E90FF');
+    var orders=await siteFetchOrders(token,store,dateFrom,dateTo,statusId,1,[]);
+    siteShowStatus('Encontrados '+orders.length+' pedidos. Processando...','#1E90FF');
+
+    // Dedup against existing vendas
+    var existing=loadVendas();
+    var existingIds={};
+    existing.forEach(function(v){if(v.siteOrderId) existingIds[String(v.siteOrderId)]=true;});
+
+    var vendas=[];
+    var skipped=0;
+
+    for(var i=0;i<orders.length;i++){
+      var o=orders[i];
+      var oid=String(o.order_id||o.id||'');
+      if(existingIds[oid]){skipped++;continue;}
+
+      var clientName=((o.firstname||'')+' '+(o.lastname||'')).trim()||'Site';
+      var date=(o.date_added||'').slice(0,10)||new Date().toISOString().slice(0,10);
+
+      // Get full order details to access products
+      var detailResp=await fetch('https://api.vowtecommerce.com.br/api/orders/'+o.order_id,{
+        headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':store}
+      });
+      var detail=await detailResp.json();
+      var fullOrder=detail.data||o;
+      var products=fullOrder.products||[];
+
+      // Also check totals for discount
+      var discountTotal=0;
+      if(fullOrder.totals){
+        fullOrder.totals.forEach(function(t){
+          if(t.code==='coupon'||t.code==='discount'||t.value<0){
+            discountTotal+=Math.abs(+t.value||0);
+          }
+        });
+      }
+      // Distribute discount proportionally
+      var subtotal=products.reduce(function(s,p){return s+(+p.price||0)*(+p.quantity||1);},0)||1;
+
+      for(var j=0;j<products.length;j++){
+        var p=products[j];
+        var qty=parseInt(p.quantity||1)||1;
+        var price=+p.price||0;
+        // Apply proportional discount
+        var discProp=discountTotal>0?discountTotal*(price*qty/subtotal):0;
+        var unitPrice=Math.round((price-discProp/qty)*100)/100;
+        var name=p.name||'Produto Site';
+        var skuId=findSiteSkuId(name,p.sku||'');
+        var imp=unitPrice*(dasRate/100);
+
+        for(var q=0;q<qty;q++){
+          vendas.push({
+            id:Math.floor(Date.now()/1000)*1000+i*10+j+q+Math.floor(Math.random()*9),
+            date:date,
+            cliente:clientName,
+            canal:'Site',
+            produto:name,
+            prodId:skuId,
+            origem:'Brasilia',
+            containerId:null,
+            venda:unitPrice,
+            custo:0, taxa:0, taxaPct:0,
+            impPct:dasRate, imp:imp,
+            com:0, comPct:0,
+            frete:0,
+            lucroSI:unitPrice,
+            lucroLL:unitPrice-imp,
+            siteOrderId:oid,
+          });
+        }
+      }
+    }
+
+    if(skipped>0) siteShowStatus('Ignorando '+skipped+' pedidos já cadastrados. Salvando '+vendas.length+' novas vendas...','#1E90FF');
+
+    if(!vendas.length){
+      siteShowStatus('Nenhuma venda nova para importar ✅','#22c55e');
+      if(btn)btn.disabled=false;return;
+    }
+
+    siteShowStatus('Salvando '+vendas.length+' vendas...','#1E90FF');
+    vendas.forEach(function(v){DB_VENDAS.push(v);});
+    var saves=vendas.map(function(v){return saveVendaDB(v);});
+    await Promise.all(saves);
+
+    renderHist();
+    renderDash();
+    if(curPage==='est') renderEst();
+    siteShowStatus(vendas.length+' vendas do Site importadas! ✅','#22c55e');
+    toast(vendas.length+' vendas do Site sincronizadas!');
+
+  }catch(e){
+    siteShowStatus('Erro: '+e.message,'#ef4444');
+    console.error('Site sync error:',e);
+  }
+  if(btn)btn.disabled=false;
+}
+
 </script>
+
+<!-- SITE SYNC MODAL -->
+<div class="overlay" id="m-site-sync" onclick="if(event.target===this)closeModal('m-site-sync')">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="mhdl">🌐 Sincronizar Site (Vowt)<button class="mclose" onclick="closeModal('m-site-sync')">×</button></div>
+
+    <div id="site-sync-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;"></div>
+
+    <!-- Credenciais -->
+    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Credenciais Vowt</div>
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Consumer Key</div>
+        <input class="fi" id="site-ck" type="text" placeholder="ck_..." style="font-size:11px;">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Consumer Secret</div>
+        <input class="fi" id="site-cs" type="password" placeholder="cs_..." style="font-size:11px;">
+      </div>
+    </div>
+
+    <!-- Período -->
+    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Período</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data início</div>
+          <input class="fi" id="site-date-from" type="date" style="font-size:11px;">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data fim</div>
+          <input class="fi" id="site-date-to" type="date" style="font-size:11px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Custos da operação -->
+    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Custos da Operação</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">DAS / Imposto (%)</div>
+          <input class="fi" id="site-das" type="number" value="6" step="0.1" min="0" max="100" style="font-size:12px;">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Comissão (%)</div>
+          <input class="fi" id="site-com" type="number" value="0" step="0.1" min="0" max="100" style="font-size:12px;">
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Frete médio por venda (R$)</div>
+        <input class="fi" id="site-frete" type="number" value="0" step="0.01" min="0" style="font-size:12px;" placeholder="ex: 78.65">
+        <div style="font-size:9px;color:var(--text3);margin-top:3px;">Pode editar individualmente após importar</div>
+      </div>
+
+      <div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:8px;font-size:10px;color:var(--text2);">
+        📊 <strong>Taxa de parcelamento</strong> será extraída automaticamente de cada pedido
+      </div>
+    </div>
+
+    <button id="site-sync-btn" class="btn" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;margin-bottom:8px;" onclick="siteSync()">🌐 SINCRONIZAR VENDAS DO SITE</button>
+    <button class="btn btn-s" onclick="closeModal('m-site-sync')" style="width:100%;">Fechar</button>
+  </div>
+</div>
+
+
+<!-- SITE SYNC MODAL -->
+<div class="overlay" id="m-site-sync" onclick="if(event.target===this)closeModal('m-site-sync')">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;">
+    <div class="mhdl">🌐 Sincronizar Site (Vowt)<button class="mclose" onclick="closeModal('m-site-sync')">×</button></div>
+
+    <!-- Credenciais -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Credenciais</div>
+      <input class="fi" id="site-store" placeholder="Store (ex: axioncycle)" style="margin-bottom:6px;">
+      <input class="fi" id="site-ck" placeholder="Consumer Key" style="margin-bottom:6px;font-size:10px;">
+      <input class="fi" id="site-cs" placeholder="Consumer Secret" style="font-size:10px;">
+    </div>
+
+    <!-- Período -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data início</div>
+        <input class="fi" type="date" id="site-date-from">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data fim</div>
+        <input class="fi" type="date" id="site-date-to">
+      </div>
+    </div>
+
+    <!-- Status filter -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Status do pedido (ID)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <input class="fi" id="site-status-id" type="number" value="5" placeholder="ID do status aprovado">
+        
+      </div>
+      
+    </div>
+
+    <!-- DAS -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Taxa DAS (%)</div>
+      <input class="fi" id="site-das-rate" type="number" value="6" step="0.1">
+    </div>
+
+    <div id="site-progress" style="display:none;margin-bottom:8px;">
+      <div id="site-status-msg" style="font-size:11px;color:#1E90FF;text-align:center;padding:8px;"></div>
+    </div>
+
+    <button class="btn" id="site-sync-btn" onclick="siteSync()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;">
+      🌐 Sincronizar Pedidos
+    </button>
+  </div>
+</div>
+
 </body>
 </html>
