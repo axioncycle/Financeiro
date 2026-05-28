@@ -8780,18 +8780,39 @@ var VOWT_PROXY = 'https://qbnnxdqmxiwdgzciqhvx.supabase.co/functions/v1/vowt-pro
 function siteSetStatus(id){var el=document.getElementById("site-status-id");if(el)el.value=id;}
 function openSiteSync(){
   // Load saved credentials
-  dbGet('configuracoes','chave=eq.vowt_ck').then(function(rows){
-    if(rows&&rows[0]) document.getElementById('site-ck').value=rows[0].valor||'';
-  });
-  dbGet('configuracoes','chave=eq.vowt_cs').then(function(rows){
-    if(rows&&rows[0]) document.getElementById('site-cs').value=rows[0].valor||'';
-  });
+  dbGet('configuracoes','chave=eq.site_sync_creds').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{
+        var c=JSON.parse(rows[0].valor);
+        var ck=document.getElementById('site-ck');
+        var cs=document.getElementById('site-cs');
+        if(ck) ck.value=c.ck||'';
+        if(cs) cs.value=c.cs||'';
+      }catch(e){}
+    }
+  }).catch(function(){});
+  // Load saved rates
+  dbGet('configuracoes','chave=eq.site_sync_rates').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{
+        var r=JSON.parse(rows[0].valor);
+        var das=document.getElementById('site-das');
+        var com=document.getElementById('site-com');
+        var fr=document.getElementById('site-frete');
+        if(das&&r.das!=null) das.value=r.das;
+        if(com&&r.com!=null) com.value=r.com;
+        if(fr&&r.frete!=null) fr.value=r.frete;
+      }catch(e){}
+    }
+  }).catch(function(){});
   // Default dates: current month
   var today=new Date();
   var firstDay=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-01';
   var todayStr=today.toISOString().slice(0,10);
-  document.getElementById('site-date-from').value=firstDay;
-  document.getElementById('site-date-to').value=todayStr;
+  var df=document.getElementById('site-date-from');
+  var dt=document.getElementById('site-date-to');
+  if(df&&!df.value) df.value=firstDay;
+  if(dt&&!dt.value) dt.value=todayStr;
   openModal('m-site-sync');
 }
 
@@ -8809,8 +8830,7 @@ async function siteSync(){
   if(btn) btn.disabled=true;
   try{
     var token=await siteGetToken(); if(!token){if(btn)btn.disabled=false;return;}
-    var store=document.getElementById('site-store')||{value:'axioncycle'};
-    var storeVal=(store.value||'axioncycle').trim()||'axioncycle';
+    var storeVal='axioncycle'; // Store is fixed for Axion Cycle
     var dateFrom=document.getElementById('site-date-from').value;
     var dateTo=document.getElementById('site-date-to').value;
     var dasRate=parseFloat(document.getElementById('site-das').value)||6;
@@ -8822,7 +8842,7 @@ async function siteSync(){
     siteShowStatus('Buscando pedidos...','#1E90FF');
     // Fetch only orders with payment_status approved (status_id varies per store)
     // Fetch all and filter by status name containing "pago/aprovado"
-    var orders=await siteFetchOrders(token,storeVal,dateFrom,dateTo,null,1,[]);
+    var orders=await siteFetchOrders(token,'axioncycle',dateFrom,dateTo,null,1,[]);
     // Filter approved/paid
     var approved=orders.filter(function(o){
       var s=(o.status_name||'').toLowerCase();
@@ -8852,7 +8872,7 @@ async function siteSync(){
 
       // Fetch full order for products + totals
       var detailResp=await fetch('https://api.vowtecommerce.com.br/api/orders/'+o.order_id,{
-        headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':storeVal}
+        headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':'axioncycle'}
       });
       var detail=await detailResp.json();
       var full=detail.data||o;
@@ -9090,7 +9110,7 @@ async function siteSync(){
 
 
 <!-- SITE SYNC MODAL -->
-<div class="overlay" id="m-site-sync" onclick="if(event.target===this)closeModal('m-site-sync')">
+<div class="ovl" id="m-site-sync" onclick="if(event.target===this)closeModal('m-site-sync')">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="mhdl">🌐 Sincronizar Site (Vowt)<button class="mclose" onclick="closeModal('m-site-sync')">×</button></div>
 
