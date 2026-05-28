@@ -9047,10 +9047,9 @@ async function siteSync(){
         var unitPrice=Math.round((price-discountVal*prop/qty)*100)/100;
         var taxaVal=Math.round(unitPrice*(taxaPct/100)*100)/100;
         var name=p.name||'Produto Site';
-        // Try mapped SKU first (product_id:variation_id or product_id)
-        var skuId=getSiteSkuId(full.order_id||'',p.product_variation_id||p.variation_id||null)
-          ||getSiteSkuId(p.product_id||'',p.product_variation_id||p.variation_id||null)
-          ||findSiteSkuId(name,p.sku||''); // fallback to name matching
+        // Use saved mapping: key = "product_id:variation_id" or "product_id"
+        var skuId=getSiteSkuId(p.product_id,p.product_variation_id||p.variation_id||null)
+          ||findSiteSkuId(name,p.sku||'');
         var imp=Math.round(unitPrice*(dasRate/100)*100)/100;
         var comVal=Math.round(unitPrice*(comRate/100)*100)/100;
         var lucroSI=unitPrice-taxaVal-comVal-freteUnit;
@@ -9068,7 +9067,19 @@ async function siteSync(){
             id:Math.floor(Date.now()/1000)*1000+i*100+j*10+q+Math.floor(Math.random()*9),
             date:date, cliente:clientName, canal:'Site',
             produto:name, prodId:skuId, origem:'Brasilia', containerId:containerId,
-            venda:unitPrice, custo:skuId?mlGetCustoBySkuId(skuId):0,
+            venda:unitPrice, custo:(function(){
+              if(!skuId) return 0;
+              var cid=getOldestContIdForLocal('Brasilia',skuId);
+              if(cid){
+                var cs=loadContainers();
+                for(var ci=0;ci<cs.length;ci++){
+                  if(String(cs[ci].id)===String(cid)&&cs[ci].skus[skuId]){
+                    return cs[ci].skus[skuId].custo||0;
+                  }
+                }
+              }
+              return mlGetCustoBySkuId(skuId)||0;
+            })(),
             taxaPct:taxaPct, taxa:taxaVal,
             impPct:dasRate, imp:imp,
             comPct:comRate, com:comVal,
@@ -9224,14 +9235,15 @@ function saveSiteMapping(){
 }
 
 function getSiteSkuId(productId, variationId){
-  // Try exact variation match first
-  if(variationId){
-    var key1=productId+':'+variationId;
-    if(_siteMappings[key1]) return _siteMappings[key1];
+  if(!productId&&productId!==0) return null;
+  // Try variation match: "product_id:variation_id"
+  if(variationId||variationId===0){
+    var key1=String(productId)+':'+String(variationId);
+    if(_siteMappings[key1]) return parseInt(_siteMappings[key1]);
   }
   // Try product-only match
   var key2=String(productId);
-  if(_siteMappings[key2]) return _siteMappings[key2];
+  if(_siteMappings[key2]) return parseInt(_siteMappings[key2]);
   return null;
 }
 
