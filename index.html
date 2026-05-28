@@ -8943,6 +8943,16 @@ async function siteSync(){
       11:12.84, 12:13.60
     };
 
+    // Load saved mappings
+    await new Promise(function(res){
+      dbGet('configuracoes','chave=eq.site_product_mappings').then(function(rows){
+        if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+          try{_siteMappings=JSON.parse(rows[0].valor);}catch(e){}
+        }
+        res();
+      }).catch(res);
+    });
+
     siteShowStatus('Buscando pedidos...','#1E90FF');
     var orders=await siteFetchOrders(token,'axioncycle',dateFrom,dateTo,null,1,[]);
 
@@ -9037,7 +9047,10 @@ async function siteSync(){
         var unitPrice=Math.round((price-discountVal*prop/qty)*100)/100;
         var taxaVal=Math.round(unitPrice*(taxaPct/100)*100)/100;
         var name=p.name||'Produto Site';
-        var skuId=findSiteSkuId(name,p.sku||'');
+        // Try mapped SKU first (product_id:variation_id or product_id)
+        var skuId=getSiteSkuId(full.order_id||'',p.product_variation_id||p.variation_id||null)
+          ||getSiteSkuId(p.product_id||'',p.product_variation_id||p.variation_id||null)
+          ||findSiteSkuId(name,p.sku||''); // fallback to name matching
         var imp=Math.round(unitPrice*(dasRate/100)*100)/100;
         var comVal=Math.round(unitPrice*(comRate/100)*100)/100;
         var lucroSI=unitPrice-taxaVal-comVal-freteUnit;
@@ -9096,6 +9109,122 @@ async function siteSync(){
     console.error('Site sync:',e);
   }
   if(btn)btn.disabled=false;
+}
+
+
+// ── SITE PRODUCT MAPPING ─────────────────────────────────────────────
+var _siteMappings = {}; // key: "product_id:variation_id" or "product_id" → skuId
+
+function openSiteMapping(){
+  // Load existing mappings
+  dbGet('configuracoes','chave=eq.site_product_mappings').then(function(rows){
+    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+      try{_siteMappings=JSON.parse(rows[0].valor);}catch(e){_siteMappings={};}
+    }
+  }).catch(function(){});
+  openModal('m-site-mapping');
+}
+
+async function loadSiteProducts(){
+  var statusEl=document.getElementById('site-mapping-status');
+  var listEl=document.getElementById('site-mapping-list');
+  if(statusEl) statusEl.textContent='Carregando produtos...';
+
+  var token=await siteGetToken();
+  if(!token) return;
+
+  try{
+    var resp=await fetch('https://api.vowtecommerce.com.br/api/products?limit=100&status=1',{
+      headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':'axioncycle'}
+    });
+    var data=await resp.json();
+    if(!data.success){
+      if(statusEl) statusEl.textContent='Erro: '+(data.message||'falhou');
+      return;
+    }
+    var products=data.data||[];
+    if(statusEl) statusEl.textContent=products.length+' produtos encontrados';
+
+    // For products with variations, fetch variations
+    var allItems=[]; // {key, productName, variationName, displayName}
+    for(var i=0;i<products.length;i++){
+      var p=products[i];
+      if(p.tem_versoes){
+        // Fetch variations
+        var vResp=await fetch('https://api.vowtecommerce.com.br/api/products/'+p.id+'/variations',{
+          headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':'axioncycle'}
+        });
+        var vData=await vResp.json();
+        var variations=vData.data||[];
+        if(variations.length){
+          variations.forEach(function(v){
+            var attrs=v.attributes?Object.values(v.attributes).join(' - '):'';
+            allItems.push({
+              key:p.id+':'+v.id,
+              productName:p.name,
+              variationName:attrs||v.sku||'Variação '+v.id,
+              displayName:p.name+(attrs?' — '+attrs:''),
+              sku:v.sku||''
+            });
+          });
+        } else {
+          allItems.push({key:String(p.id),productName:p.name,variationName:'',displayName:p.name,sku:p.sku||''});
+        }
+      } else {
+        allItems.push({key:String(p.id),productName:p.name,variationName:'',displayName:p.name,sku:p.sku||''});
+      }
+    }
+
+    // Build SKU options
+    var allSkus=getAllSKUs();
+    var skuOptions='<option value="">— Não vincular —</option>'+
+      allSkus.map(function(s){return '<option value="'+s.id+'">'+s.nome+'</option>';}).join('');
+
+    // Render list
+    var h='<div style="display:grid;gap:6px;">';
+    allItems.forEach(function(item){
+      var cur=_siteMappings[item.key]||'';
+      h+='<div style="background:var(--bg2);border-radius:8px;padding:8px;">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;">'+item.displayName+'</div>'
+        +(item.sku?'<div style="font-size:9px;color:var(--text3);margin-bottom:4px;">SKU site: '+item.sku+'</div>':'')
+        +'<select class="fi" data-mapkey="'+item.key+'" style="font-size:11px;">'
+        +skuOptions.replace('value="'+cur+'"','value="'+cur+'" selected')
+        +'</select>'
+        +'</div>';
+    });
+    h+='</div>';
+    if(listEl) listEl.innerHTML=h;
+    if(statusEl) statusEl.textContent='';
+
+  }catch(e){
+    if(statusEl) statusEl.textContent='Erro: '+e.message;
+    console.error('loadSiteProducts:',e);
+  }
+}
+
+function saveSiteMapping(){
+  var selects=document.querySelectorAll('#site-mapping-list [data-mapkey]');
+  selects.forEach(function(sel){
+    var key=sel.getAttribute('data-mapkey');
+    var val=sel.value;
+    if(val) _siteMappings[key]=parseInt(val);
+    else delete _siteMappings[key];
+  });
+  dbUpsert('configuracoes',{chave:'site_product_mappings',valor:JSON.stringify(_siteMappings)});
+  toast('Mapeamento salvo!');
+  closeModal('m-site-mapping');
+}
+
+function getSiteSkuId(productId, variationId){
+  // Try exact variation match first
+  if(variationId){
+    var key1=productId+':'+variationId;
+    if(_siteMappings[key1]) return _siteMappings[key1];
+  }
+  // Try product-only match
+  var key2=String(productId);
+  if(_siteMappings[key2]) return _siteMappings[key2];
+  return null;
 }
 
 </script>
@@ -9161,6 +9290,9 @@ async function siteSync(){
       </div>
     </div>
 
+    <button class="btn btn-s" onclick="openSiteMapping()" style="width:100%;margin-bottom:8px;">
+      🔗 Vincular Produtos do Site → SKU App
+    </button>
     <button id="site-sync-btn" class="btn" onclick="siteSync()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;margin-bottom:8px;">
       🌐 SINCRONIZAR PEDIDOS
     </button>
@@ -9168,6 +9300,25 @@ async function siteSync(){
   </div>
 </div>
 
+
+
+<!-- SITE MAPPING MODAL -->
+<div class="ovl" id="m-site-mapping" onclick="if(event.target===this)closeModal('m-site-mapping')">
+  <div class="modal" style="max-height:92vh;overflow-y:auto;">
+    <div class="mhdl">🔗 Vincular Produtos do Site<button class="mclose" onclick="closeModal('m-site-mapping')">×</button></div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">
+      Vincule cada produto/variação do site ao SKU correspondente no app. Salvo automaticamente.
+    </div>
+    <button class="btn btn-s" onclick="loadSiteProducts()" style="width:100%;margin-bottom:12px;">
+      🔄 Carregar produtos do site
+    </button>
+    <div id="site-mapping-status" style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:8px;"></div>
+    <div id="site-mapping-list"></div>
+    <button class="btn" onclick="saveSiteMapping()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#1E90FF,#0066cc);color:#fff;font-weight:700;">
+      💾 Salvar Mapeamento
+    </button>
+  </div>
+</div>
 
 </body>
 </html>
