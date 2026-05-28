@@ -8934,24 +8934,47 @@ async function siteSync(){
     var comRate=parseFloat((document.getElementById('site-com')||{}).value)||0;
     var freteUnit=parseFloat((document.getElementById('site-frete')||{}).value)||0;
     dbUpsert('configuracoes',{chave:'site_sync_rates',valor:JSON.stringify({das:dasRate,com:comRate,frete:freteUnit})});
+
+    // Taxa tabela parcelamento Vowt
+    var TAXA_TABLE={
+      0:0.79,  // PIX
+      1:3.56, 2:5.39,  3:6.28,  4:7.15,  5:8.01,
+      6:8.85, 7:9.68,  8:10.49, 9:11.29, 10:12.07,
+      11:12.84, 12:13.60
+    };
+
     siteShowStatus('Buscando pedidos...','#1E90FF');
     var orders=await siteFetchOrders(token,'axioncycle',dateFrom,dateTo,null,1,[]);
+
+    // Filter approved/paid
     var approved=orders.filter(function(o){
       var s=(o.status_name||'').toLowerCase();
-      return s.indexOf('pago')>=0||s.indexOf('aprovado')>=0||s.indexOf('paid')>=0||s.indexOf('complet')>=0||s.indexOf('entregue')>=0||s.indexOf('enviado')>=0;
+      return s.indexOf('pago')>=0||s.indexOf('aprovado')>=0||
+             s.indexOf('paid')>=0||s.indexOf('complet')>=0||
+             s.indexOf('entregue')>=0||s.indexOf('enviado')>=0;
     });
     siteShowStatus('Encontrados '+approved.length+' aprovados de '+orders.length+'. Processando...','#1E90FF');
+
+    // Dedup
     var existing=loadVendas();
     var existingIds={};
     existing.forEach(function(v){if(v.siteOrderId) existingIds[String(v.siteOrderId)]=true;});
+
     var vendas=[],skipped=0;
+
     for(var i=0;i<approved.length;i++){
       var o=approved[i];
       var oid=String(o.order_id||'');
       if(existingIds[oid]){skipped++;continue;}
+
       siteShowStatus('Pedido '+(i+1)+'/'+approved.length+'...','#1E90FF');
+
+      // Nome do cliente
       var clientName=((o.firstname||'')+' '+(o.lastname||'')).trim()||'Site';
+
       var date=(o.date_added||'').slice(0,10)||new Date().toISOString().slice(0,10);
+
+      // Fetch full order details
       var detResp=await fetch('https://api.vowtecommerce.com.br/api/orders/'+o.order_id,{
         headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':'axioncycle'}
       });
@@ -8959,54 +8982,115 @@ async function siteSync(){
       var full=detData.data||o;
       var products=full.products||[];
       var totals=full.totals||[];
+
+      // Nome do cliente completo do detalhe
+      if(full.customer){
+        var c=full.customer;
+        var fullName=((c.firstname||c.first_name||'')+' '+(c.lastname||c.last_name||'')).trim();
+        if(fullName) clientName=fullName;
+      }
+
+      // Detectar número de parcelas
+      // Vowt: totals pode ter code='payment' com título "X vezes"
+      // Ou payment_method/installments no objeto do pedido
+      var numParcelas=1; // padrão 1x
+      var isPix=false;
+
+      // Check payment method field
+      var payMethod=(full.payment_method||full.payment_code||'').toLowerCase();
+      if(payMethod.indexOf('pix')>=0||payMethod.indexOf('ted')>=0||payMethod.indexOf('boleto')>=0){
+        isPix=true; numParcelas=0;
+      }
+
+      // Check totals for installment info
+      totals.forEach(function(t){
+        var title=(t.title||'').toLowerCase();
+        var code=(t.code||'').toLowerCase();
+        // "12x de R$..." or "parcelado em 12x" or "12 vezes"
+        var mParcelas=title.match(/(\d+)\s*[xX×]/);
+        if(mParcelas) numParcelas=parseInt(mParcelas[1]);
+        if(title.indexOf('pix')>=0||title.indexOf('à vista')>=0) {isPix=true;numParcelas=0;}
+      });
+
+      // Also check order comment or custom fields
+      var comment=(full.comment||'').toLowerCase();
+      var mComment=comment.match(/(\d+)\s*[xX×]/);
+      if(mComment) numParcelas=parseInt(mComment[1]);
+      if(comment.indexOf('pix')>=0) {isPix=true;numParcelas=0;}
+
+      // Get taxa from table
+      var taxaPct=isPix?TAXA_TABLE[0]:(TAXA_TABLE[numParcelas]||TAXA_TABLE[1]);
+
+      // Extract discount from totals
       var discountVal=0;
       totals.forEach(function(t){
         if((t.code==='coupon'||t.code==='discount')||+t.value<0) discountVal+=Math.abs(+t.value||0);
       });
-      var taxaParcTotal=0;
-      totals.forEach(function(t){
-        var code=(t.code||'').toLowerCase();
-        var title=(t.title||'').toLowerCase();
-        if((code==='payment'||code==='tax'||title.indexOf('parcela')>=0||title.indexOf('juros')>=0||title.indexOf('taxa')>=0)&&+t.value>0) taxaParcTotal+=+t.value;
-      });
+
       var subtotal=products.reduce(function(s,p){return s+(+p.price||0)*(+p.quantity||1);},0)||1;
+
       for(var j=0;j<products.length;j++){
         var p=products[j];
         var qty=parseInt(p.quantity||1)||1;
         var price=+p.price||0;
         var prop=(price*qty)/subtotal;
         var unitPrice=Math.round((price-discountVal*prop/qty)*100)/100;
-        var taxaItem=taxaParcTotal>0?Math.round(taxaParcTotal*prop/qty*100)/100:0;
+        var taxaVal=Math.round(unitPrice*(taxaPct/100)*100)/100;
         var name=p.name||'Produto Site';
         var skuId=findSiteSkuId(name,p.sku||'');
         var imp=Math.round(unitPrice*(dasRate/100)*100)/100;
         var comVal=Math.round(unitPrice*(comRate/100)*100)/100;
-        var lucroSI=unitPrice-taxaItem-comVal-freteUnit;
+        var lucroSI=unitPrice-taxaVal-comVal-freteUnit;
         var lucroLL=lucroSI-imp;
+
+        // Get container FIFO
+        var containerId='';
+        if(skuId){
+          var cid=getOldestContIdForLocal('Brasilia',skuId);
+          if(cid) containerId=cid;
+        }
+
         for(var q=0;q<qty;q++){
           vendas.push({
             id:Math.floor(Date.now()/1000)*1000+i*100+j*10+q+Math.floor(Math.random()*9),
-            date:date,cliente:clientName,canal:'Site',
-            produto:name,prodId:skuId,origem:'Brasilia',containerId:null,
-            venda:unitPrice,custo:0,
-            taxaPct:unitPrice>0?Math.round(taxaItem/unitPrice*10000)/100:0,taxa:taxaItem,
-            impPct:dasRate,imp:imp,comPct:comRate,com:comVal,
-            frete:freteUnit,lucroSI:lucroSI,lucroLL:lucroLL,siteOrderId:oid,
+            date:date, cliente:clientName, canal:'Site',
+            produto:name, prodId:skuId, origem:'Brasilia', containerId:containerId,
+            venda:unitPrice, custo:skuId?mlGetCustoBySkuId(skuId):0,
+            taxaPct:taxaPct, taxa:taxaVal,
+            impPct:dasRate, imp:imp,
+            comPct:comRate, com:comVal,
+            frete:freteUnit,
+            lucroSI:lucroSI, lucroLL:lucroLL,
+            siteOrderId:oid,
+            duplo:false,
+            pag1tipo:'',pag1val:0,pag1taxa:0,
+            pag2tipo:'',pag2val:0,pag2taxa:0,
           });
         }
       }
     }
+
     if(!vendas.length){
       siteShowStatus('Nenhuma venda nova'+(skipped?' ('+skipped+' ja cadastrados)':'')+' ✅','#22c55e');
       if(btn)btn.disabled=false;return;
     }
+
     siteShowStatus('Salvando '+vendas.length+' vendas...','#1E90FF');
     vendas.forEach(function(v){DB_VENDAS.push(v);});
     await Promise.all(vendas.map(function(v){return saveVendaDB(v);}));
-    renderHist();renderDash();
-    if(curPage==='est') renderEst();
-    siteShowStatus(vendas.length+' vendas importadas! ✅','#22c55e');
-    toast(vendas.length+' vendas do Site sincronizadas!');
+
+    // Debitar estoque FIFO
+    loadContainersDB(function(freshCs){
+      DB_CONTAINERS=freshCs;
+      vendas.forEach(function(v){
+        if(v.prodId&&v.origem) consumeFIFO(v.origem,v.prodId,1);
+      });
+      renderHist();renderDash();
+      if(curPage==='est') renderEst();
+      siteShowStatus(vendas.length+' vendas importadas! ✅','#22c55e');
+      toast(vendas.length+' vendas do Site sincronizadas!');
+    });
+
   }catch(e){
     siteShowStatus('Erro: '+e.message,'#ef4444');
     console.error('Site sync:',e);
