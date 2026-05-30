@@ -251,6 +251,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="logo-sub">Gestao de Performance</div>
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:2px;flex-shrink:0;">
+    <button onclick="openRelatorio()" style="background:rgba(30,144,255,0.15);border:1px solid rgba(30,144,255,0.3);border-radius:8px;font-size:15px;cursor:pointer;padding:4px 8px;color:var(--text);min-width:32px;" title="Exportar Relatório PDF">📄</button>
     <button onclick="toggleDashHide()" id="hbtn-hide" style="background:rgba(30,144,255,0.15);border:1px solid rgba(30,144,255,0.3);border-radius:8px;font-size:16px;cursor:pointer;padding:4px 8px;color:var(--text);min-width:32px;" title="Exibir/Ocultar dados">👁</button>
     <button onclick="refreshApp()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px;" title="Atualizar dados">&#8635;</button>
     <button onclick="toggleTheme()" id="theme-btn" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px;" title="Alternar tema">🌑</button>
@@ -1369,13 +1370,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 </div>
 
-<div class="ovl" id="m-pin-cfg">
-  <div class="modal">
-    <div class="mhdl"></div>
-    <div class="mtitle">Configurar PIN</div>
-    <p style="font-size:12px;color:#666;margin-bottom:14px;">Configure um PIN de 4 digitos para proteger o app.</p>
-    <div;">
+<div cla
 <script>
+
 
 
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
@@ -7809,6 +7806,34 @@ function renderCaixaFilter(mMap){
   el.innerHTML=buildSmartFilter(months,cxSelPeriod,'_setCxP','cx_filter');
 }
 
+function renderCaixaMini(mMap, meses){
+  var el=document.getElementById('cx-mini');
+  if(!el) return;
+  var maxEnt=0,maxEntMk='',maxSai=0,maxSaiMk='',criMk='',criSaldo=Infinity;
+  meses.forEach(function(mk){
+    var d=mMap[mk];
+    if(!d) return;
+    var sai=d.saidas_fixas+d.saidas_extras+d.saidas_cont+d.das-d.fin;
+    var saldo=d.entradas-sai;
+    if(d.entradas>maxEnt){maxEnt=d.entradas;maxEntMk=mk;}
+    if(sai>maxSai){maxSai=sai;maxSaiMk=mk;}
+    if(saldo<criSaldo){criSaldo=saldo;criMk=mk;}
+  });
+  var chips=[
+    {icon:'📈',label:'Maior entrada',val:fmt(maxEnt),sub:maxEntMk?mlabel3(maxEntMk):'—',col:'#22c55e'},
+    {icon:'📉',label:'Maior saída',val:fmt(maxSai),sub:maxSaiMk?mlabel3(maxSaiMk):'—',col:'#ef4444'},
+    {icon:'⚠️',label:'Mês crítico',val:criSaldo===Infinity?'—':fmt(criSaldo),sub:criMk?mlabel3(criMk):'—',col:criSaldo>=0?'#f59e0b':'#ef4444'},
+  ];
+  el.innerHTML=chips.map(function(c){
+    return '<div style="flex:1;background:#ffffff08;border:1px solid #ffffff0a;border-radius:10px;padding:8px;min-width:0;">'+
+      '<div style="font-size:14px;">'+c.icon+'</div>'+
+      '<div style="font-size:8px;color:var(--text3);text-transform:uppercase;margin:2px 0;">'+c.label+'</div>'+
+      '<div style="font-size:13px;font-weight:800;color:'+c.col+';">'+c.val+'</div>'+
+      '<div style="font-size:9px;color:var(--text3);">'+c.sub+'</div>'+
+    '</div>';
+  }).join('');
+}
+
 function filterCaixaMeses(mMap){
   var keys=Object.keys(mMap).sort();
   if(cxSelPeriod==='all') return keys;
@@ -7822,7 +7847,10 @@ function renderCaixaResumo(mMap, meses, saldoIni){
   var el=document.getElementById('cx-resumo');
   if(!el) return;
   var totEnt=0,totSaiFix=0,totSaiExt=0,totSaiCont=0,totDas=0,totFin=0;
+  var _todayR=new Date();
+  var _curMkR=_todayR.getFullYear()+'-'+String(_todayR.getMonth()+1).padStart(2,'0');
   meses.forEach(function(mk){
+    if(mk>_curMkR) return; // só meses reais no resumo
     var m=mMap[mk];
     totEnt+=m.entradas;
     totSaiFix+=m.saidas_fixas;
@@ -9466,6 +9494,398 @@ function setCxCenario(factor){
   });
   renderCaixa();
 }
+
+// ── RELATÓRIO PDF ────────────────────────────────────────────────────────────
+var _relPeriodo = 'mes';
+
+function setRelPeriodo(p){
+  _relPeriodo=p;
+  ['mes','tri','ano','tudo','custom'].forEach(function(k){
+    var btn=document.getElementById('rel-p-'+k);
+    if(btn){
+      btn.style.background=k===p?'#1E90FF22':'';
+      btn.style.border=k===p?'1px solid #1E90FF':'';
+    }
+  });
+  var cd=document.getElementById('rel-custom-dates');
+  if(cd) cd.style.display=p==='custom'?'grid':'none';
+}
+
+function openRelatorio(){
+  setRelPeriodo('mes');
+  var today=new Date();
+  var yy=today.getFullYear();
+  var mm=String(today.getMonth()+1).padStart(2,'0');
+  var df=document.getElementById('rel-date-from');
+  var dt=document.getElementById('rel-date-to');
+  if(df) df.value=yy+'-01';
+  if(dt) dt.value=yy+'-'+mm;
+  openModal('m-relatorio');
+}
+
+function relShowStatus(msg,col){
+  var el=document.getElementById('rel-status');
+  if(!el) return;
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.background=(col||'#1E90FF')+'22';
+  el.style.color=col||'#1E90FF';
+}
+
+function gerarRelatorio(){
+  relShowStatus('Preparando dados...','#1E90FF');
+
+  // Calcular período
+  var today=new Date();
+  var yy=today.getFullYear();
+  var mm=today.getMonth()+1;
+  var mkAtual=yy+'-'+String(mm).padStart(2,'0');
+  var mkFrom='',mkTo=mkAtual;
+
+  if(_relPeriodo==='mes'){
+    mkFrom=mkAtual; mkTo=mkAtual;
+  } else if(_relPeriodo==='tri'){
+    var d3=new Date(yy,today.getMonth()-2,1);
+    mkFrom=d3.getFullYear()+'-'+String(d3.getMonth()+1).padStart(2,'0');
+  } else if(_relPeriodo==='ano'){
+    mkFrom=yy+'-01';
+  } else if(_relPeriodo==='tudo'){
+    mkFrom=''; mkTo='';
+  } else if(_relPeriodo==='custom'){
+    mkFrom=(document.getElementById('rel-date-from')||{}).value||'';
+    mkTo=(document.getElementById('rel-date-to')||{}).value||mkAtual;
+  }
+
+  // Filtrar vendas do período
+  var todasVendas=loadVendas();
+  var vendas=todasVendas.filter(function(v){
+    var mk=mkey(v.date||'');
+    if(mkFrom&&mk<mkFrom) return false;
+    if(mkTo&&mk>mkTo) return false;
+    return true;
+  });
+
+  // Opções selecionadas
+  var opts={
+    resumo:document.getElementById('rel-resumo')&&document.getElementById('rel-resumo').checked,
+    resultado:document.getElementById('rel-resultado')&&document.getElementById('rel-resultado').checked,
+    vendas_canal:document.getElementById('rel-vendas')&&document.getElementById('rel-vendas').checked,
+    produtos:document.getElementById('rel-produtos')&&document.getElementById('rel-produtos').checked,
+    estoque:document.getElementById('rel-estoque')&&document.getElementById('rel-estoque').checked,
+    caixa:document.getElementById('rel-caixa')&&document.getElementById('rel-caixa').checked,
+    lista:document.getElementById('rel-lista-vendas')&&document.getElementById('rel-lista-vendas').checked
+  };
+
+  relShowStatus('Gerando relatório...','#1E90FF');
+  setTimeout(function(){
+    try{
+      var html=buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual);
+      var win=window.open('','_blank');
+      if(!win){toast('Permita pop-ups para gerar o PDF',true);relShowStatus('Permita pop-ups no browser','#ef4444');return;}
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(function(){
+        win.print();
+        relShowStatus('PDF gerado! Use Ctrl+P ou "Imprimir" para salvar.','#22c55e');
+      },800);
+    }catch(e){
+      relShowStatus('Erro: '+e.message,'#ef4444');
+      console.error('Relatório:',e);
+    }
+  },100);
+}
+
+function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
+  var today=new Date();
+  var geradoEm=today.toLocaleDateString('pt-BR')+' às '+today.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  var periodo=mkFrom&&mkTo?(mlabel3(mkFrom)+(mkFrom!==mkTo?' a '+mlabel3(mkTo):'')):'Todo o período';
+
+  // Calcular meses no período
+  var meses=[];
+  var mks={};
+  vendas.forEach(function(v){
+    var mk=mkey(v.date||'');
+    if(mk) mks[mk]=true;
+  });
+  meses=Object.keys(mks).sort();
+
+  // ── KPIs globais ────────────────────────────────────────────
+  var fat=0,lucroSI=0,lucroLL=0,taxa=0,imp=0,com=0,frete=0,custo=0,qtd=vendas.length;
+  vendas.forEach(function(v){
+    fat+=(+v.venda||0);
+    lucroSI+=(+v.lucroSI||0);
+    lucroLL+=(+v.lucroLL||0);
+    taxa+=(+v.taxa||0);
+    imp+=(+v.imp||0);
+    com+=(+v.com||0);
+    frete+=(+v.frete||0);
+    custo+=(+v.custo||0);
+  });
+  var margSI=fat>0?(lucroSI/fat*100):0;
+  var margLL=fat>0?(lucroLL/fat*100):0;
+  var ticket=qtd>0?(fat/qtd):0;
+
+  function fmtR(n){return'R$ '+(+n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function fmtP(n){return(+n||0).toFixed(1)+'%';}
+
+  // ── Cores ───────────────────────────────────────────────────
+  var C={azul:'#1E90FF',verde:'#22c55e',vermelho:'#ef4444',amarelo:'#f59e0b',cinza:'#888',bg:'#f8fafc',card:'#ffffff',border:'#e2e8f0',text:'#1e293b',text2:'#64748b'};
+
+  function card(titulo,icone,conteudo,cor){
+    cor=cor||C.azul;
+    return '<div style="background:'+C.card+';border:1px solid '+C.border+';border-radius:12px;padding:16px;margin-bottom:16px;break-inside:avoid;">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid '+cor+'22;">'+
+        '<span style="font-size:18px;">'+icone+'</span>'+
+        '<span style="font-size:13px;font-weight:700;color:'+cor+';text-transform:uppercase;letter-spacing:1px;">'+titulo+'</span>'+
+      '</div>'+conteudo+'</div>';
+  }
+
+  function kpiGrid(kpis){
+    return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">'+
+      kpis.map(function(k){
+        return '<div style="background:'+C.bg+';border-radius:8px;padding:10px;text-align:center;">'+
+          '<div style="font-size:9px;color:'+C.text2+';text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">'+k.label+'</div>'+
+          '<div style="font-size:'+(k.big?'20':'15')+'px;font-weight:800;color:'+(k.cor||C.text)+';">'+k.val+'</div>'+
+          (k.sub?'<div style="font-size:9px;color:'+C.text2+';">'+k.sub+'</div>':'')+
+        '</div>';
+      }).join('')+'</div>';
+  }
+
+  function tabela(cols,rows,totais){
+    var th=cols.map(function(c){return'<th style="background:#f1f5f9;padding:8px 10px;text-align:'+(c.right?'right':'left')+';font-size:10px;font-weight:700;color:'+C.text2+';border-bottom:2px solid '+C.border+';">'+c.label+'</th>';}).join('');
+    var tr=rows.map(function(r,ri){
+      return '<tr style="background:'+(ri%2===0?C.card:'#f8fafc')+';">'+
+        r.map(function(c,ci){return'<td style="padding:7px 10px;font-size:11px;color:'+C.text+';text-align:'+(cols[ci]&&cols[ci].right?'right':'left')+';border-bottom:1px solid '+C.border+';">'+c+'</td>';}).join('')+'</tr>';
+    }).join('');
+    var tf=totais?'<tfoot><tr style="background:#f1f5f9;font-weight:700;">'+
+      totais.map(function(c,ci){return'<td style="padding:8px 10px;font-size:11px;font-weight:700;color:'+C.text+';text-align:'+(cols[ci]&&cols[ci].right?'right':'left')+';border-top:2px solid '+C.border+';">'+c+'</td>';}).join('')+'</tr></tfoot>':'';
+    return '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-family:sans-serif;">'+
+      '<thead><tr>'+th+'</tr></thead><tbody>'+tr+'</tbody>'+tf+'</table></div>';
+  }
+
+  var sections='';
+
+  // ── RESUMO EXECUTIVO ────────────────────────────────────────
+  if(opts.resumo){
+    var resumoHTML=kpiGrid([
+      {label:'Faturamento',val:fmtR(fat),cor:C.azul,big:true},
+      {label:'Lucro Líquido',val:fmtR(lucroLL),cor:lucroLL>=0?C.verde:C.vermelho,big:true},
+      {label:'Margem Contrib.',val:fmtP(margSI),cor:margSI>=25?C.verde:margSI>=15?C.amarelo:C.vermelho},
+      {label:'Margem Líquida',val:fmtP(margLL),cor:margLL>=15?C.verde:margLL>=8?C.amarelo:C.vermelho},
+      {label:'Qtd Vendas',val:qtd,cor:C.text},
+      {label:'Ticket Médio',val:fmtR(ticket),cor:C.text},
+      {label:'Total Taxas',val:fmtR(taxa),cor:C.vermelho},
+      {label:'Total DAS',val:fmtR(imp),cor:C.vermelho},
+      {label:'Total Frete',val:fmtR(frete),cor:C.vermelho},
+      {label:'CMV',val:fmtR(custo),cor:C.vermelho},
+    ]);
+    sections+=card('Resumo Executivo','📊',resumoHTML,C.azul);
+  }
+
+  // ── RESULTADO POR MÊS ───────────────────────────────────────
+  if(opts.resultado&&meses.length>0){
+    var mesData={};
+    meses.forEach(function(mk){
+      mesData[mk]={fat:0,custo:0,taxa:0,imp:0,com:0,frete:0,fixas:0,extras:0,lucroSI:0,lucroLL:0,qtd:0};
+    });
+    vendas.forEach(function(v){
+      var mk=mkey(v.date||'');
+      if(!mesData[mk]) return;
+      mesData[mk].fat+=(+v.venda||0);
+      mesData[mk].custo+=(+v.custo||0);
+      mesData[mk].taxa+=(+v.taxa||0);
+      mesData[mk].imp+=(+v.imp||0);
+      mesData[mk].com+=(+v.com||0);
+      mesData[mk].frete+=(+v.frete||0);
+      mesData[mk].lucroSI+=(+v.lucroSI||0);
+      mesData[mk].lucroLL+=(+v.lucroLL||0);
+      mesData[mk].qtd++;
+    });
+    // Adicionar fixas e extras de cada mês
+    meses.forEach(function(mk){
+      var d=getMDesp(mk);
+      var f=0,e=0;
+      if(d.fixas) d.fixas.forEach(function(x){f+=(+x.valor||0);});
+      if(d.extras) d.extras.forEach(function(x){e+=(+x.valor||0);});
+      mesData[mk].fixas=f;
+      mesData[mk].extras=e;
+    });
+    var cols=[
+      {label:'Mês'},{label:'Faturamento',right:true},{label:'CMV',right:true},
+      {label:'Taxas+Frete',right:true},{label:'DAS',right:true},{label:'Fixas',right:true},
+      {label:'MC',right:true},{label:'Liq.',right:true},{label:'Marg.',right:true}
+    ];
+    var rows=meses.map(function(mk){
+      var d=mesData[mk];
+      var margL=d.fat>0?(d.lucroLL/d.fat*100):0;
+      var cor=margL>=15?'color:'+C.verde:margL>=8?'color:'+C.amarelo:'color:'+C.vermelho;
+      return[
+        '<b>'+mlabel3(mk)+'</b>',
+        fmtR(d.fat),fmtR(d.custo),
+        fmtR(d.taxa+d.frete),fmtR(d.imp),fmtR(d.fixas+d.extras),
+        fmtR(d.lucroSI),'<span style="'+cor+'"><b>'+fmtR(d.lucroLL)+'</b></span>',
+        '<span style="'+cor+'"><b>'+fmtP(margL)+'</b></span>'
+      ];
+    });
+    var totRow=[
+      '<b>TOTAL</b>',
+      fmtR(fat),fmtR(custo),fmtR(taxa+frete),fmtR(imp),'',
+      fmtR(lucroSI),'<b>'+fmtR(lucroLL)+'</b>','<b>'+fmtP(margLL)+'</b>'
+    ];
+    sections+=card('Resultado por Mês (DRE)','💰',tabela(cols,rows,totRow),C.verde);
+  }
+
+  // ── VENDAS POR CANAL ────────────────────────────────────────
+  if(opts.vendas_canal){
+    var canais={};
+    vendas.forEach(function(v){
+      var c=v.canal||'Outro';
+      if(!canais[c]) canais[c]={fat:0,lucro:0,qtd:0};
+      canais[c].fat+=(+v.venda||0);
+      canais[c].lucro+=(+v.lucroLL||0);
+      canais[c].qtd++;
+    });
+    var cols2=[{label:'Canal'},{label:'Qtd',right:true},{label:'Faturamento',right:true},{label:'Part.%',right:true},{label:'Lucro',right:true},{label:'Margem',right:true}];
+    var rows2=Object.keys(canais).sort(function(a,b){return canais[b].fat-canais[a].fat;}).map(function(c){
+      var d=canais[c];
+      var marg=d.fat>0?(d.lucro/d.fat*100):0;
+      return[c,d.qtd,fmtR(d.fat),fmtP(fat>0?d.fat/fat*100:0),fmtR(d.lucro),fmtP(marg)];
+    });
+    sections+=card('Vendas por Canal','🛒',tabela(cols2,rows2,null),C.amarelo);
+  }
+
+  // ── PRODUTOS MAIS VENDIDOS ──────────────────────────────────
+  if(opts.produtos){
+    var prods={};
+    vendas.forEach(function(v){
+      var k=v.produto||'Desconhecido';
+      if(!prods[k]) prods[k]={fat:0,lucro:0,qtd:0};
+      prods[k].fat+=(+v.venda||0);
+      prods[k].lucro+=(+v.lucroLL||0);
+      prods[k].qtd++;
+    });
+    var sortedProds=Object.keys(prods).sort(function(a,b){return prods[b].fat-prods[a].fat;}).slice(0,15);
+    var cols3=[{label:'#'},{label:'Produto'},{label:'Qtd',right:true},{label:'Faturamento',right:true},{label:'Lucro',right:true},{label:'Marg.',right:true}];
+    var rows3=sortedProds.map(function(p,i){
+      var d=prods[p];
+      var marg=d.fat>0?(d.lucro/d.fat*100):0;
+      return[i+1,p,d.qtd,fmtR(d.fat),fmtR(d.lucro),fmtP(marg)];
+    });
+    sections+=card('Top Produtos','🚲',tabela(cols3,rows3,null),C.azul);
+  }
+
+  // ── ESTOQUE ─────────────────────────────────────────────────
+  if(opts.estoque){
+    var cs=loadContainers();
+    var estRows=[];
+    var allSkus=getAllSKUs();
+    var skuMap={};
+    allSkus.forEach(function(s){skuMap[s.id]=s.nome;});
+    cs.forEach(function(c){
+      if(!c.skus) return;
+      Object.keys(c.skus).forEach(function(sid){
+        var s=c.skus[sid];
+        var unBrasilia=(s.un&&s.un['Brasilia'])||0;
+        var unAlpha=(s.un&&s.un['Alphaville'])||0;
+        var total=Object.values(s.un||{}).reduce(function(a,b){return a+b;},0);
+        if(total>0){
+          estRows.push([
+            skuMap[sid]||'SKU '+sid,
+            c.nome||c.id,
+            unBrasilia,unAlpha,total,
+            fmtR(s.custo||0),fmtR((s.custo||0)*total)
+          ]);
+        }
+      });
+    });
+    estRows.sort(function(a,b){return b[4]-a[4];});
+    var cols4=[{label:'Produto'},{label:'Contêiner'},{label:'Brasília',right:true},{label:'Alphav.',right:true},{label:'Total',right:true},{label:'Custo Unit.',right:true},{label:'Custo Total',right:true}];
+    sections+=card('Estoque Atual','📦',estRows.length?tabela(cols4,estRows,null):'<p style="color:#888;text-align:center;">Sem dados de estoque</p>',C.amarelo);
+  }
+
+  // ── FLUXO DE CAIXA ──────────────────────────────────────────
+  if(opts.caixa&&meses.length>0){
+    var cxRows=meses.map(function(mk){
+      var vMes=vendas.filter(function(v){return mkey(v.date||'')===mk;});
+      var ent=vMes.reduce(function(s,v){return s+(+v.venda||0)-(+v.taxa||0)-(+v.com||0)-(+v.frete||0);},0);
+      var d=getMDesp(mk);
+      var fixas=0,extras=0,das=d.das||0;
+      if(d.fixas) d.fixas.forEach(function(x){fixas+=(+x.valor||0);});
+      if(d.extras) d.extras.forEach(function(x){extras+=(+x.valor||0);});
+      var sai=fixas+extras+das;
+      var saldo=ent-sai;
+      var cor=saldo>=0?'color:'+C.verde:'color:'+C.vermelho;
+      return[mlabel3(mk),fmtR(ent),fmtR(fixas),fmtR(extras),fmtR(das),'<span style="'+cor+'"><b>'+fmtR(saldo)+'</b></span>'];
+    });
+    var cols5=[{label:'Mês'},{label:'Entradas',right:true},{label:'Fixas',right:true},{label:'Extras',right:true},{label:'DAS',right:true},{label:'Saldo',right:true}];
+    sections+=card('Fluxo de Caixa','💵',tabela(cols5,cxRows,null),C.verde);
+  }
+
+  // ── LISTA DE VENDAS ─────────────────────────────────────────
+  if(opts.lista){
+    var listaRows=vendas.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');})
+      .slice(0,200) // max 200
+      .map(function(v){
+        var marg=v.venda>0?((v.lucroLL/v.venda)*100):0;
+        return[
+          v.date||'',v.canal||'',
+          (v.cliente||'').substring(0,20),
+          (v.produto||'').substring(0,25),
+          fmtR(v.venda||0),fmtR(v.lucroLL||0),
+          fmtP(marg)
+        ];
+      });
+    var cols6=[{label:'Data'},{label:'Canal'},{label:'Cliente'},{label:'Produto'},{label:'Valor',right:true},{label:'Lucro',right:true},{label:'Marg.',right:true}];
+    sections+=card('Lista de Vendas','📝',(listaRows.length?tabela(cols6,listaRows,null):'<p style="color:#888;text-align:center;">Sem vendas no período</p>')+(vendas.length>200?'<p style="font-size:10px;color:#888;margin-top:6px;">Exibindo as 200 mais recentes de '+vendas.length+'</p>':''),C.text2);
+  }
+
+  if(!sections){
+    sections='<div style="text-align:center;color:#888;padding:40px;">Nenhuma seção selecionada.</div>';
+  }
+
+  // ── MONTAR HTML FINAL ────────────────────────────────────────
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'+
+    '<title>Relatório Axion Cycle — '+periodo+'</title>'+
+    '<style>'+
+      '*{box-sizing:border-box;margin:0;padding:0;}'+
+      'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:'+C.bg+';color:'+C.text+';padding:20px;}'+
+      '@media print{'+
+        'body{padding:0;}'+
+        '.no-print{display:none!important;}'+
+        'div{break-inside:avoid;}'+
+      '}'+
+      'table{border-collapse:collapse;font-size:11px;}'+
+      'th,td{border-bottom:1px solid '+C.border+';}'+
+    '</style></head><body>'+
+    // Cabeçalho
+    '<div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:24px;margin-bottom:20px;color:#fff;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:start;">'+
+        '<div>'+
+          '<div style="font-size:22px;font-weight:800;margin-bottom:4px;">AXION CYCLE</div>'+
+          '<div style="font-size:13px;opacity:0.7;margin-bottom:12px;">Relatório de Gestão Financeira</div>'+
+          '<div style="font-size:16px;font-weight:700;background:rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;display:inline-block;">📅 '+periodo+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;opacity:0.6;font-size:10px;">'+
+          '<div>Gerado em</div><div style="font-size:11px;margin-top:2px;">'+geradoEm+'</div>'+
+          '<div style="margin-top:8px;">'+qtd+' vendas</div>'+
+          '<div style="font-size:14px;font-weight:700;margin-top:2px;">'+fmtR(fat)+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    // Seções selecionadas
+    sections+
+    // Rodapé
+    '<div style="text-align:center;color:#888;font-size:10px;padding:16px;border-top:1px solid '+C.border+';margin-top:8px;">'+
+      'Axion Cycle — Relatório gerado automaticamente em '+geradoEm+
+    '</div>'+
+    // Botão imprimir (some no print)
+    '<div class="no-print" style="text-align:center;margin-top:16px;">'+
+      '<button onclick="window.print()" style="background:#1E90FF;color:#fff;border:none;border-radius:8px;padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Salvar como PDF</button>'+
+      '<button onclick="window.close()" style="background:#888;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-left:8px;">✕ Fechar</button>'+
+    '</div>'+
+    '</body></html>';
+}
 </script>
 
 
@@ -9556,6 +9976,79 @@ SITE SYNC MODAL -->
     <div id="site-mapping-list" style="flex:1;overflow-y:auto;min-height:0;"></div>
     <button class="btn" onclick="saveSiteMapping()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#1E90FF,#0066cc);color:#fff;font-weight:700;">
       💾 Salvar Mapeamento
+    </button>
+  </div>
+</div>
+
+
+<!-- MODAL RELATÓRIO PDF -->
+<div class="ovl" id="m-relatorio" onclick="if(event.target===this)closeModal('m-relatorio')">
+  <div class="modal" style="max-height:92vh;overflow-y:auto;">
+    <div class="mhdl">📄 Exportar Relatório PDF<button class="mclose" onclick="closeModal('m-relatorio')">×</button></div>
+
+    <!-- Período -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📅 Período</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+        <button class="btn btn-s" onclick="setRelPeriodo('mes')" id="rel-p-mes" style="font-size:11px;background:#1E90FF22;border:1px solid #1E90FF;">Este mês</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('tri')" id="rel-p-tri" style="font-size:11px;">Trimestre</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('ano')" id="rel-p-ano" style="font-size:11px;">Este ano</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('tudo')" id="rel-p-tudo" style="font-size:11px;">Tudo</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('custom')" id="rel-p-custom" style="font-size:11px;grid-column:span 2;">Personalizado</button>
+      </div>
+      <div id="rel-custom-dates" style="display:none;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">De</div>
+          <input class="fi" type="month" id="rel-date-from">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">Até</div>
+          <input class="fi" type="month" id="rel-date-to">
+        </div>
+      </div>
+    </div>
+
+    <!-- Seções -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📋 Incluir no Relatório</div>
+      <div style="display:grid;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-resumo" checked style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📊 Resumo Executivo</div><div style="font-size:9px;color:var(--text3);">Faturamento, lucro, margem, ticket médio, qtd vendas</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-resultado" checked style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">💰 Resultado por Mês (DRE)</div><div style="font-size:9px;color:var(--text3);">Faturamento, CMV, despesas fixas, DAS, lucro líquido</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-vendas" checked style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">🛒 Vendas por Canal</div><div style="font-size:9px;color:var(--text3);">ML, Site, WhatsApp — faturamento e qtd por canal</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-produtos" checked style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">🚲 Produtos Mais Vendidos</div><div style="font-size:9px;color:var(--text3);">Ranking por faturamento e quantidade</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-estoque" style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque atual</div><div style="font-size:9px;color:var(--text3);">Posição de estoque por SKU e local</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-caixa" style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">💵 Fluxo de Caixa</div><div style="font-size:9px;color:var(--text3);">Entradas, saídas e saldo por mês</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-lista-vendas" style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📝 Lista de Vendas</div><div style="font-size:9px;color:var(--text3);">Detalhamento de cada venda no período</div></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="rel-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;"></div>
+
+    <!-- Botão gerar -->
+    <button onclick="gerarRelatorio()" class="btn" style="width:100%;background:linear-gradient(135deg,#1E90FF,#0066cc);color:#fff;font-weight:700;font-size:14px;padding:14px;">
+      📄 Gerar e Baixar PDF
     </button>
   </div>
 </div>
