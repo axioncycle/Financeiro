@@ -5718,7 +5718,7 @@ function renderSkuRows(){
     qtyInp.onchange=(function(idx){return function(){onSkuChange(idx,'qty',this.value);};})(i);
     var brlDiv=document.createElement('div');
     brlDiv.style.cssText='background:#0a1a0a;border:1px solid #22c55e33;border-radius:6px;padding:6px 6px;font-size:11px;font-weight:800;color:#22c55e;text-align:center;';
-    brlDiv.textContent=brl>0?'R$'+brl.toFixed(0):'--';
+    brlDiv.textContent=brl>0?fmtN(brl):'--';
     var delBtn=document.createElement('button');
     delBtn.textContent='x';
     delBtn.style.cssText='width:26px;height:26px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;';
@@ -5862,7 +5862,7 @@ function onSimChange(i,field,val){
 var simCustoBRL=0;
 
 function onSimCustoBRL(val){
-  simCustoBRL=parseFloat(String(val).replace(',','.'))||0;
+  simCustoBRL=parseBRL(val);
   calcSimTotals();
   saveSimRows();
 }
@@ -5977,7 +5977,7 @@ function loadSimRows(cid,cb){
     } else {simRows=[];simCustoBRL=0;}
     // Fill custo BRL input
     var inp=document.getElementById('sim-custo-brl');
-    if(inp) inp.value=simCustoBRL>0?simCustoBRL:'';
+    if(inp) inp.value=simCustoBRL>0?fmtN(simCustoBRL):'';
     if(cb)cb();
   }).catch(function(){simRows=[];simCustoBRL=0;if(cb)cb();});
 }
