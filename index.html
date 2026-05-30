@@ -1375,6 +1375,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 
 
+
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
 var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
@@ -9847,7 +9848,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
   // ── MONTAR HTML FINAL ────────────────────────────────────────
   return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'+
     '<title>Relatório Axion Cycle — '+periodo+'</title>'+
-    '<style>'+
+    '<sty'+'le>'+
       '*{box-sizing:border-box;margin:0;padding:0;}'+
       'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:'+C.bg+';color:'+C.text+';padding:20px;}'+
       '@media print{'+
@@ -9886,115 +9887,21 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     '</div>'+
     '</body></html>';
 }
+
 </script>
-
-
-SITE SYNC MODAL -->
-
-
-
-<!-- SITE SYNC MODAL -->
-<div class="ovl" id="m-site-sync" onclick="if(event.target===this)closeModal('m-site-sync')">
-  <div class="modal" style="max-height:88vh;overflow-y:auto;">
-    <div class="mhdl">🌐 Sincronizar Site (Vowt)<button class="mclose" onclick="closeModal('m-site-sync')">×</button></div>
-
-    <div id="site-sync-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;"></div>
-
-    <!-- Credenciais -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Credenciais Vowt</div>
-      <div style="margin-bottom:8px;">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Consumer Key</div>
-        <input class="fi" id="site-ck" placeholder="ck_..." style="font-size:11px;">
-      </div>
-      <div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Consumer Secret</div>
-        <input class="fi" id="site-cs" placeholder="cs_..." type="password" style="font-size:11px;">
-      </div>
-    </div>
-
-    <!-- Período -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Período</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data início</div>
-          <input class="fi" id="site-date-from" type="date">
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Data fim</div>
-          <input class="fi" id="site-date-to" type="date">
-        </div>
-      </div>
-    </div>
-
-    <!-- Custos -->
-    <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;font-weight:700;text-transform:uppercase;">Custos da Operação</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">DAS (%)</div>
-          <input class="fi" id="site-das" type="number" value="8.3" step="0.1" min="0">
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Comissão (%)</div>
-          <input class="fi" id="site-com" type="number" value="0" step="0.1" min="0">
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Frete (R$)</div>
-          <input class="fi" id="site-frete" type="number" value="0" step="0.01" min="0" placeholder="78.65">
-        </div>
-      </div>
-      <div style="margin-top:8px;font-size:9px;color:var(--text3);">
-        Taxa de parcelamento extraída automaticamente de cada pedido
-      </div>
-    </div>
-
-    <button class="btn btn-s" onclick="openSiteMapping()" style="width:100%;margin-bottom:8px;">
-      🔗 Vincular Produtos do Site → SKU App
-    </button>
-    <button id="site-sync-btn" class="btn" onclick="siteSync()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;margin-bottom:8px;">
-      🌐 SINCRONIZAR PEDIDOS
-    </button>
-    <button class="btn btn-s" onclick="closeModal('m-site-sync')" style="width:100%;">Fechar</button>
-  </div>
-</div>
-
-
-
-<!-- SITE MAPPING MODAL -->
-<div class="ovl" id="m-site-mapping" onclick="if(event.target===this)closeModal('m-site-mapping')">
-  <div class="modal" style="max-height:92vh;display:flex;flex-direction:column;">
-    <div class="mhdl">🔗 Vincular Produtos do Site<button class="mclose" onclick="closeModal('m-site-mapping')">×</button></div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">
-      Vincule cada produto/variação do site ao SKU correspondente no app. Salvo automaticamente.
-    </div>
-    <button class="btn btn-s" onclick="loadSiteProducts()" style="width:100%;margin-bottom:12px;">
-      🔄 Carregar produtos do site
-    </button>
-    <div id="site-mapping-status" style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:8px;"></div>
-    <div id="site-mapping-list" style="flex:1;overflow-y:auto;min-height:0;"></div>
-    <button class="btn" onclick="saveSiteMapping()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#1E90FF,#0066cc);color:#fff;font-weight:700;">
-      💾 Salvar Mapeamento
-    </button>
-  </div>
-</div>
-
 
 <!-- MODAL RELATÓRIO PDF -->
 <div class="ovl" id="m-relatorio" onclick="if(event.target===this)closeModal('m-relatorio')">
   <div class="modal" style="max-height:92vh;overflow-y:auto;">
-    <div class="mhdl">📄 Exportar Relatório PDF<button class="mclose" onclick="closeModal('m-relatorio')">×</button></div>
+    <div class="mhdl">📄 Exportar Relatório<button class="mclose" onclick="closeModal('m-relatorio')">×</button></div>
 
-    <!-- Período -->
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📅 Período</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
         <button class="btn btn-s" onclick="setRelPeriodo('mes')" id="rel-p-mes" style="font-size:11px;background:#1E90FF22;border:1px solid #1E90FF;">Este mês</button>
         <button class="btn btn-s" onclick="setRelPeriodo('tri')" id="rel-p-tri" style="font-size:11px;">Trimestre</button>
         <button class="btn btn-s" onclick="setRelPeriodo('ano')" id="rel-p-ano" style="font-size:11px;">Este ano</button>
         <button class="btn btn-s" onclick="setRelPeriodo('tudo')" id="rel-p-tudo" style="font-size:11px;">Tudo</button>
-        <button class="btn btn-s" onclick="setRelPeriodo('custom')" id="rel-p-custom" style="font-size:11px;grid-column:span 2;">Personalizado</button>
       </div>
       <div id="rel-custom-dates" style="display:none;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
         <div>
@@ -10008,50 +9915,47 @@ SITE SYNC MODAL -->
       </div>
     </div>
 
-    <!-- Seções -->
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📋 Incluir no Relatório</div>
       <div style="display:grid;gap:8px;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-resumo" checked style="width:16px;height:16px;accent-color:#1E90FF;">
-          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📊 Resumo Executivo</div><div style="font-size:9px;color:var(--text3);">Faturamento, lucro, margem, ticket médio, qtd vendas</div></div>
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📊 Resumo Executivo</div><div style="font-size:9px;color:var(--text3);">Faturamento, lucro, margem, ticket médio</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-resultado" checked style="width:16px;height:16px;accent-color:#1E90FF;">
-          <div><div style="font-size:12px;font-weight:700;color:var(--text);">💰 Resultado por Mês (DRE)</div><div style="font-size:9px;color:var(--text3);">Faturamento, CMV, despesas fixas, DAS, lucro líquido</div></div>
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">💰 Resultado por Mês (DRE)</div><div style="font-size:9px;color:var(--text3);">Faturamento, CMV, despesas, DAS, lucro líquido</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-vendas" checked style="width:16px;height:16px;accent-color:#1E90FF;">
-          <div><div style="font-size:12px;font-weight:700;color:var(--text);">🛒 Vendas por Canal</div><div style="font-size:9px;color:var(--text3);">ML, Site, WhatsApp — faturamento e qtd por canal</div></div>
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">🛒 Vendas por Canal</div><div style="font-size:9px;color:var(--text3);">ML, Site, WhatsApp com participação e margem</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-produtos" checked style="width:16px;height:16px;accent-color:#1E90FF;">
-          <div><div style="font-size:12px;font-weight:700;color:var(--text);">🚲 Produtos Mais Vendidos</div><div style="font-size:9px;color:var(--text3);">Ranking por faturamento e quantidade</div></div>
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">🚲 Top Produtos</div><div style="font-size:9px;color:var(--text3);">Ranking por faturamento e quantidade</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-estoque" style="width:16px;height:16px;accent-color:#1E90FF;">
-          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque atual</div><div style="font-size:9px;color:var(--text3);">Posição de estoque por SKU e local</div></div>
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque Atual</div><div style="font-size:9px;color:var(--text3);">Posição por SKU, contêiner e local</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-caixa" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">💵 Fluxo de Caixa</div><div style="font-size:9px;color:var(--text3);">Entradas, saídas e saldo por mês</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
-          <input type="checkbox" id="rel-lista-vendas" style="width:16px;height:16px;accent-color:#1E90FF;">
-          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📝 Lista de Vendas</div><div style="font-size:9px;color:var(--text3);">Detalhamento de cada venda no período</div></div>
+          <input type="checkbox" id="rel-lista" style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📝 Lista de Vendas</div><div style="font-size:9px;color:var(--text3);">Detalhamento individual (máx. 200)</div></div>
         </label>
       </div>
     </div>
 
-    <!-- Status -->
     <div id="rel-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;"></div>
-
-    <!-- Botão gerar -->
     <button onclick="gerarRelatorio()" class="btn" style="width:100%;background:linear-gradient(135deg,#1E90FF,#0066cc);color:#fff;font-weight:700;font-size:14px;padding:14px;">
       📄 Gerar e Baixar PDF
     </button>
   </div>
 </div>
+
 
 </body>
 </html>
