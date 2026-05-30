@@ -3093,8 +3093,8 @@ function onProdChange(){
   var el=document.getElementById('v-prod');
   var opt=el.options[el.selectedIndex];
   if(opt&&opt.getAttribute('data-custo')){
-    document.getElementById('v-custo').value=opt.getAttribute('data-custo');
-    document.getElementById('v-venda').value=opt.getAttribute('data-pix');
+    document.getElementById('v-custo').value=fmtN(parseFloat(opt.getAttribute('data-custo'))||0);
+    document.getElementById('v-venda').value=fmtN(parseFloat(opt.getAttribute('data-pix'))||0);
   }
   calcRes();
 }
@@ -3171,10 +3171,10 @@ function salvarVenda(){
   var prodId=parseInt(document.getElementById('v-prod').value)||0;
   var dataVal=document.getElementById('v-data').value;
   var venda=parseFloat(document.getElementById('v-venda').value)||0;
-  var custo=parseFloat(document.getElementById('v-custo').value)||0;
+  var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
   var impPct=parseFloat(document.getElementById('v-imp').value)||0;
   var comPct=parseFloat(document.getElementById('v-com').value)||0;
-  var frete=parseFloat(document.getElementById('v-frete').value)||0;
+  var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
   var duplo=document.getElementById('v-duplo').checked;
 
   if(!cli){toast('Informe o nome do cliente',true);return;}
@@ -3282,13 +3282,13 @@ function editarVenda(id){
   document.getElementById('v-canal').value=v.canal;
   document.getElementById('v-orig').value=v.origem||'';
   fillProdSelect();
-  document.getElementById('v-venda').value=v.venda;
-  document.getElementById('v-custo').value=v.custo;
+  document.getElementById('v-venda').value=fmtN(v.venda||0);
+  document.getElementById('v-custo').value=fmtN(v.custo||0);
   var tx1d3=document.getElementById('v-tx1-display');
   if(tx1d3) tx1d3.textContent=(v.taxaPct||0)+'%';
   document.getElementById('v-imp').value=v.impPct;
   document.getElementById('v-com').value=v.comPct;
-  document.getElementById('v-frete').value=v.frete;
+  document.getElementById('v-frete').value=fmtN(v.frete||0);
   if(v.duplo){
     document.getElementById('v-duplo').checked=true;
     document.getElementById('v-dp1t').value=v.pag1tipo||'PIX';
