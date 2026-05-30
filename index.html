@@ -7207,7 +7207,9 @@ function mlabel3(mk){
 function buildCaixaData(cfg, cb){
   var vendas=loadVendas();
   var mMap={};
-  var inicioMk=cfg.inicio||'2026-06';
+  var _d=new Date();_d.setMonth(_d.getMonth()-11);
+  var _defInicio=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0');
+  var inicioMk=cfg.inicio||_defInicio;
 
   function ensureMk(mk){
     if(!mMap[mk]) mMap[mk]={
@@ -7468,7 +7470,7 @@ function renderCaixaMeses(mMap, meses){
     var sc=saldo>=0?'#22c55e':'#ef4444';
     var sem=saldo>=0&&m.entradas>0?'🟢':saldo>=0?'🟡':'🔴';
     var isCur=mk===curMk;
-    var expanded=isCur||idx===0;
+    var expanded=isCur||(idx===0&&mk<=curMk);
     var maxV=Math.max(m.entradas,saiTotal,1);
     var entPct=(m.entradas/maxV*100).toFixed(1);
     var saiPct=(saiTotal/maxV*100).toFixed(1);
@@ -7555,9 +7557,12 @@ function renderCaixa(){
         renderCaixaGrafico(mMap,meses,cfg.saldoIni||0);
         renderCaixaMini(mMap,meses);
         // Saldo final acumulado para a projeção
+        // Saldo acumulado até o mês atual (sem meses futuros)
+        var _today=new Date();
+        var _curMk=_today.getFullYear()+'-'+String(_today.getMonth()+1).padStart(2,'0');
         var finalSaldo=cfg.saldoIni||0;
         Object.keys(mMap).sort().forEach(function(mk){
-          if(meses.indexOf(mk)<0) return;
+          if(mk>_curMk) return; // ignora futuros no saldo base
           var m=mMap[mk];
           finalSaldo+=m.entradas-(m.saidas_fixas+m.saidas_extras+m.saidas_cont+m.das-m.fin);
         });
@@ -8499,44 +8504,33 @@ function renderCaixaProjecao(mMap, saldoAcum){
   if(!el) return;
 
   var cfg=window._cxCfg||{};
-  var vendas=loadVendas();
   var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var today=new Date();
 
-  // ── Próximos 3 meses ─────────────────────────────────────────
+  // Próximos 3 meses
   var projMeses=[];
   for(var x=1;x<=3;x++){
-    var fd=new Date(today.getFullYear(), today.getMonth()+x, 1);
+    var fd=new Date(today.getFullYear(),today.getMonth()+x,1);
     projMeses.push(fd.getFullYear()+'-'+String(fd.getMonth()+1).padStart(2,'0'));
   }
 
-  // ── Entradas confirmadas (vendas com recebimento nos próximos meses) ──
-  var entradasProj={};
-  var rowsEntrada={};
-  projMeses.forEach(function(mk){entradasProj[mk]=0; rowsEntrada[mk]=[];});
-
-  vendas.forEach(function(v){
-    var recDate=getRecebDate(v,cfg);
-    var mk=mkey3(recDate);
-    if(!mk||projMeses.indexOf(mk)<0) return;
-    entradasProj[mk]+=(+v.venda||0)-(+v.taxa||0)-(+v.com||0)-(+v.frete||0);
-    rowsEntrada[mk].push({canal:v.canal||'',valor:(+v.venda||0),produto:v.produto||''});
-  });
-
-  // ── Média de entradas dos últimos 3 meses reais ──────────────
+  // Meses reais (passados) no mMap para calcular média
   var curMk=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
-  var realMeses=Object.keys(mMap).filter(function(mk){return mk<=curMk;}).sort().slice(-3);
+  var realMeses=Object.keys(mMap).filter(function(mk){return mk<=curMk;}).sort();
+  var ultimos3=realMeses.slice(-3);
+
+  // Média de entradas líquidas dos últimos 3 meses reais
   var mediaEnt=0;
-  if(realMeses.length>0){
-    var totalEnt=realMeses.reduce(function(s,mk){return s+(mMap[mk].entradas||0);},0);
-    mediaEnt=totalEnt/realMeses.length;
+  if(ultimos3.length>0){
+    var somaEnt=ultimos3.reduce(function(s,mk){return s+(mMap[mk]?mMap[mk].entradas:0);},0);
+    mediaEnt=somaEnt/ultimos3.length;
   }
 
-  // ── Média de saídas fixas dos últimos meses ──────────────────
+  // Média de saídas fixas dos últimos 3 meses reais
   var mediaFixas=0;
-  if(realMeses.length>0){
-    var totalF=realMeses.reduce(function(s,mk){return s+(mMap[mk].saidas_fixas||0);},0);
-    mediaFixas=totalF/realMeses.length;
+  if(ultimos3.length>0){
+    var somaF=ultimos3.reduce(function(s,mk){return s+(mMap[mk]?mMap[mk].saidas_fixas:0);},0);
+    mediaFixas=somaF/ultimos3.length;
   }
 
   var h='<div style="display:grid;gap:10px;">';
@@ -8544,112 +8538,101 @@ function renderCaixaProjecao(mMap, saldoAcum){
 
   projMeses.forEach(function(projMk){
     var parts=projMk.split('-');
-    var yr=parseInt(parts[0]); var mo=parseInt(parts[1]);
+    var yr=parseInt(parts[0]),mo=parseInt(parts[1]);
     var lbl=ms[mo-1]+'/'+String(yr).slice(2);
 
-    var entConfirmada=entradasProj[projMk]||0;
-    var rows=rowsEntrada[projMk]||[];
+    // Entradas: do mMap se já calculado, senão usa média
+    var entradas=0;
+    var isEstimada=false;
+    if(mMap[projMk]&&mMap[projMk].entradas>0){
+      entradas=mMap[projMk].entradas*(window._cxCenario||1.0);
+    } else {
+      entradas=mediaEnt*(window._cxCenario||1.0);
+      isEstimada=true;
+    }
 
-    // Entradas: confirmadas + estimativa (média) se confirmadas < média
-    var entUsada = entConfirmada > 0 ? entConfirmada : mediaEnt*(window._cxCenario||1.0);
-    var isEstimada = entConfirmada === 0 && mediaEnt > 0;
-
-    // Saídas: do mMap (já calculado) ou de getMDesp
-    var fixas=0, extras=0, contSaida=0, das=0, fin=0;
-    var fixaRows=[], contRows=[];
-
+    // Saídas: do mMap se já calculado, senão do getMDesp (despesas cadastradas)
+    var fixas=0,extras=0,contSaida=0,das=0,fin=0;
     if(mMap[projMk]){
       fixas=mMap[projMk].saidas_fixas;
       extras=mMap[projMk].saidas_extras;
       contSaida=mMap[projMk].saidas_cont;
       das=mMap[projMk].das;
       fin=mMap[projMk].fin;
-      contRows=(mMap[projMk].rows_saida||[]).filter(function(r){return r.tipo==='Estoque';});
-      fixaRows=(mMap[projMk].rows_saida||[]).filter(function(r){return r.tipo==='Fixa';});
     } else {
       var d=getMDesp(projMk);
-      if(d.fixas) d.fixas.forEach(function(f){
-        var val=+f.valor||0; fixas+=val;
-        fixaRows.push({desc:f.nome||'Fixa',valor:-val});
-      });
+      if(d.fixas) d.fixas.forEach(function(f){fixas+=+f.valor||0;});
       if(d.extras) d.extras.forEach(function(e){extras+=+e.valor||0;});
-      if(d.das>0) das=+d.das||0;
+      if(d.das>0) das=+d.das;
       if(d.financeiro) d.financeiro.forEach(function(f){fin+=+f.valor||0;});
     }
 
-    // Herdar fixas da média se não cadastrado
-    if(fixas===0 && mediaFixas>0){
+    // Herdar fixas da média se não há nada cadastrado
+    if(fixas===0&&mediaFixas>0){
       fixas=mediaFixas;
-      fixaRows=[{desc:'Custos fixos (média)',valor:-mediaFixas}];
     }
 
-    if(das===0 && entUsada>0) das=Math.round(entUsada*0.06*100)/100;
+    // DAS estimado se não cadastrado
+    if(das===0&&entradas>0){
+      das=Math.round(entradas*0.06*100)/100;
+    }
 
     var totalSai=fixas+extras+contSaida+das-fin;
-    var saldoMes=entUsada-totalSai;
+    var saldoMes=entradas-totalSai;
     saldo+=saldoMes;
 
     var colSaldo=saldo>=0?'#22c55e':'#ef4444';
     var colMes=saldoMes>=0?'#22c55e':'#ef4444';
-    var semaforo=saldo>=0?'🟢':'🔴';
+    var sem=saldo>=0?'🟢':'🔴';
 
-    h+='<div style="background:#ffffff08;border:1px solid #ffffff0a;border-radius:12px;padding:12px;">';
+    h+='<div style="background:#ffffff08;border:1px solid '+(contSaida>0?'#f59e0b44':'#ffffff0a')+';border-radius:12px;padding:12px;">';
 
     // Header
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-      +'<div>'
-        +'<div style="display:flex;align-items:center;gap:6px;">'
-          +'<span>'+semaforo+'</span>'
-          +'<span style="font-size:14px;font-weight:800;color:var(--text);">'+lbl+'</span>'
-          +(isEstimada?'<span style="font-size:9px;background:#f59e0b22;color:#f59e0b;border-radius:4px;padding:1px 5px;">estimado</span>':'')
-        +'</div>'
-        +(contSaida>0?'<div style="font-size:9px;color:#f59e0b;margin-top:2px;">⚠️ Parcela de contêiner</div>':'')
-      +'</div>'
-      +'<div style="text-align:right;">'
-        +'<div style="font-size:9px;color:var(--text3);">Saldo acumulado</div>'
-        +'<div style="font-size:20px;font-weight:800;color:'+colSaldo+';">'+fmt(saldo)+'</div>'
-      +'</div>'
-    +'</div>';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+    h+='<div>';
+    h+='<div style="display:flex;align-items:center;gap:6px;">';
+    h+='<span>'+sem+'</span>';
+    h+='<span style="font-size:14px;font-weight:800;color:var(--text);">'+lbl+'</span>';
+    if(isEstimada) h+='<span style="font-size:9px;background:#f59e0b22;color:#f59e0b;border-radius:4px;padding:2px 5px;">estimado</span>';
+    h+='</div>';
+    if(contSaida>0) h+='<div style="font-size:9px;color:#f59e0b;margin-top:2px;">⚠️ Parcela contêiner</div>';
+    h+='</div>';
+    h+='<div style="text-align:right;">';
+    h+='<div style="font-size:9px;color:var(--text3);">Saldo acumulado</div>';
+    h+='<div style="font-size:20px;font-weight:800;color:'+colSaldo+';">'+fmt(saldo)+'</div>';
+    h+='</div></div>';
 
-    // Entradas vs Saídas
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'
-      +'<div style="background:#22c55e11;border-radius:8px;padding:8px;">'
-        +'<div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:4px;">↑ ENTRADAS</div>'
-        +'<div style="font-size:16px;font-weight:800;color:#22c55e;">'+fmt(entUsada)+'</div>'
-        +'<div style="font-size:8px;color:var(--text3);margin-top:2px;">'+(isEstimada?'estimado pela média':''+rows.length+' vendas pendentes')+'</div>'
-      +'</div>'
-      +'<div style="background:#ef444411;border-radius:8px;padding:8px;">'
-        +'<div style="font-size:9px;color:#ef4444;font-weight:700;margin-bottom:4px;">↓ SAÍDAS</div>'
-        +'<div style="font-size:16px;font-weight:800;color:#ef4444;">'+fmt(totalSai)+'</div>'
-        +'<div style="font-size:8px;color:var(--text3);margin-top:2px;">custos previstos</div>'
-      +'</div>'
-    +'</div>';
+    // Cards entradas/saídas
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">';
+    h+='<div style="background:#22c55e11;border-radius:8px;padding:8px;">';
+    h+='<div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:4px;">↑ ENTRADAS</div>';
+    h+='<div style="font-size:16px;font-weight:800;color:#22c55e;">'+fmt(entradas)+'</div>';
+    h+='<div style="font-size:8px;color:var(--text3);margin-top:2px;">'+(isEstimada?'média dos últimos '+ultimos3.length+'M':'confirmadas')+'</div>';
+    h+='</div>';
+    h+='<div style="background:#ef444411;border-radius:8px;padding:8px;">';
+    h+='<div style="font-size:9px;color:#ef4444;font-weight:700;margin-bottom:4px;">↓ SAÍDAS</div>';
+    h+='<div style="font-size:16px;font-weight:800;color:#ef4444;">'+fmt(totalSai)+'</div>';
+    h+='<div style="font-size:8px;color:var(--text3);margin-top:2px;">previsão</div>';
+    h+='</div></div>';
 
     // Detalhamento
     h+='<div style="background:#00000025;border-radius:8px;padding:8px;">';
     h+='<div style="font-size:9px;color:var(--text3);font-weight:700;margin-bottom:6px;text-transform:uppercase;">Detalhamento</div>';
-    if(fixas>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Custos fixos</span><span style="color:#ef4444;">'+fmt(fixas)+'</span></div>';
-    if(extras>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Gastos extras</span><span style="color:#ef4444;">'+fmt(extras)+'</span></div>';
-    if(das>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">DAS'+(das<entUsada*0.065?' (estimado 6%)':'')+'</span><span style="color:#ef4444;">'+fmt(das)+'</span></div>';
+    if(fixas>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Custos fixos'+(isEstimada&&mediaFixas>0?' (herdado)':'')+'</span><span style="color:#ef4444;">'+fmt(fixas)+'</span></div>';
+    if(extras>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Extras</span><span style="color:#ef4444;">'+fmt(extras)+'</span></div>';
+    if(das>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">DAS'+(mMap[projMk]&&mMap[projMk].das>0?'':' ~6%')+'</span><span style="color:#ef4444;">'+fmt(das)+'</span></div>';
     if(fin>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Financeiro</span><span style="color:#22c55e;">+'+fmt(fin)+'</span></div>';
-    if(contSaida>0){
-      h+='<div style="border-top:1px solid #f59e0b33;margin:5px 0;"></div>';
-      h+='<div style="display:flex;justify-content:space-between;font-size:10px;"><span style="color:#f59e0b;">📦 Parcela contêiner</span><span style="color:#f59e0b;">'+fmt(contSaida)+'</span></div>';
-    }
-    h+='<div style="border-top:1px solid #ffffff15;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;">'
-      +'<span style="color:var(--text);">Resultado</span>'
-      +'<span style="color:'+colMes+';">'+(saldoMes>=0?'+ ':'')+fmt(saldoMes)+'</span>'
-    +'</div>';
-    h+='</div>'; // detalhamento
-    h+='</div>'; // card
+    if(contSaida>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;"><span style="color:#f59e0b;">📦 Contêiner</span><span style="color:#f59e0b;">'+fmt(contSaida)+'</span></div>';
+    h+='<div style="border-top:1px solid #ffffff15;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;">';
+    h+='<span style="color:var(--text);">Resultado</span>';
+    h+='<span style="color:'+colMes+';">'+(saldoMes>=0?'+':'')+fmt(saldoMes)+'</span>';
+    h+='</div></div></div>';
   });
 
   h+='</div>';
-  h+='<div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.6;">'
-    +'Entradas confirmadas = vendas realizadas com recebimento pendente<br>'
-    +'Estimado = média dos últimos '+realMeses.length+' meses reais'
-  +'</div>';
-
+  if(ultimos3.length===0){
+    h='<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px;">Nenhum mês real disponível para projeção. Cadastre vendas ou despesas para ativar a projeção.</div>';
+  }
   el.innerHTML=h;
 }
 
@@ -9025,7 +9008,7 @@ function siteShowStatus(msg,col){
 async function siteGetToken(){
   var ck=(document.getElementById('site-ck')||{value:''}).value.trim();
   var cs=(document.getElementById('site-cs')||{value:''}).value.trim();
-  if(!ck||!cs){toast('❌ Preencha Consumer Key e Consumer Secret no modal',true);siteShowStatus('Preencha as credenciais antes de sincronizar','#ef4444');return null;}
+  if(!ck||!cs){toast('❌ Informe Consumer Key e Secret na tela de sync',true);siteShowStatus('⚠️ Preencha as credenciais (CK e CS) antes de sincronizar','#ef4444');return null;}
   dbUpsert('configuracoes',{chave:'site_sync_creds',valor:JSON.stringify({ck:ck,cs:cs})});
   if(_siteToken&&Date.now()<_siteTokenExpiry) return _siteToken;
   siteShowStatus('Autenticando...','#1E90FF');
@@ -9099,39 +9082,45 @@ function findSiteSkuId(name,sku){
 }
 
 function openSiteSync(){
-  // Abre modal primeiro, depois preenche campos quando dados chegarem
-  openModal('m-site-sync');
   var today=new Date();
-  var firstDay=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-01';
-  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var yy=today.getFullYear();
+  var mm=String(today.getMonth()+1).padStart(2,'0');
+  var dd=String(today.getDate()).padStart(2,'0');
+  var firstDay=yy+'-'+mm+'-01';
+  var todayStr=yy+'-'+mm+'-'+dd;
+
+  // Abre o modal imediatamente
+  openModal('m-site-sync');
+
+  // Define datas padrão
   var df=document.getElementById('site-date-from');
   var dt=document.getElementById('site-date-to');
   if(df&&!df.value) df.value=firstDay;
   if(dt&&!dt.value) dt.value=todayStr;
-  // Carrega credenciais salvas
+
+  // Carrega credenciais e taxas do banco (sem bloquear abertura do modal)
   dbGet('configuracoes','chave=eq.site_sync_creds').then(function(rows){
-    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{
-        var c=JSON.parse(rows[0].valor);
-        var ck=document.getElementById('site-ck');
-        var cs=document.getElementById('site-cs');
-        if(ck&&c.ck) ck.value=c.ck;
-        if(cs&&c.cs) cs.value=c.cs;
-      }catch(e){}
-    }
+    if(!Array.isArray(rows)||!rows.length||!rows[0].valor) return;
+    try{
+      var c=JSON.parse(rows[0].valor);
+      var ck=document.getElementById('site-ck');
+      var cs=document.getElementById('site-cs');
+      if(ck&&c.ck) ck.value=c.ck;
+      if(cs&&c.cs) cs.value=c.cs;
+    }catch(e){}
   }).catch(function(){});
+
   dbGet('configuracoes','chave=eq.site_sync_rates').then(function(rows){
-    if(Array.isArray(rows)&&rows.length&&rows[0].valor){
-      try{
-        var r=JSON.parse(rows[0].valor);
-        var das=document.getElementById('site-das');
-        var com=document.getElementById('site-com');
-        var frete=document.getElementById('site-frete');
-        if(das&&r.das!=null) das.value=r.das;
-        if(com&&r.com!=null) com.value=r.com;
-        if(frete&&r.frete!=null) frete.value=r.frete;
-      }catch(e){}
-    }
+    if(!Array.isArray(rows)||!rows.length||!rows[0].valor) return;
+    try{
+      var r=JSON.parse(rows[0].valor);
+      var das=document.getElementById('site-das');
+      var com=document.getElementById('site-com');
+      var frete=document.getElementById('site-frete');
+      if(das&&r.das!=null) das.value=r.das;
+      if(com&&r.com!=null) com.value=r.com;
+      if(frete&&r.frete!=null) frete.value=r.frete;
+    }catch(e){}
   }).catch(function(){});
 }
 
@@ -9361,7 +9350,9 @@ async function siteSync(){
     });
 
   }catch(e){
-    siteShowStatus('Erro: '+e.message,'#ef4444');
+    var msg='Erro sync: '+e.message;
+    siteShowStatus(msg,'#ef4444');
+    toast(msg,true);
     console.error('siteSync error:',e);
   } finally {
     if(btn) btn.disabled=false;
