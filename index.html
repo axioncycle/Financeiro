@@ -9008,9 +9008,18 @@ function siteShowStatus(msg,col){
 async function siteGetToken(){
   var ck=(document.getElementById('site-ck')||{value:''}).value.trim();
   var cs=(document.getElementById('site-cs')||{value:''}).value.trim();
-  if(!ck||!cs){toast('❌ Informe Consumer Key e Secret na tela de sync',true);siteShowStatus('⚠️ Preencha as credenciais (CK e CS) antes de sincronizar','#ef4444');return null;}
+  if(!ck||!cs){
+    toast('❌ Preencha Consumer Key e Consumer Secret',true);
+    siteShowStatus('Preencha CK e CS antes de sincronizar','#ef4444');
+    return null;
+  }
   dbUpsert('configuracoes',{chave:'site_sync_creds',valor:JSON.stringify({ck:ck,cs:cs})});
-  if(_siteToken&&Date.now()<_siteTokenExpiry) return _siteToken;
+  // Usa cache só se válido
+  if(_siteToken && Date.now()<_siteTokenExpiry){
+    return _siteToken;
+  }
+  // Limpa cache antes de renovar
+  _siteToken=null; _siteTokenExpiry=0;
   siteShowStatus('Autenticando...','#1E90FF');
   try{
     var resp=await fetch('https://api.vowtecommerce.com.br/api/auth/token',{
@@ -9018,16 +9027,28 @@ async function siteGetToken(){
       headers:{'Accept':'application/json','Content-Type':'application/json','Store':'axioncycle'},
       body:JSON.stringify({consumer_key:ck,consumer_secret:cs})
     });
+    if(resp.status===401){
+      siteShowStatus('❌ 401 — Credenciais inválidas. Verifique CK e CS.','#ef4444');
+      toast('❌ Site Sync: credenciais inválidas (401)',true);
+      return null;
+    }
+    if(!resp.ok){
+      siteShowStatus('❌ Erro '+resp.status+' ao autenticar','#ef4444');
+      toast('❌ Site Sync: erro '+resp.status,true);
+      return null;
+    }
     var data=await resp.json();
     if(!data.success||!data.data||!data.data.access_token){
-      siteShowStatus('Erro auth: '+(data.message||'credenciais inválidas'),'#ef4444');
+      siteShowStatus('Erro auth: '+(data.message||'resposta inválida'),'#ef4444');
+      toast('❌ Site Sync: '+(data.message||'auth falhou'),true);
       return null;
     }
     _siteToken=data.data.access_token;
-    _siteTokenExpiry=Date.now()+((data.data.expires_in||3600)-60)*1000;
+    _siteTokenExpiry=Date.now()+((data.data.expires_in||3600)-120)*1000;
     return _siteToken;
   }catch(e){
     siteShowStatus('Erro de conexão: '+e.message,'#ef4444');
+    toast('❌ Site Sync: '+e.message,true);
     return null;
   }
 }
@@ -9040,6 +9061,11 @@ async function siteFetchOrders(token,store,dateFrom,dateTo,statusId,page,allOrde
   var resp=await fetch(url,{
     headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':store}
   });
+  if(resp.status===401){
+    _siteToken=null; _siteTokenExpiry=0;
+    throw new Error('Token expirado (401) — tente novamente');
+  }
+  if(!resp.ok) throw new Error('HTTP '+resp.status+' ao buscar pedidos');
   var data=await resp.json();
   if(!data.success) throw new Error(data.message||'Erro ao buscar pedidos');
   var orders=data.data||[];
@@ -9208,7 +9234,11 @@ async function siteSync(){
       var detResp=await fetch('https://api.vowtecommerce.com.br/api/orders/'+o.order_id,{
         headers:{'Accept':'application/json','Authorization':'Bearer '+token,'Store':'axioncycle'}
       });
-      var detData=await detResp.json();
+      if(detResp.status===401){
+        _siteToken=null; _siteTokenExpiry=0;
+        throw new Error('Token expirado (401) — tente novamente');
+      }
+      var detData=(detResp.ok?await detResp.json():{data:null});
       var full=detData.data||o;
       var products=full.products||[];
       var totals=full.totals||[];
@@ -9350,10 +9380,10 @@ async function siteSync(){
     });
 
   }catch(e){
-    var msg='Erro sync: '+e.message;
-    siteShowStatus(msg,'#ef4444');
-    toast(msg,true);
-    console.error('siteSync error:',e);
+    var errMsg='❌ Sync Site: '+e.message;
+    siteShowStatus(errMsg,'#ef4444');
+    toast(errMsg,true);
+    console.error('siteSync:',e);
   } finally {
     if(btn) btn.disabled=false;
   }
