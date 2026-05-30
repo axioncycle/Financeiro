@@ -7727,8 +7727,9 @@ function buildCaixaData(cfg, cb){
   });
 
   // 3. SAÍDAS: pagamentos de containers — carrega do Supabase
-  var containers=loadContainers();
-  if(!containers||!containers.length){
+  // Garante containers frescos antes de calcular saídas
+  var _runBuild=function(containers){
+    if(!containers||!containers.length){
     // Adiciona meses futuros ao mMap
     var _today2=new Date();
     for(var _x2=1;_x2<=3;_x2++){
@@ -7803,6 +7804,13 @@ function buildCaixaData(cfg, cb){
       checkDone();
     });
   });
+  };
+  // Usa DB_CONTAINERS se disponível, senão carrega do Supabase
+  if(DB_CONTAINERS&&DB_CONTAINERS.length){
+    _runBuild(DB_CONTAINERS);
+  } else {
+    loadContainersDB(function(cs){DB_CONTAINERS=cs;_runBuild(cs);});
+  }
 }
 
 function renderCaixaFilter(mMap){
@@ -9579,7 +9587,7 @@ function gerarRelatorio(){
     produtos:document.getElementById('rel-produtos')&&document.getElementById('rel-produtos').checked,
     estoque:document.getElementById('rel-estoque')&&document.getElementById('rel-estoque').checked,
     caixa:document.getElementById('rel-caixa')&&document.getElementById('rel-caixa').checked,
-    lista:document.getElementById('rel-lista-vendas')&&document.getElementById('rel-lista-vendas').checked
+    lista:document.getElementById('rel-lista')&&document.getElementById('rel-lista').checked
   };
 
   relShowStatus('Gerando relatório...','#1E90FF');
