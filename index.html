@@ -345,6 +345,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div style="height:8px;"></div>
   <button class="btn btn-g" onclick="exportCSV()">&#11015; Exportar CSV</button>
   <button class="btn btn-s" onclick="backupApp()" style="margin-top:6px;">💾 Backup completo (JSON)</button>
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📄 Relatório</div>
+    <button class="btn" onclick="openRelatorio()" style="width:100%;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-weight:700;font-size:14px;padding:13px;">
+      📄 Exportar Relatório PDF
+    </button>
+    <div style="font-size:9px;color:var(--text3);margin-top:6px;text-align:center;">Resumo, DRE, vendas, estoque, caixa e mais</div>
+  </div>
 </div>
 
 <!-- FLUXO DE CAIXA -->
@@ -826,7 +833,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     </button>
     
     <button onclick="baixarModelo()" class="btn btn-o" style="margin-bottom:8px;">&#11015; BAIXAR MODELO (.csv)</button>
-    <button onclick="openRelatorio()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;width:100%;">📄 Exportar Relatório PDF</button>
     <label style="display:block;cursor:pointer;">
       <div class="btn">&#128194; SELECIONAR ARQUIVO .CSV</div>
       <input type="file" id="imp-file" accept=".csv,.txt" style="display:none;" onchange="importCSV(this)">
