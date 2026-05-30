@@ -1252,7 +1252,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="r2" style="margin-bottom:8px;">
         <div>
           <label class="fl">Preco de Venda (R$)</label>
-          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="text" inputmode="decimal" value="4699" placeholder="4699" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="text" inputmode="decimal" value="4699" placeholder="4699" oninput="maskBRL(this);calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
         <div>
           <label class="fl">Taxa de Venda %</label>
@@ -1339,7 +1339,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Custo Total em R$ (BRL)</div>
         <input id="sim-custo-brl" type="text" inputmode="decimal" class="fi" placeholder="Ex: 125000"
           style="font-size:16px;font-weight:700;color:#22c55e;"
-          oninput="onSimCustoBRL(this.value)">
+          oninput="maskBRL(this);onSimCustoBRL(this.value)">
       </div>
 
       <!-- Fator calculado -->
@@ -1366,12 +1366,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
 
   <!-- Info sobre envio ao estoque -->
-  <div style="background:#111;border:1px solid #22c55e33;border-radius:10px;padding:12
-
-
-
-
+  <div style="background:#111;border:1px solid #22c55e33;border-radius:
 <script>
+
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
 var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
@@ -5533,7 +5530,7 @@ function onPagChange(i,field,val){
     return;
   }
   if(field==='valor'){
-    pagamentos[i].valor=parseFloat(String(val).replace(',','.'))||0;
+    pagamentos[i].valor=parseBRL(val);
   } else if(field==='usd'){
     pagamentos[i].usd=parseFloat(String(val).replace(',','.'))||0;
   } else {
@@ -5591,9 +5588,10 @@ function renderPagamentos(){
     dInp.onchange=(function(idx){return function(){onPagChange(idx,'data',this.value);};})(i);
     // BRL value
     var vInp=document.createElement('input');
-    vInp.type='number';vInp.value=p.valor||'';vInp.placeholder='0';
+    vInp.type='text';vInp.inputMode='decimal';
+    vInp.value=p.valor>0?fmtN(p.valor):'';vInp.placeholder='0,00';
     vInp.className='fi';vInp.style.cssText='padding:8px 10px;font-size:13px;font-weight:600;';
-    vInp.oninput=(function(idx){return function(){onPagChange(idx,'valor',this.value);};})(i);
+    vInp.oninput=(function(idx){return function(){maskBRL(this);onPagChange(idx,'valor',this.value);};})(i);
     // USD value
     var uInp=document.createElement('input');
     uInp.type='number';uInp.value=p.usd||'';uInp.placeholder='0';
@@ -5768,7 +5766,7 @@ function calcROI(){
   var totalInvestido=totBRL;
 
   // Parametros editaveis
-  var precoVenda=parseFloat(document.getElementById('roi-preco-venda').value)||4699;
+  var precoVenda=parseBRL(document.getElementById('roi-preco-venda').value||'4.699,00')||4699;
   var taxaPct=parseFloat(document.getElementById('roi-taxa').value)||0;
   var frete=parseFloat(document.getElementById('roi-frete').value)||0;
   var impPct=parseFloat(document.getElementById('roi-imp').value)||0;
@@ -7639,8 +7637,8 @@ function mlSyncCancelled(){
 var cxSelPeriod = 'all';
 
 function saveCaixaConfig(){
-  var conta=parseFloat(document.getElementById('cx-saldo-conta')&&document.getElementById('cx-saldo-conta').value)||0;
-  var invest=parseFloat(document.getElementById('cx-saldo-invest')&&document.getElementById('cx-saldo-invest').value)||0;
+  var conta=parseFloat(document.getElementById('cx-saldo-conta')&&parseBRL(document.getElementById('cx-saldo-conta').value||'0'))||0;
+  var invest=parseFloat(document.getElementById('cx-saldo-invest')&&parseBRL(document.getElementById('cx-saldo-invest').value||'0'))||0;
   var total=conta+invest;
   // Update total display
   var tv=document.getElementById('cx-saldo-total-val');
@@ -7683,8 +7681,8 @@ function loadCaixaConfig(cb){
     if(es) es.value=cfg.site;
     if(ew) ew.value=cfg.whats||1;
     if(ei) ei.value=cfg.inicio||'2026-06';
-    if(ec&&cfg.saldoConta) ec.value=cfg.saldoConta;
-    if(einv&&cfg.saldoInvest) einv.value=cfg.saldoInvest;
+    if(ec&&cfg.saldoConta) ec.value=fmtN(cfg.saldoConta);
+    if(einv&&cfg.saldoInvest) einv.value=fmtN(cfg.saldoInvest);
     if(tv) tv.textContent=fmt(cfg.saldoIni);
     // Restore saldoMinimo field (rendered by renderCaixaAlertas)
     setTimeout(function(){
