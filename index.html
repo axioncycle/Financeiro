@@ -1252,7 +1252,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="r2" style="margin-bottom:8px;">
         <div>
           <label class="fl">Preco de Venda (R$)</label>
-          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="text" inputmode="decimal" value="4699" placeholder="4699" oninput="maskBRL(this);calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="text" inputmode="decimal" value="4.699,00" placeholder="4.699,00" oninput="maskBRL(this);calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
         <div>
           <label class="fl">Taxa de Venda %</label>
@@ -1370,6 +1370,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
 
 </div>
+
+
 
 <script>
 
@@ -5445,7 +5447,7 @@ function onCustoContChange(){
       var vals=[p.preco,p.taxa,p.frete,p.imp,p.com];
       for(var fi=0;fi<fields.length;fi++){
         var el=document.getElementById('roi-'+fields[fi]);
-        if(el&&vals[fi]) el.value=vals[fi];
+        if(el&&vals[fi]) el.value=(fields[fi]==='preco-venda'||fields[fi]==='frete')?fmtN(parseFloat(vals[fi])||0):vals[fi];
       }
       calcROI();
     });
@@ -5772,7 +5774,7 @@ function calcROI(){
   // Parametros editaveis
   var precoVenda=parseBRL(document.getElementById('roi-preco-venda').value||'4.699,00')||4699;
   var taxaPct=parseFloat(document.getElementById('roi-taxa').value)||0;
-  var frete=parseFloat(document.getElementById('roi-frete').value)||0;
+  var frete=parseBRL(document.getElementById('roi-frete').value||'0')||0;
   var impPct=parseFloat(document.getElementById('roi-imp').value)||0;
   var comPct=parseFloat(document.getElementById('roi-com').value)||0;
 
@@ -5987,7 +5989,7 @@ function saveROIParams(){
   var params={
     preco:parseFloat(document.getElementById('roi-preco-venda').value)||0,
     taxa:parseFloat(document.getElementById('roi-taxa').value)||0,
-    frete:parseFloat(document.getElementById('roi-frete').value)||0,
+    frete:parseBRL(document.getElementById('roi-frete').value||'0')||0,
     imp:parseFloat(document.getElementById('roi-imp').value)||0,
     com:parseFloat(document.getElementById('roi-com').value)||0
   };
@@ -6056,9 +6058,9 @@ function calcBreakEven(){
     var r=skuRows[i];
     if(r.skuNome&&r.skuNome!=='__outro__') totQtd+=(parseInt(r.qty)||0);
   }
-  var precoVenda=parseFloat(document.getElementById('roi-preco-venda').value)||4699;
+  var precoVenda=parseBRL(document.getElementById('roi-preco-venda').value||'4.699,00')||4699;
   var taxaPct=parseFloat(document.getElementById('roi-taxa').value)||0;
-  var frete=parseFloat(document.getElementById('roi-frete').value)||0;
+  var frete=parseBRL(document.getElementById('roi-frete').value||'0')||0;
   var impPct=parseFloat(document.getElementById('roi-imp').value)||0;
   var comPct=parseFloat(document.getElementById('roi-com').value)||0;
   var taxa=precoVenda*taxaPct/100;
