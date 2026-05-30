@@ -806,8 +806,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
     </div>
     <div class="r3">
-      <div class="fg"><label class="fl">Imposto %</label><input class="fi" id="v-imp" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
-      <div class="fg"><label class="fl">Comissao %</label><input class="fi" id="v-com" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg"><label class="fl">Imposto %</label><input class="fi" id="v-imp" type="number" placeholder="0,00" oninput="calcRes()" step="0.01"></div>
+      <div class="fg"><label class="fl">Comissao %</label><input class="fi" id="v-com" type="number" placeholder="0,00" oninput="calcRes()" step="0.01"></div>
       <div class="fg"><label class="fl">Frete</label><input class="fi" id="v-frete" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
     <div class="divider"></div>
@@ -3129,8 +3129,8 @@ function calcDuplo(){
 function calcRes(){
   var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
   var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
-  var impPct=parseBRL(document.getElementById('v-imp').value||'0')||0;
-  var comPct=parseBRL(document.getElementById('v-com').value||'0')||0;
+  var impPct=parseFloat(document.getElementById('v-imp').value)||0;
+  var comPct=parseFloat(document.getElementById('v-com').value)||0;
   var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
   // Always update taxa display from current select value
   var txNow=getTaxaVal();
@@ -3139,8 +3139,8 @@ function calcRes(){
   var duplo=document.getElementById('v-duplo').checked;
   var taxa=0;
   if(duplo){
-    var p1v=parseFloat(document.getElementById('v-dp1v').value)||0;
-    var p2v=parseFloat(document.getElementById('v-dp2v').value)||0;
+    var p1v=parseBRL(document.getElementById('v-dp1v').value||'0')||0;
+    var p2v=parseBRL(document.getElementById('v-dp2v').value||'0')||0;
     var t1=parseFloat(document.getElementById('v-dp1tx').value)||0;
     var t2=parseFloat(document.getElementById('v-dp2tx').value)||0;
     var tx1r=p1v*t1/100,tx2r=p2v*t2/100;
@@ -3185,10 +3185,10 @@ function salvarVenda(){
   var taxa=0,taxaPct=0,pag1tipo='',pag1val=0,pag1taxa=0,pag2tipo='',pag2val=0,pag2taxa=0;
   if(duplo){
     pag1tipo=document.getElementById('v-dp1t').value;
-    pag1val=parseFloat(document.getElementById('v-dp1v').value)||0;
+    pag1val=parseBRL(document.getElementById('v-dp1v').value||'0')||0;
     pag1taxa=parseFloat(document.getElementById('v-dp1tx').value)||0;
     pag2tipo=document.getElementById('v-dp2t').value;
-    pag2val=parseFloat(document.getElementById('v-dp2v').value)||0;
+    pag2val=parseBRL(document.getElementById('v-dp2v').value||'0')||0;
     pag2taxa=parseFloat(document.getElementById('v-dp2tx').value)||0;
     taxa=(pag1val*pag1taxa/100)+(pag2val*pag2taxa/100);
     taxaPct=venda>0?parseFloat((taxa/venda*100).toFixed(2)):0;
@@ -10016,12 +10016,9 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     '</div>'+
     '</body></html>';
 }
-
-
 </script>
 
-<!-- PIN CONFIG MODAL -->
-<div class="ovl" id="m-pin-cfg" onclick="if(event.target===this)closeModal('m-pin-cfg')">
+<di<div class="ovl" id="m-pin-cfg" onclick="if(event.target===this)closeModal('m-pin-cfg')">
   <div class="modal">
     <div class="mhdl">🔐 Configurar PIN<button class="mclose" onclick="closeModal('m-pin-cfg')">×</button></div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">O PIN protege o acesso ao app. Deixe em branco para remover.</p>
@@ -10098,6 +10095,9 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     </div>
   </div>
 </div>
+
+
+
 
 <!-- MODAL RELATÓRIO PDF -->
 <div class="ovl" id="m-relatorio" onclick="if(event.target===this)closeModal('m-relatorio')">
