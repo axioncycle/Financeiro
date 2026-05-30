@@ -445,8 +445,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
   <!-- Projeção 3 meses -->
   <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:10px;">
-    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🔮 PROJEÇÃO — PRÓXIMOS 3 MESES</div>
-    <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">Baseado na média dos últimos 3 meses reais</div>
+    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🔮 PROJEÇÃO — PRÓXIMOS 6 MESES</div>
+    <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">Baseado na média dos últimos 6 meses reais</div>
     <div id="cx-projecao"></div>
   </div>
 
@@ -580,15 +580,15 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Custo (R$)</div>
-          <input class="fi" id="sim-preco-custo" type="number" placeholder="ex: 2000" oninput="calcSimPreco()">
+          <input class="fi" id="sim-preco-custo" type="text" inputmode="decimal" placeholder="ex: 2000" oninput="calcSimPreco()">
         </div>
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Margem desejada %</div>
-          <input class="fi" id="sim-preco-margem" type="number" placeholder="ex: 40" oninput="calcSimPreco()">
+          <input class="fi" id="sim-preco-margem" type="text" inputmode="decimal" placeholder="ex: 40" oninput="calcSimPreco()">
         </div>
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Taxa ML %</div>
-          <input class="fi" id="sim-preco-taxa" type="number" placeholder="ex: 16" oninput="calcSimPreco()">
+          <input class="fi" id="sim-preco-taxa" type="text" inputmode="decimal" placeholder="ex: 16" oninput="calcSimPreco()">
         </div>
       </div>
       <div id="sim-preco-result" style="background:var(--bg3);border-radius:8px;padding:10px;display:none;"></div>
@@ -1252,7 +1252,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="r2" style="margin-bottom:8px;">
         <div>
           <label class="fl">Preco de Venda (R$)</label>
-          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="number" value="4699" placeholder="4699" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-preco-venda" onchange="saveROIParams();calcROI();" type="text" inputmode="decimal" value="4699" placeholder="4699" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
         <div>
           <label class="fl">Taxa de Venda %</label>
@@ -1337,7 +1337,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <!-- Custo total BRL input -->
       <div style="margin-bottom:12px;">
         <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Custo Total em R$ (BRL)</div>
-        <input id="sim-custo-brl" type="number" class="fi" placeholder="Ex: 125000"
+        <input id="sim-custo-brl" type="text" inputmode="decimal" class="fi" placeholder="Ex: 125000"
           style="font-size:16px;font-weight:700;color:#22c55e;"
           oninput="onSimCustoBRL(this.value)">
       </div>
@@ -1510,7 +1510,9 @@ function saveContainersDB(cs){
   }
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
-function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
+function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
+    if(data.prolabore>0){r2={mes:mk,nome:'Pró-labore',valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
+    if(data.distribuicao>0){r2={mes:mk,nome:'Distribuição de lucros',valor:data.distribuicao,tipo:'distribuicao'};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
 function loadCustomSKUsDB(cb){
   var done=0;
   function chk(){done++;if(done>=3&&cb)cb();}
@@ -1793,6 +1795,41 @@ function getOldestContIdForLocal(local,skuId){
 
 // ── HELPERS ──────────────────────────────────────────────────────────────
 function fmt(n){return 'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+// ── FORMATAÇÃO MONETÁRIA BRL ─────────────────────────────────────
+function fmtN(n){
+  // Formata número sem prefixo R$: 1.000,00
+  return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function parseBRL(str){
+  // Converte "1.234,56" → 1234.56
+  if(typeof str==='number') return str;
+  var s=String(str||'').replace(/[^0-9,]/g,'').replace(',','.');
+  return parseFloat(s)||0;
+}
+function maskBRL(input){
+  // Aplica máscara BRL em tempo real num input text
+  var raw=input.value.replace(/[^0-9]/g,'');
+  if(!raw){input.value='';return;}
+  var cents=parseInt(raw,10);
+  var reais=cents/100;
+  input.value=reais.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function initBRL(input,val){
+  // Inicializa um input text com valor numérico formatado em BRL
+  if(!input) return;
+  if(val===undefined||val===null||val==='') {input.value=''; return;}
+  var n=typeof val==='number'?val:parseBRL(val);
+  input.value=n>0?fmtN(n):'';
+}
+
+// ── DEBOUNCE PARA EVITAR REBUILD DO DOM A CADA TECLA ─────────────
+var _resTimer=null;
+function renderResDebounced(){
+  clearTimeout(_resTimer);
+  _resTimer=setTimeout(function(){renderRes();},600);
+}
+
 function fmtDate(iso){try{return new Date(iso).toLocaleDateString('pt-BR');}catch(e){return '';}}
 function mkey(iso){return iso?iso.slice(0,7):'';}
 function mlabel(k){
@@ -4070,6 +4107,8 @@ function getMDesp(mk){
   // Prefer DB_DESP (from Supabase) over localStorage
   if(DB_DESP[mk]){
     if(!DB_DESP[mk].financeiro) DB_DESP[mk].financeiro=[];
+    if(DB_DESP[mk].prolabore===undefined) DB_DESP[mk].prolabore=0;
+    if(DB_DESP[mk].distribuicao===undefined) DB_DESP[mk].distribuicao=0;
     if(DB_DESP[mk].das===undefined) DB_DESP[mk].das=0;
     return DB_DESP[mk];
   }
@@ -4083,6 +4122,8 @@ function getMDesp(mk){
     saveDespDB(mk,d[mk]);
   }
   if(!d[mk].financeiro) d[mk].financeiro=[];
+  if(d[mk].prolabore===undefined) d[mk].prolabore=0;
+  if(d[mk].distribuicao===undefined) d[mk].distribuicao=0;
   if(d[mk].das===undefined) d[mk].das=0;
   return d[mk];
 }
@@ -4097,6 +4138,10 @@ function syncDespesasFromDB(cb){
       if(r.tipo==='das'){
         // DAS real field
         d[r.mes].das=+r.valor||0;
+      } else if(r.tipo==='prolabore'){
+        d[r.mes].prolabore=+r.valor||0;
+      } else if(r.tipo==='distribuicao'){
+        d[r.mes].distribuicao=+r.valor||0;
       } else if(r.tipo==='fixa'){
         // Auto-migrate: old DAS saved as tipo='fixa' → move to das field
         if(r.nome==='DAS'||r.nome==='das'){
@@ -4105,6 +4150,10 @@ function syncDespesasFromDB(cb){
         } else {
           d[r.mes].fixas.push({nome:r.nome,valor:+r.valor||0});
         }
+      } else if(r.tipo==='prolabore'){
+        d[r.mes].prolabore=+r.valor||0;
+      } else if(r.tipo==='distribuicao'){
+        d[r.mes].distribuicao=+r.valor||0;
       } else if(r.tipo==='financeiro'){
         if(!d[r.mes].financeiro)d[r.mes].financeiro=[];
         d[r.mes].financeiro.push({nome:r.nome,valor:+r.valor||0});
@@ -4182,7 +4231,7 @@ function renderRes(){
   }
 
   // DRE for filtered period
-  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0;
+  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0,anoProlaboreF=0,anoDistribuicaoF=0;
   for(i=0;i<mesesF.length;i++){
     var mkF2=mesesF[i];
     var mvF2=[],jF2;
@@ -4202,11 +4251,14 @@ function renderRes(){
     // DAS
     if(mdF2.das>0) anoDasF+=mdF2.das;
     else for(jF2=0;jF2<mvF2.length;jF2++) anoDasF+=mvF2[jF2].imp||0;
+    anoProlaboreF+=(mdF2.prolabore||0);
+    anoDistribuicaoF+=(mdF2.distribuicao||0);
   }
   var anoMargContribF=anoLSIF-anoExtrasF;
-  var anoEbitdaF=anoMargContribF-anoFixasF;
+  var anoEbitdaF=anoMargContribF-anoFixasF-anoProlaboreF;
   var anoEbitFinF=anoEbitdaF+anoFinF;
   var anoLiqF=anoEbitFinF-anoDasF;
+  var anoLiqDistF=anoLiqF-anoDistribuicaoF;
   var acF=anoLiqF>=0?'#22c55e':'#ef4444';
 
   // ── Metas para semáforo ──────────────────────────────
@@ -4332,20 +4384,22 @@ function renderRes(){
     // DAS real (from Resultado) takes priority over estimated (from vendas)
     var impEstimado=0;for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
     var impM=md.das>0?md.das:impEstimado;
-    var res=ebitFinM-impM;
+    var prolaboreM=md.prolabore||0;
+    var distribuicaoM=md.distribuicao||0;
+    var res=ebitFinM-impM-prolaboreM;
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a1a1a;font-size:11px;"><span>'+v.cliente+' - '+(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
     var fixaRows=md.fixas.filter(function(f){return f.nome!=='DAS'&&f.nome!=='das';}).map(function(f,fi){
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a;gap:6px;">'+
         '<span style="font-size:12px;flex:1;">'+f.nome+'</span>'+
-        '<input type="number" value="'+(f.valor||'')+'" placeholder="0" style="width:90px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" onchange="updFixa(\''+mk+'\','+fi+',this.value)">'+
+        '<input type="text" inputmode="decimal" value="'+(fmtN(f.valor||0))+'" placeholder="0,00" style="width:90px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFixa(\''+mk+'\','+fi+',this.value)">'+
         '<button onclick="delFixa(\''+mk+'\','+fi+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
       '</div>';
     }).join('')+
     '<div style="margin-top:8px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'+
       '<input id="new-fixa-nome-'+mk+'" class="fi" placeholder="Nova despesa..." style="flex:2;font-size:12px;min-width:100px;">'+
-      '<input id="new-fixa-val-'+mk+'" class="fi" type="number" placeholder="R$" style="width:75px;font-size:12px;flex-shrink:0;">'+
+      '<input id="new-fixa-val-'+mk+'" class="fi" type="text" inputmode="decimal" placeholder="R$" style="width:75px;font-size:12px;flex-shrink:0;">'+
       '<select id="new-fixa-meses-'+mk+'" class="fi" style="width:70px;font-size:11px;flex-shrink:0;" title="Repetir por quantos meses">'+
         '<option value="1">1x</option>'+
         '<option value="2">2x</option>'+
@@ -4370,7 +4424,7 @@ function renderRes(){
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
       '<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Despesas Extras</div>'+
       extraRows+
-      '<div style="display:flex;gap:6px;margin-top:6px;"><input id="en'+i+'" class="fi" type="text" placeholder="Descricao" style="flex:1;font-size:12px;padding:8px 10px;"><input id="ev'+i+'" class="fi" type="number" placeholder="Valor" style="width:80px;font-size:12px;padding:8px 10px;"><button onclick="addExtra(\''+mk+'\','+i+')" style="background:#1E90FF;border:none;border-radius:8px;color:#fff;font-size:16px;padding:0 10px;cursor:pointer;">+</button></div>'+
+      '<div style="display:flex;gap:6px;margin-top:6px;"><input id="en'+i+'" class="fi" type="text" placeholder="Descricao" style="flex:1;font-size:12px;padding:8px 10px;"><input id="ev'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" style="width:80px;font-size:12px;padding:8px 10px;"><button onclick="addExtra(\''+mk+'\','+i+')" style="background:#1E90FF;border:none;border-radius:8px;color:#fff;font-size:16px;padding:0 10px;cursor:pointer;">+</button></div>'+
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
       '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">± Resultado Financeiro</div>'+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
@@ -4385,7 +4439,7 @@ function renderRes(){
       '<div style="display:flex;gap:4px;margin-top:6px;">'+
         '<select id="ft'+i+'" class="fs" style="width:90px;font-size:11px;padding:6px 6px;"><option value="entrada">+ Entrada</option><option value="saida">− Saída</option></select>'+
         '<input id="fn'+i+'" class="fi" type="text" placeholder="Descrição" style="flex:1;font-size:12px;padding:7px 10px;">'+
-        '<input id="fv'+i+'" class="fi" type="number" placeholder="Valor" style="width:70px;font-size:12px;padding:7px 8px;">'+
+        '<input id="fv'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" style="width:70px;font-size:12px;padding:7px 8px;">'+
         '<select id="fm'+i+'" class="fi" style="width:65px;font-size:11px;" title="Repetir por quantos meses">'+
           '<option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>'+
           '<option value="6">6x</option><option value="12">12x</option><option value="99">∞</option>'+
@@ -4404,12 +4458,24 @@ function renderRes(){
           '<div style="font-size:9px;color:#666;margin-top:1px;">'+(md.das>0?'Valor real':'Estimado: '+fmt(impEstimado))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
-          '<input type="number" value="'+(md.das||'')+'" placeholder="'+impEstimado.toFixed(0)+'"'+
+          '<input type="text" inputmode="decimal" value="'+(md.das?fmtN(md.das):'')+'" placeholder="'+impEstimado.toFixed(0)+'"'+
           ' style="width:110px;background:#111;border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
           ' onchange="saveDAS(\''+mk+'\',this.value)">'+
         '</div>'+
       '</div>'+
-      '<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
+      '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #ffffff10;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+        '<div><div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore</div>'+
+        '<div style="font-size:9px;color:var(--text3);">Remuneração sócio</div></div>'+
+        '<input type="text" inputmode="decimal" value="'+(md.prolabore?fmtN(md.prolabore):'')+'" placeholder="0,00" style="width:110px;background:#111;border:1px solid #f59e0b44;border-radius:6px;padding:6px 8px;color:#f59e0b;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveProlabore(\\\''+mk+'\\\',this.value)">'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+        '<div><div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;">💸 Distribuição de Lucros</div>'+
+        '<div style="font-size:9px;color:var(--text3);">Retirada após apuração</div></div>'+
+        '<input type="text" inputmode="decimal" value="'+(md.distribuicao?fmtN(md.distribuicao):'')+'" placeholder="0,00" style="width:110px;background:#111;border:1px solid #a78bfa44;border-radius:6px;padding:6px 8px;color:#a78bfa;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveDistribuicao(\\\''+mk+'\\\',this.value)">'+
+      '</div>'+
+    '</div>'+
+'<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
       '<div style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
       '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
         '<div style="font-size:11px;color:#666;">Margem: <strong style="color:'+rc+';">'+mg.toFixed(1)+'%</strong></div>'+
@@ -4434,17 +4500,32 @@ function renderRes(){
 }
 
 function toggleMes(id){var el=document.getElementById(id);if(el) el.style.display=el.style.display==='none'?'block':'none';}
-function saveDAS(mk,val){
+function saveProlabore(mk,val){
   var md=getMDesp(mk);
-  md.das=parseFloat(val)||0;
+  md.prolabore=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderRes();
+  renderResDebounced();
+}
+function saveDistribuicao(mk,val){
+  var md=getMDesp(mk);
+  md.distribuicao=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
+}
+
+function saveDAS(mk,val){
+  var md=getMDesp(mk);
+  md.das=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
 }
 
 function addFinanceiro(mk,i){
   var nome=(document.getElementById('fn'+i)||{value:''}).value.trim();
-  var val=parseFloat((document.getElementById('fv'+i)||{value:0}).value)||0;
+  var val=parseBRL((document.getElementById('fv'+i)||{value:''}).value);
   var tipo=document.getElementById('ft'+i)?document.getElementById('ft'+i).value:'entrada';
   var mesesEl=document.getElementById('fm'+i);
   var numMeses=parseInt(mesesEl?mesesEl.value:1)||1;
@@ -4468,7 +4549,7 @@ function delFinanceiro(mk,fi){
   saveDespDB(mk,md);renderRes();toast('Lançamento removido');
 }
 
-function updFixa(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].valor=parseFloat(val)||0;saveDespDB(mk,md);renderRes();}
+function updFixa(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].valor=parseBRL(val);saveDespDB(mk,md);renderResDebounced();}
 
 function addFixa(mk){
   var nomeEl=document.getElementById('new-fixa-nome-'+mk);
@@ -4476,7 +4557,7 @@ function addFixa(mk){
   var mesesEl=document.getElementById('new-fixa-meses-'+mk);
   if(!nomeEl||!valEl) return;
   var nome=nomeEl.value.trim();
-  var val=parseFloat(valEl.value)||0;
+  var val=parseBRL(valEl.value);
   var numMeses=parseInt(mesesEl?mesesEl.value:1)||1;
   if(!nome){toast('Digite o nome da despesa',true);return;}
   // Generate future month keys from mk
@@ -4509,7 +4590,7 @@ function delFixa(mk,fi){
 }
 function addExtra(mk,i){
   var nome=(document.getElementById('en'+i)||{value:''}).value.trim();
-  var val=parseFloat((document.getElementById('ev'+i)||{value:0}).value)||0;
+  var val=parseBRL((document.getElementById('ev'+i)||{value:''}).value);
   var mesesEl=document.getElementById('em'+i);
   var numMeses=parseInt(mesesEl?mesesEl.value:1)||1;
   if(!nome){toast('Informe a descricao',true);return;}
@@ -7656,6 +7737,7 @@ function buildCaixaData(cfg, cb){
     if(!mMap[mk]) mMap[mk]={
       entradas:0,saidas_fixas:0,saidas_extras:0,
       saidas_cont:0,das:0,fin:0,qtd:0,
+      prolabore:0,distribuicao:0,
       rows_entrada:[],rows_saida:[]
     };
   }
@@ -7719,6 +7801,14 @@ function buildCaixaData(cfg, cb){
         mMap[mk].rows_saida.push({desc:'DAS (estimado)',valor:-dasEst,tipo:'Imposto'});
       }
     }
+    if(d.prolabore>0){
+      mMap[mk].prolabore+=(+d.prolabore||0);
+      mMap[mk].rows_saida.push({desc:'Pró-labore',valor:-(+d.prolabore||0),tipo:'Prolabore'});
+    }
+    if(d.distribuicao>0){
+      mMap[mk].distribuicao+=(+d.distribuicao||0);
+      mMap[mk].rows_saida.push({desc:'Distribuição de Lucros',valor:-(+d.distribuicao||0),tipo:'Distribuicao'});
+    }
     if(d.financeiro) d.financeiro.forEach(function(f){
       var val=+f.valor||0;
       mMap[mk].fin+=val;
@@ -7732,7 +7822,7 @@ function buildCaixaData(cfg, cb){
     if(!containers||!containers.length){
     // Adiciona meses futuros ao mMap
     var _today2=new Date();
-    for(var _x2=1;_x2<=3;_x2++){
+    for(var _x2=1;_x2<=6;_x2++){
       var _fd3=new Date(_today2.getFullYear(),_today2.getMonth()+_x2,1);
       var _fmk2=_fd3.getFullYear()+'-'+String(_fd3.getMonth()+1).padStart(2,'0');
       if(!mMap[_fmk2]){
@@ -7742,6 +7832,8 @@ function buildCaixaData(cfg, cb){
         if(_dd.fixas) _dd.fixas.forEach(function(f){mMap[_fmk2].saidas_fixas+=(+f.valor||0);});
         if(_dd.extras) _dd.extras.forEach(function(e){mMap[_fmk2].saidas_extras+=(+e.valor||0);});
         if(_dd.das>0) mMap[_fmk2].das+=+_dd.das;
+        if(_dd.prolabore>0) mMap[_fmk2].prolabore+=(_dd.prolabore||0);
+        if(_dd.distribuicao>0) mMap[_fmk2].distribuicao+=(_dd.distribuicao||0);
         if(_dd.financeiro) _dd.financeiro.forEach(function(f){mMap[_fmk2].fin+=(+f.valor||0);});
       }
     }
@@ -7758,12 +7850,12 @@ function buildCaixaData(cfg, cb){
       finished=true;
       // Adiciona meses futuros (próximos 3) ao mMap para exibição no fluxo
       var _today=new Date();
-      for(var _x=1;_x<=3;_x++){
+      for(var _x=1;_x<=6;_x++){
         var _fd=new Date(_today.getFullYear(),_today.getMonth()+_x,1);
         var _fmk=_fd.getFullYear()+'-'+String(_fd.getMonth()+1).padStart(2,'0');
         if(!mMap[_fmk]){
           mMap[_fmk]={entradas:0,saidas_fixas:0,saidas_extras:0,
-            saidas_cont:0,das:0,fin:0,qtd:0,rows_entrada:[],rows_saida:[]};
+            saidas_cont:0,das:0,fin:0,qtd:0,prolabore:0,distribuicao:0,rows_entrada:[],rows_saida:[]};
           // Preenche despesas cadastradas para o mês futuro
           var _fd2=getMDesp(_fmk);
           if(_fd2.fixas) _fd2.fixas.forEach(function(f){
@@ -7775,6 +7867,8 @@ function buildCaixaData(cfg, cb){
             mMap[_fmk].rows_saida.push({desc:e.nome||'Extra',valor:-(+e.valor||0),tipo:'Extra'});
           });
           if(_fd2.das>0){ mMap[_fmk].das+=+_fd2.das; }
+          if(_fd2.prolabore>0){ mMap[_fmk].prolabore+=(_fd2.prolabore||0); }
+          if(_fd2.distribuicao>0){ mMap[_fmk].distribuicao+=(_fd2.distribuicao||0); }
           if(_fd2.financeiro) _fd2.financeiro.forEach(function(f){mMap[_fmk].fin+=(+f.valor||0);});
         }
       }
@@ -7860,7 +7954,7 @@ function filterCaixaMeses(mMap){
 function renderCaixaResumo(mMap, meses, saldoIni){
   var el=document.getElementById('cx-resumo');
   if(!el) return;
-  var totEnt=0,totSaiFix=0,totSaiExt=0,totSaiCont=0,totDas=0,totFin=0;
+  var totEnt=0,totSaiFix=0,totSaiExt=0,totSaiCont=0,totDas=0,totFin=0,totProlabore=0,totDistribuicao=0;
   var _todayR=new Date();
   var _curMkR=_todayR.getFullYear()+'-'+String(_todayR.getMonth()+1).padStart(2,'0');
   meses.forEach(function(mk){
@@ -7945,7 +8039,7 @@ function renderCaixaMeses(mMap, meses){
 
   mesesOrdenados.forEach(function(mk,idx){
     var m=mMap[mk];
-    var saiTotal=m.saidas_fixas+m.saidas_extras+m.saidas_cont+m.das-m.fin;
+    var saiTotal=m.saidas_fixas+m.saidas_extras+m.saidas_cont+m.das+m.prolabore+m.distribuicao-m.fin;
     var saldo=m.entradas-saiTotal;
     var sc=saldo>=0?'#22c55e':'#ef4444';
     var sem=saldo>=0&&m.entradas>0?'🟢':saldo>=0?'🟡':'🔴';
@@ -7999,6 +8093,8 @@ function renderCaixaMeses(mMap, meses){
     if(m.saidas_extras>0){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="font-size:11px;color:var(--text2);">Despesas Extras</span><span style="font-size:11px;font-weight:700;color:#ef4444;">'+fmt(m.saidas_extras)+'</span></div>';}
     if(m.das>0){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="font-size:11px;color:var(--text2);">DAS / Impostos</span><span style="font-size:11px;font-weight:700;color:#ef4444;">'+fmt(m.das)+'</span></div>';}
     if(m.saidas_cont>0){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="font-size:11px;color:var(--text2);">🚢 Estoque</span><span style="font-size:11px;font-weight:700;color:#f59e0b;">'+fmt(m.saidas_cont)+'</span></div>';}
+    if(m.prolabore>0){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="font-size:11px;color:#f59e0b;font-weight:600;">💼 Pró-labore</span><span style="font-size:11px;font-weight:700;color:#f59e0b;">'+fmt(m.prolabore)+'</span></div>';}
+    if(m.distribuicao>0){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="font-size:11px;color:#a78bfa;font-weight:600;">💸 Distribuição de Lucros</span><span style="font-size:11px;font-weight:700;color:#a78bfa;">'+fmt(m.distribuicao)+'</span></div>';}
     if(m.fin!==0){h+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="font-size:11px;color:var(--text2);">Financeiro</span><span style="font-size:11px;font-weight:700;color:'+(m.fin>=0?'#22c55e':'#ef4444')+'">'+(m.fin>=0?'+':'')+fmt(m.fin)+'</span></div>';}
     h+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #ef444422;margin-top:4px;">';
     h+='<span style="font-size:12px;font-weight:700;color:var(--text);">Total Saídas</span>';
@@ -8989,7 +9085,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
 
   // Próximos 3 meses
   var projMeses=[];
-  for(var x=1;x<=3;x++){
+  for(var x=1;x<=6;x++){
     var fd=new Date(today.getFullYear(),today.getMonth()+x,1);
     projMeses.push(fd.getFullYear()+'-'+String(fd.getMonth()+1).padStart(2,'0'));
   }
@@ -8997,7 +9093,8 @@ function renderCaixaProjecao(mMap, saldoAcum){
   // Meses reais (passados) no mMap para calcular média
   var curMk=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
   var realMeses=Object.keys(mMap).filter(function(mk){return mk<=curMk;}).sort();
-  var ultimos3=realMeses.slice(-3);
+  var ultimos6=realMeses.slice(-6);
+  var ultimos3=ultimos6;
 
   // Média de entradas líquidas dos últimos 3 meses reais
   var mediaEnt=0;
@@ -9032,18 +9129,22 @@ function renderCaixaProjecao(mMap, saldoAcum){
     }
 
     // Saídas: do mMap se já calculado, senão do getMDesp (despesas cadastradas)
-    var fixas=0,extras=0,contSaida=0,das=0,fin=0;
+    var fixas=0,extras=0,contSaida=0,das=0,fin=0,prolabore=0,distribuicao=0;
     if(mMap[projMk]){
       fixas=mMap[projMk].saidas_fixas;
       extras=mMap[projMk].saidas_extras;
       contSaida=mMap[projMk].saidas_cont;
       das=mMap[projMk].das;
       fin=mMap[projMk].fin;
+      prolabore=mMap[projMk].prolabore||0;
+      distribuicao=mMap[projMk].distribuicao||0;
     } else {
       var d=getMDesp(projMk);
       if(d.fixas) d.fixas.forEach(function(f){fixas+=+f.valor||0;});
       if(d.extras) d.extras.forEach(function(e){extras+=+e.valor||0;});
       if(d.das>0) das=+d.das;
+      prolabore=d.prolabore||0;
+      distribuicao=d.distribuicao||0;
       if(d.financeiro) d.financeiro.forEach(function(f){fin+=+f.valor||0;});
     }
 
@@ -9057,7 +9158,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
       das=Math.round(entradas*0.06*100)/100;
     }
 
-    var totalSai=fixas+extras+contSaida+das-fin;
+    var totalSai=fixas+extras+contSaida+das+prolabore+distribuicao-fin;
     var saldoMes=entradas-totalSai;
     saldo+=saldoMes;
 
@@ -9102,6 +9203,8 @@ function renderCaixaProjecao(mMap, saldoAcum){
     if(extras>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Extras</span><span style="color:#ef4444;">'+fmt(extras)+'</span></div>';
     if(das>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">DAS'+(mMap[projMk]&&mMap[projMk].das>0?'':' ~6%')+'</span><span style="color:#ef4444;">'+fmt(das)+'</span></div>';
     if(fin>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Financeiro</span><span style="color:#22c55e;">+'+fmt(fin)+'</span></div>';
+    if(prolabore>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#f59e0b;">💼 Pró-labore</span><span style="color:#f59e0b;">'+fmt(prolabore)+'</span></div>';
+    if(distribuicao>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#a78bfa;">💸 Distribuição</span><span style="color:#a78bfa;">'+fmt(distribuicao)+'</span></div>';
     if(contSaida>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;"><span style="color:#f59e0b;">📦 Contêiner</span><span style="color:#f59e0b;">'+fmt(contSaida)+'</span></div>';
     h+='<div style="border-top:1px solid #ffffff15;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;">';
     h+='<span style="color:var(--text);">Resultado</span>';
