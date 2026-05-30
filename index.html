@@ -4231,7 +4231,7 @@ function renderRes(){
   }
 
   // DRE for filtered period
-  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0;
+  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0,anoDistribuicaoF=0;
   for(i=0;i<mesesF.length;i++){
     var mkF2=mesesF[i];
     var mvF2=[],jF2;
@@ -4253,6 +4253,7 @@ function renderRes(){
     // DAS
     if(mdF2.das>0) anoDasF+=mdF2.das;
     else for(jF2=0;jF2<mvF2.length;jF2++) anoDasF+=mvF2[jF2].imp||0;
+    anoDistribuicaoF+=(mdF2.distribuicao||0);
   }
   var anoMargContribF=anoLSIF-anoExtrasF;
   var anoEbitdaF=anoMargContribF-anoFixasF; // prolabore já em anoFixasF
