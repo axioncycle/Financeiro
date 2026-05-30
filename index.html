@@ -275,7 +275,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Meta do Mes</div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <input id="meta-input" type="number" placeholder="Ex: 50000" oninput="renderMetaBar(true)" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:4px 8px;color:#f0f0f0;font-size:12px;font-weight:700;width:100px;outline:none;text-align:right;">
+        <input id="meta-input" type="text" inputmode="decimal" placeholder="Ex: 50000" oninput="maskBRL(this);renderMetaBar(true)" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:4px 8px;color:#f0f0f0;font-size:12px;font-weight:700;width:100px;outline:none;text-align:right;">
         <span style="font-size:10px;color:#666;">R$</span>
       </div>
     </div>
@@ -381,11 +381,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
         <div>
           <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:3px;">🏦 Conta Corrente (R$)</div>
-          <input class="fi" id="cx-saldo-conta" type="number" placeholder="ex: 20000" oninput="saveCaixaConfig();renderCaixa();" style="border-color:#22c55e44;">
+          <input class="fi" id="cx-saldo-conta" type="text" inputmode="decimal" placeholder="ex: 20000" oninput="maskBRL(this);saveCaixaConfig();renderCaixa();" style="border-color:#22c55e44;">
         </div>
         <div>
           <div style="font-size:9px;color:#1E90FF;font-weight:700;margin-bottom:3px;">📈 Investimentos (R$)</div>
-          <input class="fi" id="cx-saldo-invest" type="number" placeholder="ex: 30000" oninput="saveCaixaConfig();renderCaixa();" style="border-color:#1E90FF44;">
+          <input class="fi" id="cx-saldo-invest" type="text" inputmode="decimal" placeholder="ex: 30000" oninput="maskBRL(this);saveCaixaConfig();renderCaixa();" style="border-color:#1E90FF44;">
         </div>
       </div>
       <div id="cx-saldo-total-display" style="display:flex;justify-content:space-between;align-items:center;background:#ffffff08;border-radius:8px;padding:8px;">
@@ -560,11 +560,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Meta de lucro (R$)</div>
-          <input class="fi" id="sim-meta-lucro" type="number" placeholder="ex: 100000" oninput="calcSimMeta()">
+          <input class="fi" id="sim-meta-lucro" type="text" inputmode="decimal" placeholder="ex: 100000" oninput="maskBRL(this);calcSimMeta()">
         </div>
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Ticket médio (R$)</div>
-          <input class="fi" id="sim-meta-ticket" type="number" placeholder="ex: 4699" oninput="calcSimMeta()">
+          <input class="fi" id="sim-meta-ticket" type="text" inputmode="decimal" placeholder="ex: 4699" oninput="maskBRL(this);calcSimMeta()">
         </div>
       </div>
       <div id="sim-meta-result" style="background:var(--bg3);border-radius:8px;padding:10px;display:none;"></div>
@@ -650,7 +650,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Investimento total (R$)</div>
-          <input class="fi" id="sim-roi-invest" type="number" placeholder="ex: 200000" oninput="calcSimROI()">
+          <input class="fi" id="sim-roi-invest" type="text" inputmode="decimal" placeholder="ex: 200000" oninput="maskBRL(this);calcSimROI()">
         </div>
         <div>
           <div style="font-size:9px;color:var(--text2);margin-bottom:3px;">Unidades no contêiner</div>
@@ -722,8 +722,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </select>
     </div>
     <div class="r2">
-      <div class="fg"><label class="fl">Valor da Venda</label><input class="fi" id="v-venda" type="number" placeholder="0" min="0" step="0.01" oninput="calcRes()"></div>
-      <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="v-custo" type="number" placeholder="0" min="0" step="0.01" oninput="calcRes()"></div>
+      <div class="fg"><label class="fl">Valor da Venda</label><input class="fi" id="v-venda" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="v-custo" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
 <div id="taxa-ml-wrap" style="display:none;"><div class="fg"><label class="fl">Taxa ML %</label><input class="fi" id="v-tx1-ml" type="number" value="16.5" step="0.01" oninput="calcRes()" style="background:#0a0a1a;color:#1E90FF;font-weight:700;"><div id="tx-hint" style="font-size:10px;color:#1E90FF;margin-top:3px;">Mercado Livre: editavel</div></div></div>
     <div style="margin-bottom:10px;">
@@ -772,7 +772,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
               <option value="Credito 11x">Cred 11x</option><option value="Credito 12x">Cred 12x</option>
             </select>
           </div>
-          <div class="fg"><label class="fl">Valor</label><input class="fi" id="v-dp1v" type="number" placeholder="0" oninput="calcDuplo()"></div>
+          <div class="fg"><label class="fl">Valor</label><input class="fi" id="v-dp1v" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcDuplo()"></div>
         </div>
         <div class="r2">
           <div><label class="fl">Taxa %</label><input class="fi" id="v-dp1tx" type="number" placeholder="0" step="0.01" oninput="calcRes()"></div>
@@ -793,7 +793,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
               <option value="Credito 11x">Cred 11x</option><option value="Credito 12x">Cred 12x</option>
             </select>
           </div>
-          <div class="fg"><label class="fl">Valor</label><input class="fi" id="v-dp2v" type="number" placeholder="0" oninput="calcDuplo()"></div>
+          <div class="fg"><label class="fl">Valor</label><input class="fi" id="v-dp2v" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcDuplo()"></div>
         </div>
         <div class="r2">
           <div><label class="fl">Taxa %</label><input class="fi" id="v-dp2tx" type="number" placeholder="0" step="0.01" oninput="calcRes()"></div>
@@ -806,9 +806,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
     </div>
     <div class="r3">
-      <div class="fg"><label class="fl">Imposto %</label><input class="fi" id="v-imp" type="number" placeholder="0" step="0.01" oninput="calcRes()"></div>
-      <div class="fg"><label class="fl">Comissao %</label><input class="fi" id="v-com" type="number" placeholder="0" step="0.01" oninput="calcRes()"></div>
-      <div class="fg"><label class="fl">Frete</label><input class="fi" id="v-frete" type="number" placeholder="0" min="0" step="0.01" oninput="calcRes()"></div>
+      <div class="fg"><label class="fl">Imposto %</label><input class="fi" id="v-imp" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg"><label class="fl">Comissao %</label><input class="fi" id="v-com" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg"><label class="fl">Frete</label><input class="fi" id="v-frete" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
     <div class="divider"></div>
     <div class="stitle" style="margin-top:0;">Resultado</div>
@@ -896,7 +896,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     </div>
     <div class="fg"><label class="fl">Unidade</label><select class="fs" id="ent-local"></select></div>
     <div class="fg"><label class="fl">Quantidade</label><input class="fi" id="ent-qty" type="number" placeholder="0" min="1"></div>
-    <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="ent-custo" type="number" placeholder="2000" step="0.01"></div>
+    <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="ent-custo" type="text" inputmode="decimal" placeholder="2.000,00" oninput="maskBRL(this)"></div>
     <button class="btn" onclick="confirmarEntrada()" style="margin-top:4px;">CONFIRMAR ENTRADA</button>
     <button class="btn btn-s" onclick="closeModal('m-entrada')" style="margin-top:8px;">Cancelar</button>
   </div>
@@ -1262,7 +1262,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="r2">
         <div>
           <label class="fl">Frete (R$)</label>
-          <input class="fi" id="roi-frete" onchange="saveROIParams();calcROI();" type="number" value="100" placeholder="100" oninput="calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
+          <input class="fi" id="roi-frete" onchange="saveROIParams();calcROI();" type="text" inputmode="decimal" value="100,00" placeholder="100,00" oninput="maskBRL(this);calcROI()" style="font-size:15px;font-weight:700;text-align:center;">
         </div>
         <div>
           <label class="fl">Imposto %</label>
@@ -1366,21 +1366,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   </div>
 
   <!-- Info sobre envio ao estoque -->
-  <div style="background:#111;border:1px solid #22c55e33;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
-    <span style="font-size:20px;">&#9989;</span>
-    <div>
-      <div style="font-size:12px;font-weight:700;color:#22c55e;">Custo salvo no Estoque automaticamente</div>
-      <div style="font-size:10px;color:#666;margin-top:2px;">Ao salvar, o custo BRL calculado e aplicado a cada SKU no conteiner selecionado.</div>
-    </div>
-  </div>
+  <div style="background:#111;border:1px solid #22c55e33;border-radius:10px;padding:12
 
-</div>
+
+
 
 <script>
-
-
-
-
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
 var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
@@ -3126,8 +3117,8 @@ function toggleDuplo(){
 }
 
 function calcDuplo(){
-  var p1=parseFloat(document.getElementById('v-dp1v').value)||0;
-  var p2=parseFloat(document.getElementById('v-dp2v').value)||0;
+  var p1=parseBRL(document.getElementById('v-dp1v').value||'0')||0;
+  var p2=parseBRL(document.getElementById('v-dp2v').value||'0')||0;
   var tot=p1+p2;
   document.getElementById('v-venda').value=tot||'';
   document.getElementById('duplo-total').textContent=fmt(tot);
@@ -3135,11 +3126,11 @@ function calcDuplo(){
 }
 
 function calcRes(){
-  var venda=parseFloat(document.getElementById('v-venda').value)||0;
-  var custo=parseFloat(document.getElementById('v-custo').value)||0;
-  var impPct=parseFloat(document.getElementById('v-imp').value)||0;
-  var comPct=parseFloat(document.getElementById('v-com').value)||0;
-  var frete=parseFloat(document.getElementById('v-frete').value)||0;
+  var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
+  var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
+  var impPct=parseBRL(document.getElementById('v-imp').value||'0')||0;
+  var comPct=parseBRL(document.getElementById('v-com').value||'0')||0;
+  var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
   // Always update taxa display from current select value
   var txNow=getTaxaVal();
   var txDisp=document.getElementById('v-tx1-display');
@@ -6574,8 +6565,8 @@ function getLast6Months(){
 }
 
 function calcSimMeta(){
-  var meta=parseFloat(document.getElementById('sim-meta-lucro').value)||0;
-  var ticket=parseFloat(document.getElementById('sim-meta-ticket').value)||0;
+  var meta=parseBRL(document.getElementById('sim-meta-lucro').value||'0')||0;
+  var ticket=parseBRL(document.getElementById('sim-meta-ticket').value||'0')||0;
   var el=document.getElementById('sim-meta-result');
   if(!meta||!ticket){if(el) el.style.display='none';return;}
 
@@ -8403,7 +8394,7 @@ function calcSimMix(){
 }
 
 function calcSimROI(){
-  var invest=parseFloat(document.getElementById('sim-roi-invest').value)||0;
+  var invest=parseBRL(document.getElementById('sim-roi-invest').value||'0')||0;
   var unid=parseFloat(document.getElementById('sim-roi-unid').value)||0;
   var el=document.getElementById('sim-roi-result');
   if(!invest||!unid){if(el)el.style.display='none';return;}
@@ -10024,6 +10015,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     '</body></html>';
 }
 
+
 </script>
 
 <!-- PIN CONFIG MODAL -->
@@ -10079,7 +10071,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
       </div>
       <div>
         <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Frete R$</div>
-        <input class="fi" type="number" id="site-frete" value="0" step="0.5">
+        <input class="fi" type="text" inputmode="decimal" id="site-frete" value="" oninput="maskBRL(this)">
       </div>
     </div>
 
