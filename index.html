@@ -4411,7 +4411,7 @@ function renderRes(){
       '</select>'+
       '<button onclick="addFixa(\''+mk+'\')" style="background:#1E90FF22;border:1px solid #1E90FF44;color:#1E90FF;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;padding:5px 10px;flex-shrink:0;">+</button>'+
     '</div>';
-    var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a;"><span style="font-size:12px;">'+e.nome+'</span><span style="font-size:12px;font-weight:700;color:#ef4444;">'+fmt(parseFloat(e.valor)||0)+'</span><button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#444;font-size:13px;cursor:pointer;padding:0 4px;">x</button></div>';}).join('');
+    var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #1a1a1a;">'+'<span style="flex:1;font-size:12px;color:var(--text);">'+e.nome+'</span>'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
     html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'+
       '<div style="background:#1a1a1a;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleMes(\'mes'+i+'\')">'+
       '<span style="font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
@@ -4618,6 +4618,15 @@ function addExtra(mk,i){
   toast('Lançamento adicionado em '+(numMeses===99?'∞':numMeses)+'x');
   renderRes();
 }
+function updExtra(mk,idx,val){
+  var md=getMDesp(mk);
+  if(!md.extras[idx]) return;
+  md.extras[idx].valor=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
+}
+
 function delExtra(mk,idx){var md=getMDesp(mk);md.extras.splice(idx,1);setMDesp(mk,md);saveDespDB(mk,md);renderRes();toast('Despesa removida');}
 
 // ── SITE SYNC HELPERS ──────────────────────────────────────────────────────────
