@@ -6954,6 +6954,7 @@ function mlExchangeCode(){
       dbUpsert('configuracoes',{chave:'ml_credentials',valor:JSON.stringify(mlCredentials)});
       document.getElementById('ml-auth-section').style.display='none';
       document.getElementById('ml-token-section').style.display='block';
+      var sb=document.getElementById('ml-status-box');if(sb)sb.style.display='none';
       mlGetUserInfo();
       toast('Mercado Livre conectado! ✅');
     } else {
