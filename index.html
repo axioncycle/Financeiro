@@ -4887,11 +4887,8 @@ async function siteSync(){
       });
       var detData=(detResp.ok?await detResp.json():{data:null});
       var full=(detData&&detData.data)||o;
-      if(i===0) console.log('[siteSync][order_detail]',JSON.stringify(full,null,2));
       var products=full.products||[];
       var totals=full.totals||[];
-      if(i===0) console.log('[siteSync][products]',JSON.stringify(products,null,2));
-      if(i===0) console.log('[siteSync][totals]',JSON.stringify(totals,null,2));
 
       if(full.customer){
         var c=full.customer;
@@ -4899,10 +4896,10 @@ async function siteSync(){
         if(fn2) clientName=fn2;
       }
 
-      // Detectar parcelas
+      // Detectar parcelas — verifica payment_address, totals e histórico do pedido
       var numParcelas=1,isPix=false;
-      var payMethod=(full.payment_method||full.payment_code||'').toLowerCase();
-      if(payMethod.indexOf('pix')>=0||payMethod.indexOf('ted')>=0||payMethod.indexOf('boleto')>=0){
+      var payCode=(full.payment_address&&full.payment_address.code||full.payment_method||full.payment_code||'').toLowerCase();
+      if(payCode.indexOf('pix')>=0||payCode.indexOf('ted')>=0||payCode.indexOf('boleto')>=0){
         isPix=true;numParcelas=0;
       }
       totals.forEach(function(t){
@@ -4911,30 +4908,58 @@ async function siteSync(){
         if(mP) numParcelas=parseInt(mP[1]);
         if(title.indexOf('pix')>=0||title.indexOf('à vista')>=0){isPix=true;numParcelas=0;}
       });
+      // Histórico de status (onde Appmax registra "Parcelado em Nx")
+      (full.history||[]).forEach(function(h){
+        var hc=(h.comment||'').toLowerCase();
+        var mH=hc.match(/parcelado em (\d+)/);
+        if(mH) numParcelas=parseInt(mH[1]);
+        if(hc.indexOf('pix')>=0||hc.indexOf('à vista')>=0){isPix=true;numParcelas=0;}
+      });
       var comment=(full.comment||'').toLowerCase();
       var mC=comment.match(/(\d+)\s*[xX×]/);
       if(mC) numParcelas=parseInt(mC[1]);
       if(comment.indexOf('pix')>=0){isPix=true;numParcelas=0;}
 
-      var taxaPct=isPix?TAXA_TABLE[0]:(TAXA_TABLE[numParcelas]||TAXA_TABLE[1]);
+      var taxaPct=isPix?TAXA_TABLE[0]:(TAXA_TABLE[numParcelas]||TAXA_TABLE[12]);
 
-      // Desconto proporcional
-      var discountVal=0;
+      // Valor real pago = total do pedido distribuído proporcionalmente entre produtos
+      var actualTotal=0;
+      var subTotalTotals=0;
       totals.forEach(function(t){
-        if(t.code==='coupon'||t.code==='discount'||+t.value<0)
-          discountVal+=Math.abs(+t.value||0);
+        if(t.code==='total') actualTotal=+t.value||0;
+        if(t.code==='sub_total') subTotalTotals=+t.value||0;
       });
-      var subtotal=products.reduce(function(s,p){return s+(+p.price||0)*(+p.quantity||1);},0)||1;
+      var subTotal=subTotalTotals||products.reduce(function(s,pp){return s+(+pp.price||0)*(+pp.quantity||1);},0)||1;
+      if(!actualTotal) actualTotal=+full.total||subTotal;
 
       for(var j=0;j<products.length;j++){
         var p=products[j];
         var qty=parseInt(p.quantity||1)||1;
         var price=+p.price||0;
-        var prop=(price*qty)/subtotal;
-        var unitPrice=Math.round((price-discountVal*prop/qty)*100)/100;
+
+        // Valor unitário real pago (com desconto proporcional de cupom/promoção)
+        var unitPrice=Math.round((price/subTotal)*actualTotal/qty*100)/100;
+
+        // variation_id correto vem de p.variations[].product_variation_id
+        var varId=null;
+        var varLabel='';
+        if(p.variations&&p.variations.length){
+          varId=p.variations[0].product_variation_id||p.variations[0].variation_id||null;
+          varLabel=p.variations.map(function(v){return v.value;}).join(' / ');
+        }
+        // Atributos detalhados da variação (cor, etc) vindos de p.product.variations
+        if(!varLabel&&p.product&&p.product.variations&&varId){
+          for(var vi=0;vi<p.product.variations.length;vi++){
+            if(p.product.variations[vi].id===varId){
+              varLabel=Object.values(p.product.variations[vi].attributes||{}).join(' / ');
+              break;
+            }
+          }
+        }
+
         var taxaVal=Math.round(unitPrice*(taxaPct/100)*100)/100;
-        var siteName=p.name||'Produto Site';
-        var skuId=getSiteSkuId(p.product_id,p.product_variation_id||p.variation_id||null);
+        var siteName=(p.name||'Produto Site')+(varLabel?' — '+varLabel:'');
+        var skuId=getSiteSkuId(p.product_id,varId);
         var name=siteName;
         if(skuId){
           var allSk=getAllSKUs();
@@ -4977,7 +5002,7 @@ async function siteSync(){
             comPct:comRate,com:comVal,
             frete:freteUnit,
             lucroSI:lucroSI,lucroLL:lucroLL,
-            siteOrderId:oid,siteProductId:String(p.product_id||''),siteVariationId:String(p.product_variation_id||p.variation_id||''),duplo:false,
+            siteOrderId:oid,siteProductId:String(p.product_id||''),siteVariationId:String(varId||''),duplo:false,
             pag1tipo:'',pag1val:0,pag1taxa:0,
             pag2tipo:'',pag2val:0,pag2taxa:0
           });
@@ -5122,20 +5147,22 @@ async function loadSiteProducts(){
     var allItems=[];
     for(var i=0;i<products.length;i++){
       var p=products[i];
-      if(p.tem_versoes){
-        var vResp=await fetch('/api/vowt',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({url:'https://api.vowtecommerce.com.br/api/products/'+p.id+'/variations',method:'GET',headers:{'Authorization':'Bearer '+token,'Store':'axioncycle'}})
+      // Sempre tenta buscar variações — independente do campo tem_versoes
+      var vResp=await fetch('/api/vowt',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url:'https://api.vowtecommerce.com.br/api/products/'+p.id+'/variations',method:'GET',headers:{'Authorization':'Bearer '+token,'Store':'axioncycle'}})
+      });
+      var vData=await vResp.json();
+      var variations=(vData&&vData.data)||[];
+      if(variations.length){
+        variations.forEach(function(v){
+          var attrs=v.attributes?Object.entries(v.attributes).map(function(e){return e[1];}).join(' / '):'';
+          allItems.push({key:String(p.id)+':'+String(v.id),displayName:p.name+(attrs?' — '+attrs:''),sku:v.sku||''});
         });
-        var vData=await vResp.json();
-        var variations=(vData&&vData.data)||[];
-        if(variations.length){
-          variations.forEach(function(v){
-            var attrs=v.attributes?Object.values(v.attributes).join(' - '):'';
-            allItems.push({key:String(p.id)+':'+String(v.id),displayName:p.name+(attrs?' — '+attrs:''),sku:v.sku||''});
-          });
-        } else { allItems.push({key:String(p.id),displayName:p.name,sku:p.sku||''}); }
-      } else { allItems.push({key:String(p.id),displayName:p.name,sku:p.sku||''}); }
+      } else {
+        allItems.push({key:String(p.id),displayName:p.name,sku:p.sku||''});
+      }
+      if(statusEl) statusEl.textContent='Carregando variações... '+(i+1)+'/'+products.length;
     }
     if(statusEl) statusEl.textContent=allItems.length+' itens encontrados';
     var allSkus=getAllSKUs();
