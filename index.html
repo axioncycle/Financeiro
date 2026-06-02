@@ -1835,8 +1835,7 @@ function renderResDebounced(){
   _resTimer=setTimeout(function(){renderRes();},600);
 }
 
-function fmtDate(iso){try{return new Date(iso).toLocaleDateString('pt-BR');}catch(e){return '';}}
-function mkey(iso){return iso?iso.slice(0,7):'';}
+function fmtDate(iso){try{var s=(!iso||iso.length>10)?iso:(iso+'T12:00:00Z');return new Date(s).toLocaleDateString('pt-BR');}catch(e){return '';}}function mkey(iso){return iso?iso.slice(0,7):'';}
 function mlabel(k){
   var p=k.split('-');
   var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -4879,13 +4878,14 @@ async function siteSync(){
       var products=full.products||[];
       var totals=full.totals||[];
 
-      // Data: usa detalhe (mais confiável) e converte UTC → Brasil (UTC-3)
+      // Data: usa detalhe (mais confiável), converte UTC → Brasil (UTC-3), armazena com hora noon UTC
       var date=(function(){
         var da=full.date_added||o.date_added||'';
-        if(!da) return today();
+        if(!da) return today()+'T12:00:00.000Z';
         var d=new Date(da);
-        if(isNaN(d.getTime())) return da.slice(0,10);
-        return new Date(d.getTime()-3*60*60*1000).toISOString().slice(0,10);
+        if(isNaN(d.getTime())) return da.slice(0,10)+'T12:00:00.000Z';
+        var localDate=new Date(d.getTime()-3*60*60*1000).toISOString().slice(0,10);
+        return localDate+'T12:00:00.000Z';
       })();
 
       if(full.customer){
