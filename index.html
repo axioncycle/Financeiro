@@ -5686,44 +5686,51 @@ function renderPagamentos(){
     el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;">Nenhum pagamento. Clique em + Pagamento.</div>';
     calcTotalPago();return;
   }
-  // Header row
-  var hdr=document.createElement('div');
-  hdr.style.cssText='display:grid;grid-template-columns:100px 1.5fr 1fr 28px;gap:6px;margin-bottom:4px;';
-  ['Data','R$ (BRL)','$ (USD)',''].forEach(function(t){
-    var span=document.createElement('span');
-    span.style.cssText='font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;';
-    span.textContent=t;
-    hdr.appendChild(span);
-  });
-  el.appendChild(hdr);
   var i;
   for(i=0;i<pagamentos.length;i++){
     var p=pagamentos[i];
-    var row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:100px 1.5fr 1fr 28px;gap:6px;margin-bottom:6px;align-items:center;';
-    // Date
+    // Card wrapper
+    var card=document.createElement('div');
+    card.style.cssText='background:#111;border:1px solid #222;border-radius:10px;padding:8px 10px;margin-bottom:8px;';
+    // Top row: date (full width) + delete button
+    var topRow=document.createElement('div');
+    topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;';
     var dInp=document.createElement('input');
     dInp.type='date';dInp.value=p.data||today();
-    dInp.className='fi';dInp.style.cssText='padding:8px 6px;font-size:11px;';
+    dInp.className='fi';dInp.style.cssText='flex:1;padding:7px 8px;font-size:12px;';
     dInp.onchange=(function(idx){return function(){onPagChange(idx,'data',this.value);};})(i);
-    // BRL value
+    var delBtn=document.createElement('button');
+    delBtn.textContent='x';
+    delBtn.style.cssText='width:28px;height:28px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
+    delBtn.onclick=(function(idx){return function(){removePagamento(idx);};})(i);
+    topRow.appendChild(dInp);topRow.appendChild(delBtn);
+    // Bottom row: BRL + USD labels + inputs
+    var botRow=document.createElement('div');
+    botRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;';
+    // BRL
+    var brlWrap=document.createElement('div');
+    var brlLbl=document.createElement('div');
+    brlLbl.style.cssText='font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    brlLbl.textContent='R$ (BRL)';
     var vInp=document.createElement('input');
     vInp.type='text';vInp.inputMode='decimal';
     vInp.value=p.valor>0?fmtN(p.valor):'';vInp.placeholder='0,00';
-    vInp.className='fi';vInp.style.cssText='padding:8px 10px;font-size:13px;font-weight:600;';
+    vInp.className='fi';vInp.style.cssText='width:100%;padding:8px 10px;font-size:14px;font-weight:700;box-sizing:border-box;';
     vInp.oninput=(function(idx){return function(){maskBRL(this);onPagChange(idx,'valor',this.value);};})(i);
-    // USD value
+    brlWrap.appendChild(brlLbl);brlWrap.appendChild(vInp);
+    // USD
+    var usdWrap=document.createElement('div');
+    var usdLbl=document.createElement('div');
+    usdLbl.style.cssText='font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    usdLbl.textContent='$ (USD)';
     var uInp=document.createElement('input');
     uInp.type='number';uInp.value=p.usd||'';uInp.placeholder='0';
-    uInp.className='fi';uInp.style.cssText='padding:8px 10px;font-size:13px;font-weight:600;color:#1E90FF;';
+    uInp.className='fi';uInp.style.cssText='width:100%;padding:8px 10px;font-size:14px;font-weight:700;color:#1E90FF;box-sizing:border-box;';
     uInp.oninput=(function(idx){return function(){onPagChange(idx,'usd',this.value);};})(i);
-    // Delete
-    var delBtn=document.createElement('button');
-    delBtn.textContent='x';
-    delBtn.style.cssText='width:26px;height:26px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
-    delBtn.onclick=(function(idx){return function(){removePagamento(idx);};})(i);
-    row.appendChild(dInp);row.appendChild(vInp);row.appendChild(uInp);row.appendChild(delBtn);
-    el.appendChild(row);
+    usdWrap.appendChild(usdLbl);usdWrap.appendChild(uInp);
+    botRow.appendChild(brlWrap);botRow.appendChild(usdWrap);
+    card.appendChild(topRow);card.appendChild(botRow);
+    el.appendChild(card);
   }
   calcTotalPago();
 }
