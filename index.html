@@ -939,13 +939,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="mhdl"></div>
     <div class="mtitle" id="ver-v-title">Detalhes da Venda</div>
     <div id="ver-v-body"></div>
-    <div id="ver-v-frete-box" style="display:none;margin-top:12px;background:var(--bg2);border-radius:10px;padding:10px;">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏️ Editar frete desta venda</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="ver-v-frete-inp" class="fi" type="text" inputmode="decimal" placeholder="R$ 0,00" oninput="maskBRL(this)" style="flex:1;">
-        <button class="btn btn-s" onclick="salvarFreteVenda()" style="white-space:nowrap;">💾 Salvar</button>
-      </div>
-    </div>
     <button class="btn btn-s" onclick="closeModal('m-ver-venda')" style="margin-top:10px;width:100%;">Fechar</button>
   </div>
 </div>
@@ -8370,9 +8363,9 @@ function buildMLabel(mk){
 
 var _verVendaId=null;
 
-function salvarFreteVenda(){
+function salvarFreteVenda(rawVal){
   if(!_verVendaId) return;
-  var novoFrete=parseBRL(document.getElementById('ver-v-frete-inp').value||'0')||0;
+  var novoFrete=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
   if(!v) return;
@@ -8383,7 +8376,6 @@ function salvarFreteVenda(){
   renderHist();renderDash();
   if(curPage==='est') renderEst();
   toast('Frete atualizado!');
-  verVenda(_verVendaId);
 }
 
 function verVenda(id){
@@ -8412,7 +8404,7 @@ function verVenda(id){
     {label:'💰 Venda',val:fmt(v.venda),color:'#1E90FF'},
     {label:'🏭 Custo produto',val:fmt(v.custo),color:'#ef4444'},
     {label:'📊 Taxa ML',val:fmt(v.taxa||0)+' ('+taxaPct.toFixed(1)+'%)',color:'#ef4444'},
-    {label:'🚚 Frete',val:fmt(v.frete||0),color:'#ef4444'},
+    {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
     v.com>0?{label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'}:null,
     {label:'🧾 DAS/Imposto',val:fmt(v.imp||0)+' ('+impPct.toFixed(1)+'%)',color:'#ef4444'},
     null,
@@ -8434,6 +8426,15 @@ function verVenda(id){
   var h='';
   rows.forEach(function(r){
     if(!r){h+='<div style="border-top:1px solid var(--border);margin:8px 0;"></div>';return;}
+    if(r.frete){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">🚚 Frete</span>'
+        +'<input type="text" inputmode="decimal" value="'+fmtN(r.freteVal)+'" '
+        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onchange="salvarFreteVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     var fs=r.big?'18px':r.bold?'14px':'12px';
     var fw=r.bold?'800':'400';
     var col=r.color||'var(--text)';
@@ -8444,15 +8445,6 @@ function verVenda(id){
   });
 
   if(body) body.innerHTML=h;
-
-  // Campo editável de frete
-  var freteBox=document.getElementById('ver-v-frete-box');
-  var freteInp=document.getElementById('ver-v-frete-inp');
-  if(freteBox&&freteInp){
-    freteBox.style.display='block';
-    freteInp.value=fmtN(v.frete||0);
-  }
-
   openModal('m-ver-venda');
 }
 
