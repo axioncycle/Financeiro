@@ -4864,19 +4864,6 @@ async function siteSync(){
 
       var clientName=((o.firstname||'')+' '+(o.lastname||'')).trim()||'Site';
 
-      // Data com timezone
-      var date=(function(){
-        var da=o.date_added||'';
-        if(!da) return today();
-        var tzM=da.match(/([+-])(\d{2}):(\d{2})$/);
-        if(tzM){
-          var d=new Date(da);
-          var off=(parseInt(tzM[2])*60+parseInt(tzM[3]))*(tzM[1]==='+'?1:-1);
-          return new Date(d.getTime()+off*60000).toISOString().slice(0,10);
-        }
-        return da.slice(0,10);
-      })();
-
       // Busca detalhes do pedido via proxy
       var detResp=await fetch('/api/vowt',{
         method:'POST',
@@ -4891,6 +4878,15 @@ async function siteSync(){
       var full=(detData&&detData.data)||o;
       var products=full.products||[];
       var totals=full.totals||[];
+
+      // Data: usa detalhe (mais confiável) e converte UTC → Brasil (UTC-3)
+      var date=(function(){
+        var da=full.date_added||o.date_added||'';
+        if(!da) return today();
+        var d=new Date(da);
+        if(isNaN(d.getTime())) return da.slice(0,10);
+        return new Date(d.getTime()-3*60*60*1000).toISOString().slice(0,10);
+      })();
 
       if(full.customer){
         var c=full.customer;
