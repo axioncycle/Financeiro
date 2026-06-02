@@ -4878,14 +4878,10 @@ async function siteSync(){
       var products=full.products||[];
       var totals=full.totals||[];
 
-      // Data: usa detalhe (mais confiável), converte UTC → Brasil (UTC-3), armazena com hora noon UTC
+      // Data: Vowt grava horário em BRT mas marca +00:00 — usar data diretamente sem conversão
       var date=(function(){
-        var da=full.date_added||o.date_added||'';
-        if(!da) return today()+'T12:00:00.000Z';
-        var d=new Date(da);
-        if(isNaN(d.getTime())) return da.slice(0,10)+'T12:00:00.000Z';
-        var localDate=new Date(d.getTime()-3*60*60*1000).toISOString().slice(0,10);
-        return localDate+'T12:00:00.000Z';
+        var da=(full.date_added||o.date_added||'').slice(0,10);
+        return (da||today())+'T12:00:00.000Z';
       })();
 
       if(full.customer){
