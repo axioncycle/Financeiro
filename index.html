@@ -4974,7 +4974,7 @@ async function siteSync(){
             comPct:comRate,com:comVal,
             frete:freteUnit,
             lucroSI:lucroSI,lucroLL:lucroLL,
-            siteOrderId:oid,duplo:false,
+            siteOrderId:oid,siteProductId:String(p.product_id||''),siteVariationId:String(p.product_variation_id||p.variation_id||''),duplo:false,
             pag1tipo:'',pag1val:0,pag1taxa:0,
             pag2tipo:'',pag2val:0,pag2taxa:0
           });
@@ -5006,6 +5006,64 @@ async function siteSync(){
     siteShowStatus('Erro: '+e.message,'#ef4444');
     toast('❌ Sync Site: '+e.message,true);
     console.error('siteSync:',e);
+  } finally {
+    if(btn) btn.disabled=false;
+  }
+}
+
+async function siteRemapVendas(){
+  var btn=document.getElementById('site-remap-btn');
+  if(btn) btn.disabled=true;
+  siteShowStatus('Carregando mapeamentos...','#1E90FF');
+  try{
+    await new Promise(function(res){
+      dbGet('configuracoes','chave=eq.site_product_mappings').then(function(rows){
+        if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+          try{_siteMappings=JSON.parse(rows[0].valor);}catch(e){}
+        }
+        res();
+      }).catch(res);
+    });
+    var vendas=loadVendas();
+    var toUpdate=vendas.filter(function(v){return v.canal==='Site'&&(v.siteProductId||v.siteOrderId);});
+    var updated=0;
+    loadContainersDB(function(freshCs){
+      DB_CONTAINERS=freshCs;
+      toUpdate.forEach(function(v){
+        var skuId=null;
+        if(v.siteProductId){
+          var key1=v.siteVariationId?v.siteProductId+':'+v.siteVariationId:null;
+          if(key1&&_siteMappings[key1]) skuId=parseInt(_siteMappings[key1]);
+          else if(_siteMappings[v.siteProductId]) skuId=parseInt(_siteMappings[v.siteProductId]);
+        }
+        if(!skuId) return;
+        var allSk=getAllSKUs();
+        var skuName=null;
+        for(var i=0;i<allSk.length;i++){if(allSk[i].id===skuId){skuName=allSk[i].nome;break;}}
+        if(!skuName) return;
+        var cid=getOldestContIdForLocal(v.origem||'Brasilia',skuId);
+        var custo=0;
+        if(cid){
+          var cs=loadContainers();
+          for(var j=0;j<cs.length;j++){
+            if(String(cs[j].id)===String(cid)&&cs[j].skus[skuId]){custo=cs[j].skus[skuId].custo||0;break;}
+          }
+        }
+        if(!custo) custo=mlGetCustoBySkuId(skuId)||0;
+        v.prodId=skuId;
+        v.produto=skuName;
+        v.containerId=cid||'';
+        v.custo=custo;
+        saveVendaDB(v);
+        updated++;
+      });
+      renderHist();renderDash();
+      if(curPage==='est') renderEst();
+      siteShowStatus(updated+' vendas re-mapeadas ✅','#22c55e');
+      toast(updated+' vendas do Site atualizadas com SKU do app!');
+    });
+  }catch(e){
+    siteShowStatus('Erro: '+e.message,'#ef4444');
   } finally {
     if(btn) btn.disabled=false;
   }
@@ -10117,6 +10175,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     <div id="site-sync-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;"></div>
 
     <button onclick="openSiteMapping()" class="btn btn-s" style="width:100%;margin-bottom:8px;font-size:12px;">🔗 Vincular Produtos do Site → SKU App</button>
+    <button id="site-remap-btn" class="btn btn-s" onclick="siteRemapVendas()" style="width:100%;margin-bottom:8px;font-size:12px;background:var(--bg2);">♻️ Re-aplicar Mapeamentos em Vendas Existentes</button>
     <button id="site-sync-btn" class="btn" onclick="siteSync()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;">🔄 Sincronizar</button>
   </div>
 </div>
