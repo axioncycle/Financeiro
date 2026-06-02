@@ -4887,8 +4887,11 @@ async function siteSync(){
       });
       var detData=(detResp.ok?await detResp.json():{data:null});
       var full=(detData&&detData.data)||o;
+      if(i===0) console.log('[siteSync][order_detail]',JSON.stringify(full,null,2));
       var products=full.products||[];
       var totals=full.totals||[];
+      if(i===0) console.log('[siteSync][products]',JSON.stringify(products,null,2));
+      if(i===0) console.log('[siteSync][totals]',JSON.stringify(totals,null,2));
 
       if(full.customer){
         var c=full.customer;
