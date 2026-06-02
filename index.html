@@ -4931,8 +4931,7 @@ async function siteSync(){
         var unitPrice=Math.round((price-discountVal*prop/qty)*100)/100;
         var taxaVal=Math.round(unitPrice*(taxaPct/100)*100)/100;
         var siteName=p.name||'Produto Site';
-        var skuId=getSiteSkuId(p.product_id,p.product_variation_id||p.variation_id||null)
-          ||findSiteSkuId(siteName,p.sku||'');
+        var skuId=getSiteSkuId(p.product_id,p.product_variation_id||p.variation_id||null);
         var name=siteName;
         if(skuId){
           var allSk=getAllSKUs();
