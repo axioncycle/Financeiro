@@ -939,6 +939,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="mhdl"></div>
     <div class="mtitle" id="ver-v-title">Detalhes da Venda</div>
     <div id="ver-v-body"></div>
+    <div id="ver-v-frete-box" style="display:none;margin-top:12px;background:var(--bg2);border-radius:10px;padding:10px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏️ Editar frete desta venda</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="ver-v-frete-inp" class="fi" type="text" inputmode="decimal" placeholder="R$ 0,00" oninput="maskBRL(this)" style="flex:1;">
+        <button class="btn btn-s" onclick="salvarFreteVenda()" style="white-space:nowrap;">💾 Salvar</button>
+      </div>
+    </div>
     <button class="btn btn-s" onclick="closeModal('m-ver-venda')" style="margin-top:10px;width:100%;">Fechar</button>
   </div>
 </div>
@@ -4925,9 +4932,11 @@ async function siteSync(){
       // Valor real pago = total do pedido distribuído proporcionalmente entre produtos
       var actualTotal=0;
       var subTotalTotals=0;
+      var freteOrder=freteUnit; // frete real deste pedido (fallback para o global)
       totals.forEach(function(t){
         if(t.code==='total') actualTotal=+t.value||0;
         if(t.code==='sub_total') subTotalTotals=+t.value||0;
+        if(t.code==='shipping'&&+t.value>0) freteOrder=+t.value;
       });
       var subTotal=subTotalTotals||products.reduce(function(s,pp){return s+(+pp.price||0)*(+pp.quantity||1);},0)||1;
       if(!actualTotal) actualTotal=+full.total||subTotal;
@@ -4982,7 +4991,7 @@ async function siteSync(){
           }
           if(!custoUnit) custoUnit=mlGetCustoBySkuId(skuId)||0;
         }
-        var lucroSI=unitPrice-custoUnit-taxaVal-comVal-freteUnit;
+        var lucroSI=unitPrice-custoUnit-taxaVal-comVal-freteOrder;
         var lucroLL=lucroSI-imp;
         var sig=date+'|'+(skuId||name)+'|'+Math.round(unitPrice*100);
         var alreadyHave=(existingSig[sig]||0)-(_sigUsed[sig]||0);
@@ -4997,7 +5006,7 @@ async function siteSync(){
             taxaPct:taxaPct,taxa:taxaVal,
             impPct:dasRate,imp:imp,
             comPct:comRate,com:comVal,
-            frete:freteUnit,
+            frete:freteOrder,
             lucroSI:lucroSI,lucroLL:lucroLL,
             siteOrderId:oid,siteProductId:String(p.product_id||''),siteVariationId:String(varId||''),duplo:false,
             pag1tipo:'',pag1val:0,pag1taxa:0,
@@ -8359,7 +8368,26 @@ function buildMLabel(mk){
 }
 
 
+var _verVendaId=null;
+
+function salvarFreteVenda(){
+  if(!_verVendaId) return;
+  var novoFrete=parseBRL(document.getElementById('ver-v-frete-inp').value||'0')||0;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.frete=novoFrete;
+  v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-novoFrete)*100)/100;
+  v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
+  saveVendaDB(v);
+  renderHist();renderDash();
+  if(curPage==='est') renderEst();
+  toast('Frete atualizado!');
+  verVenda(_verVendaId);
+}
+
 function verVenda(id){
+  _verVendaId=id;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===id;});
   if(!v) return;
@@ -8416,6 +8444,15 @@ function verVenda(id){
   });
 
   if(body) body.innerHTML=h;
+
+  // Campo editável de frete
+  var freteBox=document.getElementById('ver-v-frete-box');
+  var freteInp=document.getElementById('ver-v-frete-inp');
+  if(freteBox&&freteInp){
+    freteBox.style.display='block';
+    freteInp.value=fmtN(v.frete||0);
+  }
+
   openModal('m-ver-venda');
 }
 
