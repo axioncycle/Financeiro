@@ -4178,9 +4178,9 @@ function syncDespesasFromDB(cb){
   }).catch(function(){if(cb)cb();});
 }
 function setMDesp(mk,data){
-  DB_DESP[mk]=data;  // Update in-memory DB_DESP immediately
+  DB_DESP[mk]=data;
   var d=loadDesp();d[mk]=data;saveDesp(d);
-  saveDespDB(mk,data);
+  // Não chama saveDespDB aqui — o chamador controla para evitar double-save
 }
 
 function loadDespesasFromDB(mk,cb){
