@@ -4969,13 +4969,21 @@ async function siteSync(){
         }
         var imp=Math.round(unitPrice*(dasRate/100)*100)/100;
         var comVal=Math.round(unitPrice*(comRate/100)*100)/100;
-        var lucroSI=unitPrice-taxaVal-comVal-freteUnit;
-        var lucroLL=lucroSI-imp;
         var containerId='';
+        var custoUnit=0;
         if(skuId){
           var cid=getOldestContIdForLocal('Brasilia',skuId);
-          if(cid) containerId=cid;
+          if(cid){
+            containerId=cid;
+            var cs2=loadContainers();
+            for(var ci3=0;ci3<cs2.length;ci3++){
+              if(String(cs2[ci3].id)===String(cid)&&cs2[ci3].skus[skuId]){custoUnit=cs2[ci3].skus[skuId].custo||0;break;}
+            }
+          }
+          if(!custoUnit) custoUnit=mlGetCustoBySkuId(skuId)||0;
         }
+        var lucroSI=unitPrice-custoUnit-taxaVal-comVal-freteUnit;
+        var lucroLL=lucroSI-imp;
         var sig=date+'|'+(skuId||name)+'|'+Math.round(unitPrice*100);
         var alreadyHave=(existingSig[sig]||0)-(_sigUsed[sig]||0);
         if(alreadyHave>0){_sigUsed[sig]=(_sigUsed[sig]||0)+1;skipped++;continue;}
@@ -4985,18 +4993,7 @@ async function siteSync(){
             id:Math.floor(Date.now()/1000)*1000+i*100+j*10+q+Math.floor(Math.random()*9),
             date:date,cliente:clientName,canal:'Site',
             produto:name,prodId:skuId,origem:'Brasilia',containerId:containerId,
-            venda:unitPrice,custo:(function(){
-              if(!skuId) return 0;
-              var ci2=getOldestContIdForLocal('Brasilia',skuId);
-              if(ci2){
-                var cs2=loadContainers();
-                for(var ci3=0;ci3<cs2.length;ci3++){
-                  if(String(cs2[ci3].id)===String(ci2)&&cs2[ci3].skus[skuId])
-                    return cs2[ci3].skus[skuId].custo||0;
-                }
-              }
-              return mlGetCustoBySkuId(skuId)||0;
-            })(),
+            venda:unitPrice,custo:custoUnit,
             taxaPct:taxaPct,taxa:taxaVal,
             impPct:dasRate,imp:imp,
             comPct:comRate,com:comVal,
