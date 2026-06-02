@@ -3014,6 +3014,7 @@ function renderCharts(vendas){
 
 // ── VENDAS ────────────────────────────────────────────────────────────────
 var editId=null;
+var _editOrigVend=null; // venda original sendo editada (para cancelamento)
 var delId=null;
 var importPending=[];
 
@@ -3237,17 +3238,10 @@ function salvarVenda(){
 
   var vendas=loadVendas();
   if(editId){
-    // Find old venda to restore stock
-    var oldVend=null,oi;
-    for(oi=0;oi<vendas.length;oi++){if(vendas[oi].id===editId){oldVend=vendas[oi];break;}}
-    // Restore old stock if had origin and product
-    if(oldVend&&oldVend.origem&&oldVend.prodId){
-      restoreStock(oldVend.origem,oldVend.prodId,oldVend.containerId);
-    }
-    // Update venda
+    // Estoque já foi devolvido ao clicar Editar — só consome o novo
     for(i=0;i<vendas.length;i++){if(vendas[i].id===editId){vendas[i]=vend;break;}}
-    // Consume new stock
     if(orig) consumeFIFO(orig,prodId,1);
+    _editOrigVend=null;
     toast('Venda atualizada!');
   } else {
     vendas.unshift(vend);
@@ -3261,7 +3255,12 @@ function salvarVenda(){
 }
 
 function cancelarEdicao(){
+  // Se estava editando e cancelou, re-consome o estoque original devolvido
+  if(editId&&_editOrigVend&&_editOrigVend.origem&&_editOrigVend.prodId){
+    consumeFIFO(_editOrigVend.origem,_editOrigVend.prodId,1);
+  }
   editId=null;
+  _editOrigVend=null;
   document.getElementById('v-cli').value='';
   document.getElementById('v-canal').value='';
   document.getElementById('v-orig').value='';
@@ -3291,6 +3290,9 @@ function editarVenda(id){
   for(i=0;i<vendas.length;i++){if(vendas[i].id===id){v=vendas[i];break;}}
   if(!v) return;
   editId=id;
+  _editOrigVend={origem:v.origem,prodId:v.prodId,containerId:v.containerId};
+  // Devolve estoque imediatamente ao clicar Editar
+  if(v.origem&&v.prodId) restoreStock(v.origem,v.prodId,v.containerId);
   document.getElementById('v-data').value=v.date.slice(0,10);
   document.getElementById('v-cli').value=v.cliente;
   document.getElementById('v-canal').value=v.canal;
