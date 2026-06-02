@@ -4677,9 +4677,11 @@ async function siteGetToken(){
       })
     });
     var data=await resp.json();
+    console.log('[vowt auth]',resp.status,JSON.stringify(data));
     if(!data.success||!data.data||!data.data.access_token){
-      siteShowStatus('Erro auth: '+(data.message||'credenciais inválidas'),'#ef4444');
-      toast('❌ Site: '+(data.message||'auth falhou'),true);
+      var errMsg=data.message||data.error||JSON.stringify(data);
+      siteShowStatus('Erro auth ('+resp.status+'): '+errMsg,'#ef4444');
+      toast('❌ Site auth: '+errMsg,true);
       return null;
     }
     _siteToken=data.data.access_token;
