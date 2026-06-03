@@ -6184,7 +6184,43 @@ function salvarCustoConteiner(){
   }
   DB_CONTAINERS=cs;
   saveContainer(custoContId);
-  toast('Salvo! Custos sincronizados com o Estoque.');
+  // Recalculate custo/lucro for existing sales from this container
+  (function(){
+    var vendas=loadVendas();
+    var changed=false;
+    for(var vi=0;vi<vendas.length;vi++){
+      var v=vendas[vi];
+      if(v.containerId!==custoContId) continue;
+      // Find new unit cost from updated container
+      var newCusto=0;
+      var csArr=loadContainers();
+      for(var ci2=0;ci2<csArr.length;ci2++){
+        if(csArr[ci2].id!==custoContId) continue;
+        if(v.prodId&&csArr[ci2].skus&&csArr[ci2].skus[v.prodId]){
+          newCusto=csArr[ci2].skus[v.prodId].custo||0;
+        }
+        break;
+      }
+      if(newCusto===0) continue;
+      var newLSI=Math.round((v.venda-newCusto-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
+      var newLLL=Math.round((newLSI-(v.imp||0))*100)/100;
+      vendas[vi].custo=newCusto;
+      vendas[vi].lucroSI=newLSI;
+      vendas[vi].lucroLL=newLLL;
+      changed=true;
+    }
+    if(changed){
+      saveVendas(vendas);
+      // Persist each changed venda to DB
+      for(var vi2=0;vi2<vendas.length;vi2++){
+        if(vendas[vi2].containerId===custoContId&&vendas[vi2].custo!==undefined){
+          saveVendaDB(vendas[vi2]);
+        }
+      }
+      renderHist();renderDash();
+    }
+  })();
+  toast('Salvo! Custos sincronizados com o Estoque e Vendas.');
 }
 // ── BREAK-EVEN ───────────────────────────────────────────────────────────
 function calcBreakEven(){
