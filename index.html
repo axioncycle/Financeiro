@@ -5497,8 +5497,8 @@ function saveCustoData(cid,data){
   // Save pagamentos (valor+data in table, usd in configuracoes)
   if(data&&data.pagamentos){
     // Save USD values per pagamento in configuracoes (avoids DB schema dependency)
-    var pagUSD=data.pagamentos.map(function(p){return p.usd||0;});
-    dbUpsert('configuracoes',{chave:'pag_usd_'+cid,valor:JSON.stringify(pagUSD)});
+    var pagDesc=data.pagamentos.map(function(p){return p.desc||'';});
+    dbUpsert('configuracoes',{chave:'pag_desc_'+cid,valor:JSON.stringify(pagDesc)});
     // Save main pagamentos to container_pagamentos table
     dbDel('container_pagamentos','container_id=eq.'+cid).then(function(){
       var rows=[],i,p;
@@ -5563,7 +5563,14 @@ function onCustoContChange(){
   function checkDone(){done++;if(done>=2) renderCustoPage();}
   dbGet("container_pagamentos","container_id=eq."+custoContId+"&order=data.asc").then(function(rows){
     if(Array.isArray(rows)&&rows.length){
-      pagamentos=rows.map(function(r){return{data:r.data||"",valor:+r.valor||0};});
+      pagamentos=rows.map(function(r){return{data:r.data||"",valor:+r.valor||0,desc:''};});
+      // Load descriptions from configuracoes
+      dbGet('configuracoes','chave=eq.pag_desc_'+custoContId).then(function(dr){
+        var descs=[];
+        try{descs=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
+        for(var di=0;di<pagamentos.length;di++) pagamentos[di].desc=descs[di]||'';
+        renderPagamentos();
+      }).catch(function(){});
       // Update localStorage cache
       var cached=sg("ax_custo_"+custoContId,{pagamentos:[],skuRows:[]});
       cached.pagamentos=pagamentos;
@@ -5624,7 +5631,7 @@ function renderCustoPage(){
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────
 function addPagamento(){
-  pagamentos.push({data:today(),valor:0,usd:0});
+  pagamentos.push({data:today(),valor:0,desc:''});
   renderPagamentos();
   if(custoContId) saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
 }
@@ -5643,8 +5650,8 @@ function onPagChange(i,field,val){
   }
   if(field==='valor'){
     pagamentos[i].valor=parseBRL(val);
-  } else if(field==='usd'){
-    pagamentos[i].usd=parseFloat(String(val).replace(',','.'))||0;
+  } else if(field==='desc'){
+    pagamentos[i].desc=val||'';
   } else {
     pagamentos[i].data=val;
   }
@@ -5652,7 +5659,7 @@ function onPagChange(i,field,val){
   calcResumo();
   // Debounce save to Supabase so edits persist
   var _cid=custoContId;
-  var _pags=pagamentos.slice().map(function(p){return{data:p.data,valor:p.valor,usd:p.usd||0};});
+  var _pags=pagamentos.slice().map(function(p){return{data:p.data,valor:p.valor,desc:p.desc||''};});
   var _rows=skuRows.slice();
   if(_pagSaveTimer) clearTimeout(_pagSaveTimer);
   _pagSaveTimer=setTimeout(function(){
@@ -5661,12 +5668,12 @@ function onPagChange(i,field,val){
 }
 
 function calcTotalPago(){
-  var tot=0,totUSD=0,i;
-  for(i=0;i<pagamentos.length;i++){tot+=pagamentos[i].valor||0;totUSD+=pagamentos[i].usd||0;}
+  var tot=0,i;
+  for(i=0;i<pagamentos.length;i++) tot+=pagamentos[i].valor||0;
   var el=document.getElementById('pag-total-brl');
   if(el) el.textContent=fmt(tot);
   var elUSD=document.getElementById('pag-total-usd');
-  if(elUSD) elUSD.textContent='$'+totUSD.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(elUSD) elUSD.textContent='';
   return tot;
 }
 
@@ -5710,15 +5717,15 @@ function renderPagamentos(){
     vInp.className='fi';vInp.style.cssText='padding:8px 10px;font-size:14px;font-weight:700;';
     vInp.oninput=(function(idx){return function(){maskBRL(this);onPagChange(idx,'valor',this.value);};})(i);
     brlWrap.appendChild(brlLbl);brlWrap.appendChild(vInp);
-    // USD
+    // Descrição
     var usdWrap=document.createElement('div');
     var usdLbl=document.createElement('div');
-    usdLbl.style.cssText='font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
-    usdLbl.textContent='$ (USD)';
+    usdLbl.style.cssText='font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    usdLbl.textContent='Descrição';
     var uInp=document.createElement('input');
-    uInp.type='number';uInp.value=p.usd||'';uInp.placeholder='0';
-    uInp.className='fi';uInp.style.cssText='padding:8px 10px;font-size:14px;font-weight:700;color:#1E90FF;';
-    uInp.oninput=(function(idx){return function(){onPagChange(idx,'usd',this.value);};})(i);
+    uInp.type='text';uInp.value=p.desc||'';uInp.placeholder='ex: TED, PIX...';
+    uInp.className='fi';uInp.style.cssText='padding:8px 10px;font-size:13px;';
+    uInp.oninput=(function(idx){return function(){onPagChange(idx,'desc',this.value);};})(i);
     usdWrap.appendChild(usdLbl);usdWrap.appendChild(uInp);
     botRow.appendChild(brlWrap);botRow.appendChild(usdWrap);
     card.appendChild(topRow);card.appendChild(botRow);
@@ -6417,6 +6424,7 @@ function confirmarApagarContainer(){
   dbDel('configuracoes','chave=eq.roi_'+cid);
   dbDel('configuracoes','chave=eq.sim_'+cid);
   dbDel('configuracoes','chave=eq.pag_usd_'+cid);
+  dbDel('configuracoes','chave=eq.pag_desc_'+cid);
   try{localStorage.removeItem('ax_custo_'+cid);}catch(e){}
   closeModal('m-del-cont');
   delContId='';
