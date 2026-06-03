@@ -5697,7 +5697,7 @@ function renderPagamentos(){
     topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;';
     var dInp=document.createElement('input');
     dInp.type='date';dInp.value=p.data||today();
-    dInp.className='fi';dInp.style.cssText='flex:1;padding:7px 8px;font-size:12px;';
+    dInp.style.cssText='flex:1;min-width:0;padding:7px 8px;font-size:13px;background:var(--input);border:1px solid var(--input-border);border-radius:8px;color:var(--text);outline:none;';
     dInp.onchange=(function(idx){return function(){onPagChange(idx,'data',this.value);};})(i);
     var delBtn=document.createElement('button');
     delBtn.textContent='x';
@@ -5715,7 +5715,7 @@ function renderPagamentos(){
     var vInp=document.createElement('input');
     vInp.type='text';vInp.inputMode='decimal';
     vInp.value=p.valor>0?fmtN(p.valor):'';vInp.placeholder='0,00';
-    vInp.className='fi';vInp.style.cssText='width:100%;padding:8px 10px;font-size:14px;font-weight:700;box-sizing:border-box;';
+    vInp.className='fi';vInp.style.cssText='padding:8px 10px;font-size:14px;font-weight:700;';
     vInp.oninput=(function(idx){return function(){maskBRL(this);onPagChange(idx,'valor',this.value);};})(i);
     brlWrap.appendChild(brlLbl);brlWrap.appendChild(vInp);
     // USD
@@ -5725,7 +5725,7 @@ function renderPagamentos(){
     usdLbl.textContent='$ (USD)';
     var uInp=document.createElement('input');
     uInp.type='number';uInp.value=p.usd||'';uInp.placeholder='0';
-    uInp.className='fi';uInp.style.cssText='width:100%;padding:8px 10px;font-size:14px;font-weight:700;color:#1E90FF;box-sizing:border-box;';
+    uInp.className='fi';uInp.style.cssText='padding:8px 10px;font-size:14px;font-weight:700;color:#1E90FF;';
     uInp.oninput=(function(idx){return function(){onPagChange(idx,'usd',this.value);};})(i);
     usdWrap.appendChild(usdLbl);usdWrap.appendChild(uInp);
     botRow.appendChild(brlWrap);botRow.appendChild(usdWrap);
