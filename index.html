@@ -1189,14 +1189,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
       <button onclick="addSkuRow()" style="padding:7px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">+ SKU</button>
     </div>
-    <!-- Header da tabela -->
-    <div style="display:grid;grid-template-columns:2fr 80px 60px 90px 28px;gap:4px;margin-bottom:6px;padding:0 2px;">
-      <div style="font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.8px;">SKU</div>
-      <div style="font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.8px;text-align:center;">USD</div>
-      <div style="font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.8px;text-align:center;">Qtd</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:.8px;text-align:center;">Custo BRL</div>
-      <div></div>
-    </div>
     <div id="sku-rows" style="margin-bottom:10px;"></div>
   </div>
 
@@ -5824,31 +5816,55 @@ function renderSkuRows(){
     var r=skuRows[i];
     var brl=cotacao*r.usd;
     skuRows[i].brl=brl;
-    var row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:2fr 80px 60px 90px 28px;gap:4px;margin-bottom:6px;align-items:center;background:#1a1a1a;border:1px solid #222;border-radius:8px;padding:8px;';
+    var card=document.createElement('div');
+    card.style.cssText='background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:8px 10px;margin-bottom:8px;';
+    // Top row: SKU select + delete
+    var topRow=document.createElement('div');
+    topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px;';
     var skuSel=document.createElement('select');
-    skuSel.className='fs';skuSel.style.cssText='font-size:11px;padding:6px 8px;';
+    skuSel.className='fs';skuSel.style.cssText='flex:1;min-width:0;font-size:13px;padding:7px 8px;';
     skuSel.innerHTML=buildSkuOptions(r.skuNome);
     skuSel.onchange=(function(idx){return function(){onSkuChange(idx,'sku',this.value);};})(i);
-    var usdInp=document.createElement('input');
-    usdInp.type='number';usdInp.value=r.usd||'';usdInp.placeholder='USD';
-    usdInp.className='fi';usdInp.style.cssText='padding:6px 8px;font-size:12px;text-align:center;';
-    usdInp.oninput=(function(idx){return function(){onSkuChange(idx,'usd',this.value);};})(i);
-    var qtyInp=document.createElement('input');
-    qtyInp.type='number';qtyInp.min='1';qtyInp.max='999';
-    qtyInp.value=r.qty||1;
-    qtyInp.className='fi';qtyInp.style.cssText='padding:6px 8px;font-size:12px;text-align:center;width:64px;';
-    qtyInp.onchange=(function(idx){return function(){onSkuChange(idx,'qty',this.value);};})(i);
-    var brlDiv=document.createElement('div');
-    brlDiv.style.cssText='background:#0a1a0a;border:1px solid #22c55e33;border-radius:6px;padding:6px 6px;font-size:11px;font-weight:800;color:#22c55e;text-align:center;';
-    brlDiv.textContent=brl>0?fmtN(brl):'--';
     var delBtn=document.createElement('button');
     delBtn.textContent='x';
-    delBtn.style.cssText='width:26px;height:26px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;';
+    delBtn.style.cssText='width:28px;height:28px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
     delBtn.onclick=(function(idx){return function(){removeSkuRow(idx);};})(i);
-    row.appendChild(skuSel);row.appendChild(usdInp);row.appendChild(qtyInp);
-    row.appendChild(brlDiv);row.appendChild(delBtn);
-    el.appendChild(row);
+    topRow.appendChild(skuSel);topRow.appendChild(delBtn);
+    // Bottom row: USD | QTD | CUSTO BRL
+    var botRow=document.createElement('div');
+    botRow.style.cssText='display:grid;grid-template-columns:1fr 80px 1fr;gap:6px;align-items:end;';
+    // USD
+    var usdWrap=document.createElement('div');
+    var usdLbl=document.createElement('div');
+    usdLbl.style.cssText='font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    usdLbl.textContent='$ USD';
+    var usdInp=document.createElement('input');
+    usdInp.type='number';usdInp.value=r.usd||'';usdInp.placeholder='0';
+    usdInp.className='fi';usdInp.style.cssText='padding:7px 8px;font-size:14px;font-weight:600;color:#1E90FF;text-align:center;';
+    usdInp.oninput=(function(idx){return function(){onSkuChange(idx,'usd',this.value);};})(i);
+    usdWrap.appendChild(usdLbl);usdWrap.appendChild(usdInp);
+    // QTD
+    var qtyWrap=document.createElement('div');
+    var qtyLbl=document.createElement('div');
+    qtyLbl.style.cssText='font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    qtyLbl.textContent='QTD';
+    var qtyInp=document.createElement('input');
+    qtyInp.type='number';qtyInp.min='1';qtyInp.max='999';qtyInp.value=r.qty||1;
+    qtyInp.className='fi';qtyInp.style.cssText='padding:7px 8px;font-size:14px;font-weight:600;text-align:center;';
+    qtyInp.onchange=(function(idx){return function(){onSkuChange(idx,'qty',this.value);};})(i);
+    qtyWrap.appendChild(qtyLbl);qtyWrap.appendChild(qtyInp);
+    // BRL
+    var brlWrap=document.createElement('div');
+    var brlLbl=document.createElement('div');
+    brlLbl.style.cssText='font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    brlLbl.textContent='Custo BRL';
+    var brlDiv=document.createElement('div');
+    brlDiv.style.cssText='background:#0a1a0a;border:1px solid #22c55e33;border-radius:8px;padding:7px 8px;font-size:14px;font-weight:800;color:#22c55e;text-align:center;';
+    brlDiv.textContent=brl>0?fmtN(brl):'--';
+    brlWrap.appendChild(brlLbl);brlWrap.appendChild(brlDiv);
+    botRow.appendChild(usdWrap);botRow.appendChild(qtyWrap);botRow.appendChild(brlWrap);
+    card.appendChild(topRow);card.appendChild(botRow);
+    el.appendChild(card);
   }
 }
 
