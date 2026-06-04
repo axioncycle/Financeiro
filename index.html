@@ -7494,7 +7494,7 @@ function mlProcessOrders(orders,dasRate,comRate){
           var lucroLL=lucroSI-imp;
 
           // Skip if signature already in DB (survives reload)
-          var _mlsig=dateStr+'|'+(prodId||produto)+'|'+Math.round(precoUnit*100);
+          var _mlsig=dateStr+'|'+(prodId||prodNome)+'|'+Math.round(precoUnit*100);
           var _es=window._mlExistingSig||{};
           window._mlSigUsed=window._mlSigUsed||{};
           var _have=(_es[_mlsig]||0)-(window._mlSigUsed[_mlsig]||0);
