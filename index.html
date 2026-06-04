@@ -8430,6 +8430,20 @@ function buildMLabel(mk){
 
 var _verVendaId=null;
 
+function salvarCustoVenda(rawVal){
+  if(!_verVendaId) return;
+  var novoCusto=parseBRL(rawVal||'0')||0;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.custo=novoCusto;
+  v.lucroSI=Math.round((v.venda-novoCusto-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
+  v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
+  saveVendaDB(v);
+  renderHist();renderDash();
+  toast('Custo atualizado!');
+}
+
 function salvarFreteVenda(rawVal){
   if(!_verVendaId) return;
   var novoFrete=parseBRL(rawVal||'0')||0;
@@ -8469,7 +8483,7 @@ function verVenda(id){
     {label:'📍 Origem',val:v.origem||'—'},
     null,
     {label:'💰 Venda',val:fmt(v.venda),color:'#1E90FF'},
-    {label:'🏭 Custo produto',val:fmt(v.custo),color:'#ef4444'},
+    {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0},
     {label:'📊 Taxa ML',val:fmt(v.taxa||0)+' ('+taxaPct.toFixed(1)+'%)',color:'#ef4444'},
     {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
     v.com>0?{label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'}:null,
@@ -8493,6 +8507,15 @@ function verVenda(id){
   var h='';
   rows.forEach(function(r){
     if(!r){h+='<div style="border-top:1px solid var(--border);margin:8px 0;"></div>';return;}
+    if(r.custo){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">🏭 Custo produto</span>'
+        +'<input type="text" inputmode="decimal" value="'+fmtN(r.custoVal)+'" '
+        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onchange="salvarCustoVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     if(r.frete){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🚚 Frete</span>'
