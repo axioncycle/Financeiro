@@ -8430,6 +8430,17 @@ function buildMLabel(mk){
 
 var _verVendaId=null;
 
+function salvarClienteVenda(val){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.cliente=val||'';
+  saveVendaDB(v);
+  renderHist();
+  toast('Cliente atualizado!');
+}
+
 function salvarCustoVenda(rawVal){
   if(!_verVendaId) return;
   var novoCusto=parseBRL(rawVal||'0')||0;
@@ -8477,7 +8488,7 @@ function verVenda(id){
 
   var rows=[
     {label:'📅 Data',val:fmtDate(v.date)},
-    {label:'👤 Cliente',val:v.cliente||'—'},
+    {label:'👤 Cliente',cliente:true,clienteVal:v.cliente||''},
     {label:'📦 Produto',val:v.produto||'—'},
     {label:'🏪 Canal',val:v.canal||'—'},
     {label:'📍 Origem',val:v.origem||'—'},
@@ -8507,6 +8518,15 @@ function verVenda(id){
   var h='';
   rows.forEach(function(r){
     if(!r){h+='<div style="border-top:1px solid var(--border);margin:8px 0;"></div>';return;}
+    if(r.cliente){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">👤 Cliente</span>'
+        +'<input type="text" value="'+((r.clienteVal||'').replace(/"/g,'&quot;'))+'" placeholder="Nome do cliente" '
+        +'style="width:140px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'onchange="salvarClienteVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     if(r.custo){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🏭 Custo produto</span>'
