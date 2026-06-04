@@ -8430,6 +8430,15 @@ function buildMLabel(mk){
 
 var _verVendaId=null;
 
+function refreshAfterVendaEdit(){
+  renderHist();
+  renderDash();
+  if(typeof renderDash2==='function') renderDash2();
+  if(typeof renderRes==='function') renderRes();
+  if(typeof renderCaixa==='function') renderCaixa();
+  if(curPage==='est'&&typeof renderEst==='function') renderEst();
+}
+
 function salvarClienteVenda(val){
   if(!_verVendaId) return;
   var vendas=loadVendas();
@@ -8437,7 +8446,7 @@ function salvarClienteVenda(val){
   if(!v) return;
   v.cliente=val||'';
   saveVendas(vendas,v);
-  renderHist();
+  refreshAfterVendaEdit();
   toast('Cliente atualizado!');
 }
 
@@ -8451,7 +8460,7 @@ function salvarCustoVenda(rawVal){
   v.lucroSI=Math.round((v.venda-novoCusto-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
   v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
   saveVendas(vendas,v);
-  renderHist();renderDash();
+  refreshAfterVendaEdit();
   toast('Custo atualizado!');
 }
 
@@ -8465,8 +8474,7 @@ function salvarFreteVenda(rawVal){
   v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-novoFrete)*100)/100;
   v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
   saveVendas(vendas,v);
-  renderHist();renderDash();
-  if(curPage==='est') renderEst();
+  refreshAfterVendaEdit();
   toast('Frete atualizado!');
 }
 
