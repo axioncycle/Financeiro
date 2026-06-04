@@ -8430,6 +8430,49 @@ function buildMLabel(mk){
 
 var _verVendaId=null;
 
+function _recalcVenda(v){
+  v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
+  v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
+}
+
+function salvarVendaVenda(rawVal){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.venda=parseBRL(rawVal||'0')||0;
+  _recalcVenda(v);
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('Valor atualizado!');
+}
+
+function salvarTaxaVenda(rawVal){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.taxa=parseBRL(rawVal||'0')||0;
+  v.taxaPct=v.venda>0?Math.round(v.taxa/v.venda*10000)/100:0;
+  _recalcVenda(v);
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('Taxa atualizada!');
+}
+
+function salvarDasVenda(rawVal){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.imp=parseBRL(rawVal||'0')||0;
+  v.impPct=v.venda>0?Math.round(v.imp/v.venda*10000)/100:0;
+  _recalcVenda(v);
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('DAS atualizado!');
+}
+
 function refreshAfterVendaEdit(){
   renderHist();
   renderDash();
@@ -8457,8 +8500,7 @@ function salvarCustoVenda(rawVal){
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
   if(!v) return;
   v.custo=novoCusto;
-  v.lucroSI=Math.round((v.venda-novoCusto-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
-  v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
+  _recalcVenda(v);
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
   toast('Custo atualizado!');
@@ -8471,8 +8513,7 @@ function salvarFreteVenda(rawVal){
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
   if(!v) return;
   v.frete=novoFrete;
-  v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-novoFrete)*100)/100;
-  v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
+  _recalcVenda(v);
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
   toast('Frete atualizado!');
@@ -8501,12 +8542,12 @@ function verVenda(id){
     {label:'🏪 Canal',val:v.canal||'—'},
     {label:'📍 Origem',val:v.origem||'—'},
     null,
-    {label:'💰 Venda',val:fmt(v.venda),color:'#1E90FF'},
+    {label:'💰 Venda',venda:true,vendaVal:v.venda||0},
     {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0},
-    {label:'📊 Taxa ML',val:fmt(v.taxa||0)+' ('+taxaPct.toFixed(1)+'%)',color:'#ef4444'},
+    {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0},
     {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
     v.com>0?{label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'}:null,
-    {label:'🧾 DAS/Imposto',val:fmt(v.imp||0)+' ('+impPct.toFixed(1)+'%)',color:'#ef4444'},
+    {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
     {label:'✅ Lucro Líquido',val:fmt(v.lucroLL||0)+' ('+(v.venda>0?((v.lucroLL||0)/v.venda*100).toFixed(1):0)+'%)',color:(v.lucroLL||0)>=0?'#22c55e':'#ef4444',bold:true,big:true},
@@ -8526,6 +8567,33 @@ function verVenda(id){
   var h='';
   rows.forEach(function(r){
     if(!r){h+='<div style="border-top:1px solid var(--border);margin:8px 0;"></div>';return;}
+    if(r.venda){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">💰 Venda</span>'
+        +'<input type="text" inputmode="decimal" value="'+fmtN(r.vendaVal)+'" '
+        +'style="width:110px;background:#1a1a1a;border:1px solid #1E90FF44;border-radius:5px;padding:4px 8px;color:#1E90FF;font-size:13px;font-weight:700;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onchange="salvarVendaVenda(this.value)">'
+        +'</div>';
+      return;
+    }
+    if(r.taxa){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">📊 Taxa ML</span>'
+        +'<input type="text" inputmode="decimal" value="'+fmtN(r.taxaVal)+'" '
+        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onchange="salvarTaxaVenda(this.value)">'
+        +'</div>';
+      return;
+    }
+    if(r.das){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">🧾 DAS/Imposto</span>'
+        +'<input type="text" inputmode="decimal" value="'+fmtN(r.dasVal)+'" '
+        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onchange="salvarDasVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     if(r.cliente){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">👤 Cliente</span>'
