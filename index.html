@@ -8436,7 +8436,7 @@ function salvarClienteVenda(val){
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
   if(!v) return;
   v.cliente=val||'';
-  saveVendaDB(v);
+  saveVendas(vendas,v);
   renderHist();
   toast('Cliente atualizado!');
 }
@@ -8450,7 +8450,7 @@ function salvarCustoVenda(rawVal){
   v.custo=novoCusto;
   v.lucroSI=Math.round((v.venda-novoCusto-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
   v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
-  saveVendaDB(v);
+  saveVendas(vendas,v);
   renderHist();renderDash();
   toast('Custo atualizado!');
 }
@@ -8464,7 +8464,7 @@ function salvarFreteVenda(rawVal){
   v.frete=novoFrete;
   v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-novoFrete)*100)/100;
   v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
-  saveVendaDB(v);
+  saveVendas(vendas,v);
   renderHist();renderDash();
   if(curPage==='est') renderEst();
   toast('Frete atualizado!');
