@@ -1442,7 +1442,7 @@ function saveVendaDB(v){
     pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0
   };
   if(v.mlOrderId) row.ml_order_id=v.mlOrderId;
-  if(v.vendedor) row.vendedor=v.vendedor;
+  row.vendedor=v.vendedor||'';
 
   function _patch(r){
     return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{
