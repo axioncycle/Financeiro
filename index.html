@@ -7337,18 +7337,8 @@ function mlProcessOrders(orders,dasRate,comRate){
         // Data
         var dateStr='';
         if(o.date_created){
-          // ML returns ISO with timezone offset e.g. "2026-05-29T22:00:00.000-03:00"
-          // Parse respecting the timezone offset to get correct local date
-          var dc=o.date_created;
-          var tzMatch=dc.match(/([+-])(\d{2}):(\d{2})$/);
-          if(tzMatch){
-            var d=new Date(dc);
-            var offMin=(parseInt(tzMatch[2])*60+parseInt(tzMatch[3]))*(tzMatch[1]==='+'?1:-1);
-            var local=new Date(d.getTime()+offMin*60000);
-            dateStr=local.toISOString().slice(0,10);
-          } else {
-            dateStr=dc.slice(0,10);
-          }
+          // Use date portion directly — avoids timezone shift bugs
+          dateStr=(o.date_closed||o.date_created).slice(0,10);
         }
 
         // ── FIX 3: Valor real pago pelo comprador ─────────────────
