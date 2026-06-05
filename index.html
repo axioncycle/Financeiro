@@ -2178,6 +2178,7 @@ function renderDash(){
 
   var fv=[];
   var _cutoffPeriod=null;
+  var _anoAtual=selMonth==='ano'?new Date().getFullYear().toString():null;
   if(selMonth==='12m'||selMonth==='6m'||selMonth==='3m'){
     _cutoffPeriod=new Date();
     _cutoffPeriod.setMonth(_cutoffPeriod.getMonth()-({'12m':12,'6m':6,'3m':3}[selMonth]));
@@ -2186,8 +2187,9 @@ function renderDash(){
   for(i=0;i<vendas.length;i++){
     var _vd=vendas[i];
     if(selMonth==='all') fv.push(_vd);
+    else if(_anoAtual&&(_vd.date||'').slice(0,4)===_anoAtual) fv.push(_vd);
     else if(_cutoffPeriod&&new Date(_vd.date+'T12:00:00Z')>=_cutoffPeriod) fv.push(_vd);
-    else if(!_cutoffPeriod&&mkey(_vd.date)===selMonth) fv.push(_vd);
+    else if(!_cutoffPeriod&&!_anoAtual&&mkey(_vd.date)===selMonth) fv.push(_vd);
   }
   // ── DRE METHODOLOGY (same as Análise tab) ──────────────────
   var fat=0,lsi=0,taxas=0,custoP=0,frete=0,imp=0,periodos={};
@@ -3019,8 +3021,8 @@ function renderCharts(vendas){
     mMap[mk].qtd++;
   }
   var keys=Object.keys(mMap).sort();
-  var nMonths=selMonth==='6m'?6:selMonth==='3m'?3:12;
-  var last=keys.slice(-nMonths);
+  var nMonths=selMonth==='6m'?6:selMonth==='3m'?3:selMonth==='ano'?new Date().getMonth()+1:12;
+  var last=selMonth==='ano'||selMonth==='12m'||selMonth==='6m'||selMonth==='3m'?keys:keys.slice(-nMonths);
   var labels=[],fat=[],liq=[],qtd=[];
   var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   for(i=0;i<last.length;i++){
@@ -6567,6 +6569,7 @@ function mlabel2(mk){
 function getD2Vendas(){
   var vendas=loadVendas();
   if(d2SelPeriod==='all') return vendas;
+  if(d2SelPeriod==='ano'){var yr=new Date().getFullYear().toString();return vendas.filter(function(v){return (v.date||'').slice(0,4)===yr;});}
   if(d2SelPeriod==='12m'||d2SelPeriod==='6m'||d2SelPeriod==='3m'){
     var n={'12m':12,'6m':6,'3m':3}[d2SelPeriod];
     var cut=new Date();cut.setMonth(cut.getMonth()-n);cut.setDate(1);cut.setHours(0,0,0,0);
@@ -8230,6 +8233,7 @@ function renderCaixaMini(mMap, meses){
 function filterCaixaMeses(mMap){
   var keys=Object.keys(mMap).sort();
   if(cxSelPeriod==='all') return keys;
+  if(cxSelPeriod==='ano'){var yr=new Date().getFullYear().toString();return keys.filter(function(k){return k.slice(0,4)===yr;});}
   if(cxSelPeriod==='12m') return keys.slice(-12);
   if(cxSelPeriod==='6m') return keys.slice(-6);
   if(cxSelPeriod==='3m') return keys.slice(-3);
@@ -8449,7 +8453,7 @@ function buildSmartFilter(months, selVal, onClickFn, saveKey){
   var curYear=new Date().getFullYear().toString();
   var sk=saveKey||'x';
   var out='';
-  [{k:'all',l:'Tudo'},{k:'12m',l:'12M'},{k:'6m',l:'6M'},{k:'3m',l:'3M'}].forEach(function(c){
+  [{k:'all',l:'Tudo'},{k:'ano',l:'Ano'},{k:'12m',l:'12M'},{k:'6m',l:'6M'},{k:'3m',l:'3M'}].forEach(function(c){
     out+=buildChip(c.k,c.l,selVal===c.k,onClickFn,saveKey);
   });
   var byYear={};
