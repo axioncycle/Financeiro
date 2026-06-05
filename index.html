@@ -8501,6 +8501,50 @@ function refreshAfterVendaEdit(){
   if(typeof renderCaixa==='function'&&curPage==='caixa') renderCaixa();
   if(typeof renderEst==='function'&&curPage==='est') renderEst();
   if(typeof renderCharts==='function') renderCharts(loadVendas());
+  // Refresh the Ver Venda modal body so edits appear immediately
+  if(_verVendaId) verVendaBody(_verVendaId);
+}
+
+function verVendaBody(id){
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===id;});
+  if(!v) return;
+  var body=document.getElementById('ver-v-body');
+  if(!body) return;
+  var title=document.getElementById('ver-v-title');
+  if(title) title.textContent=v.produto||'Detalhes da Venda';
+  var taxaPct=v.taxaPct||0;
+  var impPct=v.impPct||0;
+  var comPct=v.comPct||0;
+  var margContrib=v.venda-(v.taxa||0)-(v.com||0)-(v.custo||0)-(v.frete||0);
+  var margPct=v.venda>0?(margContrib/v.venda*100):0;
+  var rows=[
+    {label:'📅 Data',data:true,dataVal:v.date||''},
+    {label:'👤 Cliente',cliente:true,clienteVal:v.cliente||''},
+    {label:'📦 Produto',val:v.produto||'—'},
+    {label:'🏪 Canal',val:v.canal||'—'},
+    {label:'📍 Origem',val:v.origem||'—'},
+    null,
+    {label:'💰 Venda',venda:true,vendaVal:v.venda||0},
+    {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0},
+    {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0},
+    {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
+    {label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'},
+    {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0},
+    null,
+    {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
+    {label:'✅ Lucro Líquido',val:fmt(v.lucroLL||0)+' ('+(v.venda>0?((v.lucroLL||0)/v.venda*100).toFixed(1):0)+'%)',color:(v.lucroLL||0)>=0?'#22c55e':'#ef4444',bold:true,big:true},
+  ];
+  if(v.duplo){
+    rows.push(null);
+    rows.push({label:'💳 Pagamento 1',val:v.pag1tipo+' '+fmt(v.pag1val)+' ('+v.pag1taxa+'%)'});
+    rows.push({label:'💳 Pagamento 2',val:v.pag2tipo+' '+fmt(v.pag2val)+' ('+v.pag2taxa+'%)'});
+  }
+  if(v.mlOrderId){
+    rows.push(null);
+    rows.push({label:'🛒 Pedido ML',val:v.mlOrderId,color:'#f59e0b'});
+  }
+  body.innerHTML=buildVerVendaHTML(rows);
 }
 
 function salvarClienteVenda(val){
