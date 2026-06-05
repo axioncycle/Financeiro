@@ -3411,6 +3411,7 @@ function renderHist(){
     fv.push(v);
   }
   var hasFilter=nome||data||dataDe||dataAte;
+  fv.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
   if(hasFilter){
     inf.style.display='block';
     var filterDesc='';
