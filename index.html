@@ -1606,33 +1606,72 @@ function loadSkuRowsForCont(cid,cb){
 }
 
 function syncPendingVendas(manual){
-  var pending=DB_VENDAS.filter(function(v){return v.id>2000000000;});
-  if(!pending.length){if(manual) toast('Nenhuma venda pendente de sync');return;}
-  if(manual) toast('Sincronizando '+pending.length+' venda(s)...');
-  var ok=0,fail=0;
-  var promises=pending.map(function(v){
-    return saveVendaDB(v).then(function(res){
-      if(Array.isArray(res)&&res.length) ok++;
-      else fail++;
-    }).catch(function(){fail++;});
-  });
-  if(manual){
-    Promise.all(promises).then(function(){
-      toast(ok+' venda(s) sincronizada(s)'+(fail?' | '+fail+' falha(s)':'')+'!');
-      if(ok>0){renderHist&&renderHist();renderDash&&renderDash();}
-    });
-  }
+  // Fetch IDs currently in Supabase, then insert only truly missing ones
+  var allLocal=DB_VENDAS.slice();
+  if(manual) toast('Verificando pendentes...');
+  dbGet('vendas','select=id').then(function(rows){
+    var supaIds={};
+    if(Array.isArray(rows)) rows.forEach(function(r){supaIds[r.id]=1;});
+    var pending=allLocal.filter(function(v){return !supaIds[v.id];});
+    var bar=document.getElementById('sync-pending-bar');
+    var msg=document.getElementById('sync-pending-msg');
+    if(!pending.length){
+      if(bar) bar.style.display='none';
+      if(manual) toast('Todas as vendas já estão sincronizadas!');
+      return;
+    }
+    if(bar&&msg){bar.style.display='flex';msg.textContent=pending.length+' venda(s) apenas neste dispositivo';}
+    if(!manual) return;
+    // Sequential inserts in batches of 10
+    toast('Sincronizando '+pending.length+' venda(s)...');
+    var ok=0,fail=0,firstErr='',idx=0;
+    function next(){
+      if(idx>=pending.length){
+        if(bar) bar.style.display='none';
+        var t=ok+' sincronizada(s)'+(fail?' | '+fail+' falha(s)'+(firstErr?' ('+firstErr+')':''):'');
+        toast(t,fail>0&&ok===0);
+        if(ok>0&&typeof renderHist==='function') renderHist();
+        return;
+      }
+      var v=pending[idx++];
+      var row={date:(v.date||'').slice(0,10),cliente:v.cliente||'',vendedor:v.vendedor||'',canal:v.canal||'',produto:v.produto||'',
+        prod_id:v.prodId||null,origem:v.origem||'',container_id:v.containerId||null,
+        venda:v.venda||0,custo:v.custo||0,taxa_pct:v.taxaPct||0,taxa:v.taxa||0,
+        imp_pct:v.impPct||0,imp:v.imp||0,com_pct:v.comPct||0,com:v.com||0,frete:v.frete||0,
+        lucro_si:v.lucroSI||0,lucro_ll:v.lucroLL||0,duplo:v.duplo||false,
+        pag1_tipo:v.pag1tipo||'',pag1_val:v.pag1val||0,pag1_taxa:v.pag1taxa||0,
+        pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0};
+      if(v.mlOrderId) row.ml_order_id=v.mlOrderId;
+      fetch(SUPA_URL+'/rest/v1/vendas',{method:'POST',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+        body:JSON.stringify(row)
+      }).then(function(resp){
+        if(resp.status===201||resp.ok){
+          return resp.json().then(function(res){
+            if(Array.isArray(res)&&res.length&&res[0].id){
+              // Update local ID to Supabase-assigned ID
+              var oldId=v.id,newId=res[0].id;
+              for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===oldId){DB_VENDAS[i].id=newId;break;}}
+            }
+            ok++;setTimeout(next,80);
+          });
+        } else {
+          return resp.text().then(function(t){
+            if(!firstErr) firstErr=t.slice(0,120);
+            fail++;setTimeout(next,80);
+          });
+        }
+      }).catch(function(e){if(!firstErr)firstErr=e.message;fail++;setTimeout(next,80);});
+    }
+    next();
+  }).catch(function(){if(manual) toast('Erro ao verificar Supabase',true);});
 }
 
 function initDB(cb){
   var done=0;
   function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();setTimeout(function(){
-    var p=DB_VENDAS.filter(function(v){return v.id>2000000000;});
-    var bar=document.getElementById('sync-pending-bar');
-    var msg=document.getElementById('sync-pending-msg');
-    if(p.length&&bar&&msg){bar.style.display='flex';msg.textContent=p.length+' venda(s) apenas neste dispositivo — clique para sincronizar';}
     syncPendingVendas(false);
-  },2000);}}
+  },3000);}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
   loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
   loadLocaisDB(function(l){DB_LOCAIS=l;chk();});
