@@ -1404,7 +1404,7 @@ function saveEstoque(containerId,skuId,local,qty){
     if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque error:",t);});
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
-function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
+function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){
   var row={
     id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,
@@ -1415,24 +1415,41 @@ function saveVendaDB(v){
     pag1_tipo:v.pag1tipo||'',pag1_val:v.pag1val||0,pag1_taxa:v.pag1taxa||0,
     pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0
   };
-  return fetch(SUPA_URL+'/rest/v1/vendas',{
-    method:'POST',
+  if(v.mlOrderId) row.ml_order_id=v.mlOrderId;
+  // Try PATCH first (update existing); on 404/0 rows fall back to POST (insert)
+  return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{
+    method:'PATCH',
     headers:{
       'apikey':SUPA_KEY,
       'Authorization':'Bearer '+SUPA_KEY,
       'Content-Type':'application/json',
-      'Prefer':'resolution=merge-duplicates,return=representation'
+      'Prefer':'return=representation'
     },
     body:JSON.stringify(row)
   }).then(function(resp){
     if(!resp.ok){
       return resp.text().then(function(t){
-        console.error('saveVendaDB '+resp.status+':',t.slice(0,200));
-        toast('Erro ao salvar venda ('+resp.status+'): '+t.slice(0,80),true);
+        console.error('saveVendaDB PATCH '+resp.status+':',t.slice(0,200));
+        toast('Erro ao salvar venda ('+resp.status+')',true);
         return [];
       });
     }
-    return resp.json().catch(function(){return [];});
+    return resp.json().then(function(rows){
+      // If PATCH matched nothing, INSERT
+      if(!rows||!rows.length){
+        return fetch(SUPA_URL+'/rest/v1/vendas',{
+          method:'POST',
+          headers:{
+            'apikey':SUPA_KEY,
+            'Authorization':'Bearer '+SUPA_KEY,
+            'Content-Type':'application/json',
+            'Prefer':'return=representation'
+          },
+          body:JSON.stringify(row)
+        }).then(function(r2){return r2.json().catch(function(){return [];});});
+      }
+      return rows;
+    }).catch(function(){return [];});
   }).catch(function(e){
     console.error('saveVendaDB:',e.message);
     toast('Erro ao salvar venda: sem conexão',true);
