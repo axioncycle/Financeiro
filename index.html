@@ -10210,6 +10210,8 @@ function gerarRelatorio(){
     vendas_canal:document.getElementById('rel-vendas')&&document.getElementById('rel-vendas').checked,
     produtos:document.getElementById('rel-produtos')&&document.getElementById('rel-produtos').checked,
     estoque:document.getElementById('rel-estoque')&&document.getElementById('rel-estoque').checked,
+    estoque_qtd:document.getElementById('rel-estoque-qtd')&&document.getElementById('rel-estoque-qtd').checked,
+    despesas:document.getElementById('rel-despesas')&&document.getElementById('rel-despesas').checked,
     caixa:document.getElementById('rel-caixa')&&document.getElementById('rel-caixa').checked,
     lista:document.getElementById('rel-lista')&&document.getElementById('rel-lista').checked
   };
@@ -10460,6 +10462,92 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     sections+=card('Fluxo de Caixa','💵',tabela(cols5,cxRows,null),C.verde);
   }
 
+  // ── ESTOQUE QUANTITATIVO ────────────────────────────────────
+  if(opts.estoque_qtd){
+    var cs2=loadContainers();
+    var allSkus2=getAllSKUs();
+    var skuMap2={};
+    allSkus2.forEach(function(s){skuMap2[s.id]=s.nome;});
+    // Aggregate by SKU across all containers
+    var qtdMap={};
+    cs2.forEach(function(c){
+      if(!c.skus) return;
+      Object.keys(c.skus).forEach(function(sid){
+        var s=c.skus[sid];
+        if(!s.un) return;
+        if(!qtdMap[sid]) qtdMap[sid]={nome:skuMap2[sid]||'SKU '+sid,locais:{},total:0};
+        Object.keys(s.un).forEach(function(loc){
+          var q=s.un[loc]||0;
+          if(q>0){
+            qtdMap[sid].locais[loc]=(qtdMap[sid].locais[loc]||0)+q;
+            qtdMap[sid].total+=q;
+          }
+        });
+      });
+    });
+    var allLocais2={};
+    Object.keys(qtdMap).forEach(function(sid){Object.keys(qtdMap[sid].locais).forEach(function(loc){allLocais2[loc]=1;});});
+    var locList2=Object.keys(allLocais2).sort();
+    var qtdRows=[];
+    var totalRow={nome:'TOTAL GERAL',locais:{},total:0};
+    locList2.forEach(function(loc){totalRow.locais[loc]=0;});
+    Object.keys(qtdMap).sort(function(a,b){return qtdMap[b].total-qtdMap[a].total;}).forEach(function(sid){
+      var row=qtdMap[sid];
+      if(row.total<=0) return;
+      var r=[row.nome];
+      locList2.forEach(function(loc){var q=row.locais[loc]||0;r.push(q||'—');totalRow.locais[loc]=(totalRow.locais[loc]||0)+q;});
+      r.push(row.total);
+      totalRow.total+=row.total;
+      qtdRows.push(r);
+    });
+    // Total row
+    var totR=['<b>TOTAL</b>'];
+    locList2.forEach(function(loc){totR.push('<b>'+(totalRow.locais[loc]||0)+'</b>');});
+    totR.push('<b>'+totalRow.total+'</b>');
+    qtdRows.push(totR);
+    var colsQtd=[{label:'Produto'}];
+    locList2.forEach(function(loc){colsQtd.push({label:loc,right:true});});
+    colsQtd.push({label:'Total',right:true});
+    sections+=card('Estoque Quantitativo','📦',qtdRows.length>1?tabela(colsQtd,qtdRows,null):'<p style="color:#888;text-align:center;">Sem estoque</p>',C.amarelo);
+  }
+
+  // ── DESPESAS MENSAIS ────────────────────────────────────────
+  if(opts.despesas&&meses.length>0){
+    var despSections='';
+    meses.forEach(function(mk){
+      var d=getMDesp(mk);
+      var totF=0,totE=0,totFin=0,totDAS=d.das||0;
+      var fixaH='',extraH='',finH='';
+      if(d.fixas&&d.fixas.length){
+        d.fixas.forEach(function(f){totF+=f.valor||0;});
+        fixaH='<tr><td colspan="2" style="padding:6px 8px 2px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;">Despesas Fixas</td></tr>'+
+          d.fixas.map(function(f){return '<tr><td style="padding:3px 8px;font-size:11px;">'+f.nome+'</td><td style="padding:3px 8px;text-align:right;font-size:11px;color:'+C.vermelho+';">'+fmtR(f.valor||0)+'</td></tr>';}).join('')+
+          '<tr><td style="padding:4px 8px;font-size:11px;font-weight:700;">Total Fixas</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:'+C.vermelho+';">'+fmtR(totF)+'</td></tr>';
+      }
+      if(d.extras&&d.extras.length){
+        d.extras.forEach(function(e){totE+=e.valor||0;});
+        extraH='<tr><td colspan="2" style="padding:6px 8px 2px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;">Despesas Extras</td></tr>'+
+          d.extras.map(function(e){return '<tr><td style="padding:3px 8px;font-size:11px;">'+e.nome+'</td><td style="padding:3px 8px;text-align:right;font-size:11px;color:'+C.vermelho+';">'+fmtR(e.valor||0)+'</td></tr>';}).join('')+
+          '<tr><td style="padding:4px 8px;font-size:11px;font-weight:700;">Total Extras</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:'+C.vermelho+';">'+fmtR(totE)+'</td></tr>';
+      }
+      if(d.financeiro&&d.financeiro.length){
+        d.financeiro.forEach(function(f){totFin+=f.valor||0;});
+        finH='<tr><td colspan="2" style="padding:6px 8px 2px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;">Resultado Financeiro</td></tr>'+
+          d.financeiro.map(function(f){var pos=f.valor>=0;return '<tr><td style="padding:3px 8px;font-size:11px;">'+f.nome+'</td><td style="padding:3px 8px;text-align:right;font-size:11px;color:'+(pos?C.verde:C.vermelho)+';">'+(pos?'+':'')+fmtR(f.valor||0)+'</td></tr>';}).join('')+
+          '<tr><td style="padding:4px 8px;font-size:11px;font-weight:700;">Saldo Financeiro</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:'+(totFin>=0?C.verde:C.vermelho)+';">'+(totFin>=0?'+':'')+fmtR(totFin)+'</td></tr>';
+      }
+      var totalDesp=totF+totE+(totDAS||0);
+      var despBody='<table style="width:100%;border-collapse:collapse;">'+fixaH+extraH+finH+
+        (totDAS?'<tr><td colspan="2" style="padding:6px 8px 2px;font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;">DAS/Imposto</td></tr><tr><td style="padding:3px 8px;font-size:11px;">DAS</td><td style="padding:3px 8px;text-align:right;font-size:11px;color:'+C.vermelho+';">'+fmtR(totDAS)+'</td></tr>':'')+
+        '<tr style="border-top:2px solid #333;"><td style="padding:6px 8px;font-size:12px;font-weight:800;">TOTAL DESPESAS</td><td style="padding:6px 8px;text-align:right;font-size:12px;font-weight:800;color:'+C.vermelho+';">'+fmtR(totalDesp)+'</td></tr>'+
+        '</table>';
+      if(fixaH||extraH||finH||totDAS){
+        despSections+='<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:'+C.amarelo+';margin-bottom:6px;padding:4px 0;border-bottom:1px solid #333;">📅 '+mlabel3(mk)+'</div>'+despBody+'</div>';
+      }
+    });
+    sections+=card('Despesas Mensais','📋',despSections||'<p style="color:#888;text-align:center;">Sem despesas no período</p>',C.vermelho);
+  }
+
   // ── LISTA DE VENDAS ─────────────────────────────────────────
   if(opts.lista){
     var listaRows=vendas.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');})
@@ -10655,6 +10743,14 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-estoque" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque Atual</div><div style="font-size:9px;color:var(--text3);">Posição por SKU, contêiner e local</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-estoque-qtd" style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque Quantitativo</div><div style="font-size:9px;color:var(--text3);">Apenas quantidades por SKU e local, sem valores</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+          <input type="checkbox" id="rel-despesas" style="width:16px;height:16px;accent-color:#1E90FF;">
+          <div><div style="font-size:12px;font-weight:700;color:var(--text);">📋 Despesas Mensais</div><div style="font-size:9px;color:var(--text3);">Fixas, extras e resultado financeiro por mês</div></div>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-caixa" style="width:16px;height:16px;accent-color:#1E90FF;">
