@@ -815,8 +815,20 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
     </div>
     <div class="r3">
-      <div class="fg"><label class="fl">Imposto %</label><input class="fi" id="v-imp" type="number" placeholder="0,00" oninput="calcRes()" step="0.01"></div>
-      <div class="fg"><label class="fl">Comissão R$</label><input class="fi" id="v-com" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg">
+        <label class="fl" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Imposto</span>
+          <span id="imp-mode-toggle" onclick="toggleImpMode()" style="cursor:pointer;font-size:10px;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:1px 6px;user-select:none;">%</span>
+        </label>
+        <input class="fi" id="v-imp" type="text" inputmode="decimal" placeholder="0,00" oninput="maskImpField(this);calcRes()">
+      </div>
+      <div class="fg">
+        <label class="fl" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Comissão</span>
+          <span id="com-mode-toggle" onclick="toggleComMode()" style="cursor:pointer;font-size:10px;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:1px 6px;user-select:none;">R$</span>
+        </label>
+        <input class="fi" id="v-com" type="text" inputmode="decimal" placeholder="0,00" oninput="maskComField(this);calcRes()">
+      </div>
       <div class="fg"><label class="fl">Frete</label><input class="fi" id="v-frete" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
     <div class="divider"></div>
@@ -3154,13 +3166,42 @@ function calcDuplo(){
   calcRes();
 }
 
+var _impMode='pct'; // 'pct' or 'brl'
+var _comMode='brl'; // 'pct' or 'brl'
+
+function maskImpField(el){if(_impMode==='brl') maskBRL(el);}
+function maskComField(el){if(_comMode==='brl') maskBRL(el);}
+
+function toggleImpMode(){
+  _impMode=_impMode==='pct'?'brl':'pct';
+  var tog=document.getElementById('imp-mode-toggle');
+  if(tog) tog.textContent=_impMode==='pct'?'%':'R$';
+  document.getElementById('v-imp').value='';
+  calcRes();
+}
+function toggleComMode(){
+  _comMode=_comMode==='pct'?'brl':'pct';
+  var tog=document.getElementById('com-mode-toggle');
+  if(tog) tog.textContent=_comMode==='pct'?'%':'R$';
+  document.getElementById('v-com').value='';
+  calcRes();
+}
+
+function _getImpVal(venda){
+  var raw=document.getElementById('v-imp').value||'0';
+  if(_impMode==='brl') return parseBRL(raw)||0;
+  return venda*(parseFloat(raw)||0)/100;
+}
+function _getComVal(venda){
+  var raw=document.getElementById('v-com').value||'0';
+  if(_comMode==='brl') return parseBRL(raw)||0;
+  return venda*(parseFloat(raw)||0)/100;
+}
+
 function calcRes(){
   var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
   var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
-  var impPct=parseFloat(document.getElementById('v-imp').value)||0;
-  var comBRL=parseBRL(document.getElementById('v-com').value||'0')||0;
   var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
-  // Always update taxa display from current select value
   var txNow=getTaxaVal();
   var txDisp=document.getElementById('v-tx1-display');
   if(txDisp) txDisp.textContent=txNow+'%';
@@ -3176,10 +3217,11 @@ function calcRes(){
     var r1=document.getElementById('v-dp1txr');if(r1) r1.textContent=fmt(tx1r);
     var r2=document.getElementById('v-dp2txr');if(r2) r2.textContent=fmt(tx2r);
   } else {
-    taxa=venda*getTaxaVal()/100;
+    taxa=venda*txNow/100;
   }
-  var com=comBRL;var comPct=venda>0?Math.round(com/venda*10000)/100:0;
-  var lsi=venda-custo-taxa-frete-com,ll=venda-custo-taxa-frete-imp-com;
+  var imp=_getImpVal(venda);
+  var com=_getComVal(venda);
+  var lsi=venda-custo-taxa-frete-com,ll=lsi-imp;
   var msi=venda>0?(lsi/venda*100):0,mll=venda>0?(ll/venda*100):0;
   document.getElementById('r-tx').textContent=fmt(taxa);
   document.getElementById('r-imp').textContent=fmt(imp);
@@ -3200,8 +3242,7 @@ function salvarVenda(){
   var dataVal=document.getElementById('v-data').value;
   var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
   var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
-  var impPct=parseFloat(document.getElementById('v-imp').value)||0;
-  var comBRL2=parseBRL(document.getElementById('v-com').value||'0')||0;
+  var comBRL2=_getComVal(venda);
   var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
   var duplo=document.getElementById('v-duplo').checked;
 
@@ -3231,7 +3272,7 @@ function salvarVenda(){
   for(i=0;i<skus.length;i++){if(skus[i].id===prodId){sku=skus[i];break;}}
   if(!sku){toast('Produto nao encontrado',true);return;}
 
-  var imp=venda*impPct/100,com=comBRL2,comPct=venda>0?Math.round(com/venda*10000)/100:0;
+  var imp=_getImpVal(venda),com=comBRL2,comPct=venda>0?Math.round(com/venda*10000)/100:0;var impPct=venda>0?Math.round(imp/venda*10000)/100:0;
   var lucroSI=venda-custo-taxa-frete-com;
   var lucroLL=venda-custo-taxa-frete-imp-com;
   var dateISO=dataVal?dataVal+'T12:00:00.000Z':new Date().toISOString();
@@ -3315,7 +3356,9 @@ function editarVenda(id){
   document.getElementById('v-custo').value=fmtN(v.custo||0);
   var tx1d3=document.getElementById('v-tx1-display');
   if(tx1d3) tx1d3.textContent=(v.taxaPct||0)+'%';
-  document.getElementById('v-imp').value=v.impPct;
+  _impMode='pct';var impTog=document.getElementById('imp-mode-toggle');if(impTog) impTog.textContent='%';
+  document.getElementById('v-imp').value=v.impPct||0;
+  _comMode='brl';var comTog=document.getElementById('com-mode-toggle');if(comTog) comTog.textContent='R$';
   document.getElementById('v-com').value=fmtN(v.com||0);
   document.getElementById('v-frete').value=fmtN(v.frete||0);
   if(v.duplo){
