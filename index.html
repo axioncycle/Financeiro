@@ -1433,7 +1433,7 @@ function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){
   if(merged.length) ss("ax_v6_vendas",merged);cb(merged);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){
   var row={
-    id:v.id,date:v.date,cliente:v.cliente,vendedor:v.vendedor||'',canal:v.canal,produto:v.produto,
+    id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,
     prod_id:v.prodId,origem:v.origem,container_id:v.containerId,
     venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,
     imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,
@@ -1442,45 +1442,45 @@ function saveVendaDB(v){
     pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0
   };
   if(v.mlOrderId) row.ml_order_id=v.mlOrderId;
-  // Try PATCH first (update existing); on 404/0 rows fall back to POST (insert)
-  return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{
-    method:'PATCH',
-    headers:{
-      'apikey':SUPA_KEY,
-      'Authorization':'Bearer '+SUPA_KEY,
-      'Content-Type':'application/json',
-      'Prefer':'return=representation'
-    },
-    body:JSON.stringify(row)
-  }).then(function(resp){
-    if(!resp.ok){
-      return resp.text().then(function(t){
-        console.error('saveVendaDB PATCH '+resp.status+':',t.slice(0,200));
-        toast('Erro ao salvar venda ('+resp.status+')',true);
-        return [];
-      });
-    }
-    return resp.json().then(function(rows){
-      // If PATCH matched nothing, INSERT
-      if(!rows||!rows.length){
-        return fetch(SUPA_URL+'/rest/v1/vendas',{
-          method:'POST',
-          headers:{
-            'apikey':SUPA_KEY,
-            'Authorization':'Bearer '+SUPA_KEY,
-            'Content-Type':'application/json',
-            'Prefer':'return=representation'
-          },
-          body:JSON.stringify(row)
-        }).then(function(r2){return r2.json().catch(function(){return [];});});
+  if(v.vendedor) row.vendedor=v.vendedor;
+
+  function _patch(r){
+    return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{
+      method:'PATCH',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify(r)
+    });
+  }
+  function _insert(r){
+    return fetch(SUPA_URL+'/rest/v1/vendas',{
+      method:'POST',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify(r)
+    });
+  }
+  function _trySave(r){
+    return _patch(r).then(function(resp){
+      if(resp.status===400){
+        // Unknown column (e.g. vendedor not yet in table) — retry without it
+        var r2=Object.assign({},r);delete r2.vendedor;
+        return _patch(r2).then(function(resp2){
+          if(!resp2.ok) return resp2.text().then(function(t){console.error('PATCH2 '+resp2.status+':',t.slice(0,200));return [];});
+          return resp2.json().then(function(rows){return(!rows||!rows.length)?_insert(r2).then(function(ri){return ri.json().catch(function(){return[];});}):rows;}).catch(function(){return[];});
+        });
       }
-      return rows;
-    }).catch(function(){return [];});
-  }).catch(function(e){
-    console.error('saveVendaDB:',e.message);
-    toast('Erro ao salvar venda: sem conexão',true);
-    return [];
-  });
+      if(!resp.ok) return resp.text().then(function(t){console.error('PATCH '+resp.status+':',t.slice(0,200));return [];});
+      return resp.json().then(function(rows){
+        return(!rows||!rows.length)?_insert(r).then(function(ri){
+          return ri.json().then(function(res){
+            // If insert also 400 (unknown col), retry without vendedor
+            if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2).then(function(ri2){return ri2.json().catch(function(){return[];});}); }
+            return res;
+          }).catch(function(){return[];});
+        }):rows;
+      }).catch(function(){return[];});
+    }).catch(function(e){console.error('saveVendaDB:',e.message);return[];});
+  }
+  return _trySave(row);
 }
 function deleteVendaDB(id){
   dbDel("vendas","id=eq."+id);
