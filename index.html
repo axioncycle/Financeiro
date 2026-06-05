@@ -8439,7 +8439,9 @@ function buildMLabel(mk){
 var _verVendaId=null;
 
 function salvarDataVenda(val){
-  if(!_verVendaId||!val) return;
+  if(!_verVendaId||!val||val.length<10) return;
+  var yr=parseInt((val.split('-')[0]||''),10);
+  if(yr<1000||yr>2100) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
   if(!v) return;
