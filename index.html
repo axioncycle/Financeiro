@@ -10378,7 +10378,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
         :'<div style="margin-bottom:16px;"><div style="font-size:9px;font-weight:700;color:'+C.text2+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+_a.label+'</div><img src="'+chartImgs[_a.k]+'" style="width:100%;border-radius:6px;border:1px solid '+C.border+';"></div>'
       );
     }
-    sections+=secao('📈 Gráficos',_pairs.join(''));
+    sections+=card('Gráficos','📈',_pairs.join(''),C.azul);
   }
 
   // ── RESUMO EXECUTIVO ────────────────────────────────────────
