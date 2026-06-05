@@ -1404,7 +1404,11 @@ function saveEstoque(containerId,skuId,local,qty){
     if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque error:",t);});
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
-function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});if(v.length) ss("ax_v6_vendas",v);cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
+function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});
+  // Merge: Supabase is authoritative, but keep localStorage-only items (e.g. not yet persisted)
+  var local=sg("ax_v6_vendas",[]);var supaIds={};v.forEach(function(x){supaIds[x.id]=1;});
+  var merged=v.slice();local.forEach(function(x){if(!supaIds[x.id])merged.push(x);});
+  if(merged.length) ss("ax_v6_vendas",merged);cb(merged);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){
   var row={
     id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,
@@ -3368,6 +3372,7 @@ function confirmarDelVenda(){
     toast('Venda removida');
   }
   DB_VENDAS=nv;
+  ss("ax_v6_vendas",nv);
   closeModal('m-del-v');
   delId=null;
   renderHist();
@@ -7541,8 +7546,9 @@ function mlProcessOrders(orders,dasRate,comRate){
         mlSyncDone();return;
       }
 
-      // Save all vendas to Supabase - wait for ALL saves before proceeding
+      // Save all vendas to memory + localStorage immediately, then persist to Supabase
       vendas.forEach(function(v){DB_VENDAS.push(v);});
+      ss("ax_v6_vendas",DB_VENDAS);
       var savePromises=vendas.map(function(v){return saveVendaDB(v);});
       Promise.all(savePromises).then(function(results){
         var saved=results.filter(function(r){return Array.isArray(r)&&r.length>0;}).length;
