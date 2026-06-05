@@ -4497,7 +4497,14 @@ function renderRes(){
         '<option value="1">1x</option>'+
         '<option value="2">2x</option>'+
         '<option value="3">3x</option>'+
+        '<option value="4">4x</option>'+
+        '<option value="5">5x</option>'+
         '<option value="6">6x</option>'+
+        '<option value="7">7x</option>'+
+        '<option value="8">8x</option>'+
+        '<option value="9">9x</option>'+
+        '<option value="10">10x</option>'+
+        '<option value="11">11x</option>'+
         '<option value="12">12x</option>'+
         '<option value="99">∞</option>'+
       '</select>'+
@@ -4517,7 +4524,7 @@ function renderRes(){
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
       '<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Despesas Extras</div>'+
       extraRows+
-      '<div style="display:flex;gap:6px;margin-top:6px;"><input id="en'+i+'" class="fi" type="text" placeholder="Descricao" style="flex:1;font-size:12px;padding:8px 10px;"><input id="ev'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" oninput="maskBRL(this)" style="width:80px;font-size:12px;padding:8px 10px;"><button onclick="addExtra(\''+mk+'\','+i+')" style="background:#1E90FF;border:none;border-radius:8px;color:#fff;font-size:16px;padding:0 10px;cursor:pointer;">+</button></div>'+
+      '<div style="display:flex;gap:6px;margin-top:6px;"><input id="en'+i+'" class="fi" type="text" placeholder="Descricao" style="flex:1;font-size:12px;padding:8px 10px;"><input id="ev'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" oninput="maskBRL(this)" style="width:80px;font-size:12px;padding:8px 10px;"><select id="em'+i+'" class="fi" style="width:60px;font-size:11px;padding:6px 4px;" title="Parcelas"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option></select><button onclick="addExtra(\''+mk+'\','+i+')" style="background:#1E90FF;border:none;border-radius:8px;color:#fff;font-size:16px;padding:0 10px;cursor:pointer;">+</button></div>'+
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
       '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">± Resultado Financeiro</div>'+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
@@ -4534,7 +4541,10 @@ function renderRes(){
         '<input id="fv'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" oninput="maskBRL(this)" style="width:70px;font-size:12px;padding:7px 8px;">'+
         '<select id="fm'+i+'" class="fi" style="width:65px;font-size:11px;" title="Repetir por quantos meses">'+
           '<option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>'+
-          '<option value="6">6x</option><option value="12">12x</option><option value="99">∞</option>'+
+          '<option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>'+
+          '<option value="7">7x</option><option value="8">8x</option><option value="9">9x</option>'+
+          '<option value="10">10x</option><option value="11">11x</option><option value="12">12x</option>'+
+          '<option value="99">∞</option>'+
         '</select>'+
         '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 10px;cursor:pointer;">+</button>'+
       '</div>'+
