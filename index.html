@@ -8501,8 +8501,8 @@ function refreshAfterVendaEdit(){
   if(typeof renderCaixa==='function'&&curPage==='caixa') renderCaixa();
   if(typeof renderEst==='function'&&curPage==='est') renderEst();
   if(typeof renderCharts==='function') renderCharts(loadVendas());
-  // Refresh the Ver Venda modal body so edits appear immediately
-  if(_verVendaId) verVendaBody(_verVendaId);
+  // Refresh the Ver Venda modal body so edits appear immediately (deferred to avoid interrupting the current event)
+  if(_verVendaId){var _vid=_verVendaId;setTimeout(function(){verVendaBody(_vid);},50);}
 }
 
 function buildVerVendaHTML(rows){
