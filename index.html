@@ -8420,6 +8420,17 @@ function buildMLabel(mk){
 
 var _verVendaId=null;
 
+function salvarDataVenda(val){
+  if(!_verVendaId||!val) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.date=val;
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('Data atualizada!');
+}
+
 function _recalcVenda(v){
   v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
   v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
@@ -8526,7 +8537,7 @@ function verVenda(id){
   var margPct=v.venda>0?(margContrib/v.venda*100):0;
 
   var rows=[
-    {label:'📅 Data',val:fmtDate(v.date)},
+    {label:'📅 Data',data:true,dataVal:v.date||''},
     {label:'👤 Cliente',cliente:true,clienteVal:v.cliente||''},
     {label:'📦 Produto',val:v.produto||'—'},
     {label:'🏪 Canal',val:v.canal||'—'},
@@ -8536,7 +8547,7 @@ function verVenda(id){
     {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0},
     {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0},
     {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
-    v.com>0?{label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'}:null,
+    {label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'},
     {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
@@ -8557,6 +8568,15 @@ function verVenda(id){
   var h='';
   rows.forEach(function(r){
     if(!r){h+='<div style="border-top:1px solid var(--border);margin:8px 0;"></div>';return;}
+    if(r.data){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">📅 Data</span>'
+        +'<input type="date" value="'+(r.dataVal||'')+'" '
+        +'style="background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'onchange="salvarDataVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     if(r.venda){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">💰 Venda</span>'
