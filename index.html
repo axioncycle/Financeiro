@@ -1444,37 +1444,48 @@ function saveVendaDB(v){
   if(v.mlOrderId) row.ml_order_id=v.mlOrderId;
   row.vendedor=v.vendedor||'';
 
+  // IDs > 2^31-1 are locally-generated timestamps that exceed Supabase int4 range.
+  // For these we skip PATCH and INSERT without id so Supabase assigns a valid int4.
+  var isLocalId=(v.id>2000000000);
+
+  function _hdrs(){return{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};}
   function _patch(r){
-    return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{
-      method:'PATCH',
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify(r)
-    });
+    return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(r)});
   }
-  function _insert(r){
-    return fetch(SUPA_URL+'/rest/v1/vendas',{
-      method:'POST',
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify(r)
-    });
+  function _insert(r,keepId){
+    var body=Object.assign({},r);
+    if(!keepId) delete body.id;
+    return fetch(SUPA_URL+'/rest/v1/vendas',{method:'POST',headers:_hdrs(),body:JSON.stringify(body)});
+  }
+  function _applyNewId(res){
+    if(Array.isArray(res)&&res.length&&res[0].id&&res[0].id!==v.id){
+      var oldId=v.id,newId=res[0].id;
+      for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===oldId){DB_VENDAS[i].id=newId;break;}}
+      ss('ax_v6_vendas',DB_VENDAS);
+    }
+    return res;
   }
   function _trySave(r){
+    if(isLocalId){
+      return _insert(r,false).then(function(ri){
+        if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2,false).then(function(ri2){return ri2.json().then(_applyNewId).catch(function(){return[];});});}
+        return ri.json().then(_applyNewId).catch(function(){return[];});
+      }).catch(function(e){console.error('saveVendaDB insert:',e.message);return[];});
+    }
     return _patch(r).then(function(resp){
       if(resp.status===400){
-        // Unknown column (e.g. vendedor not yet in table) — retry without it
         var r2=Object.assign({},r);delete r2.vendedor;
         return _patch(r2).then(function(resp2){
           if(!resp2.ok) return resp2.text().then(function(t){console.error('PATCH2 '+resp2.status+':',t.slice(0,200));return [];});
-          return resp2.json().then(function(rows){return(!rows||!rows.length)?_insert(r2).then(function(ri){return ri.json().catch(function(){return[];});}):rows;}).catch(function(){return[];});
+          return resp2.json().then(function(rows){return(!rows||!rows.length)?_insert(r2,true).then(function(ri){return ri.json().then(_applyNewId).catch(function(){return[];});}):rows;}).catch(function(){return[];});
         });
       }
       if(!resp.ok) return resp.text().then(function(t){console.error('PATCH '+resp.status+':',t.slice(0,200));return [];});
       return resp.json().then(function(rows){
-        return(!rows||!rows.length)?_insert(r).then(function(ri){
+        return(!rows||!rows.length)?_insert(r,false).then(function(ri){
           return ri.json().then(function(res){
-            // If insert also 400 (unknown col), retry without vendedor
-            if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2).then(function(ri2){return ri2.json().catch(function(){return[];});}); }
-            return res;
+            if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2,false).then(function(ri2){return ri2.json().then(_applyNewId).catch(function(){return[];});});}
+            return _applyNewId(res);
           }).catch(function(){return[];});
         }):rows;
       }).catch(function(){return[];});
@@ -1590,9 +1601,17 @@ function loadSkuRowsForCont(cid,cb){
   }).catch(function(){cb([]);});
 }
 
+function syncPendingVendas(){
+  // Push any localStorage-only vendas (large timestamp IDs that never reached Supabase)
+  var pending=DB_VENDAS.filter(function(v){return v.id>2000000000;});
+  if(!pending.length) return;
+  console.log('syncPending: pushing',pending.length,'venda(s) to Supabase');
+  pending.forEach(function(v){saveVendaDB(v);});
+}
+
 function initDB(cb){
   var done=0;
-  function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();}}
+  function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();setTimeout(syncPendingVendas,2000);}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
   loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
   loadLocaisDB(function(l){DB_LOCAIS=l;chk();});
