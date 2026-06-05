@@ -816,7 +816,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     </div>
     <div class="r3">
       <div class="fg"><label class="fl">Imposto %</label><input class="fi" id="v-imp" type="number" placeholder="0,00" oninput="calcRes()" step="0.01"></div>
-      <div class="fg"><label class="fl">Comissao %</label><input class="fi" id="v-com" type="number" placeholder="0,00" oninput="calcRes()" step="0.01"></div>
+      <div class="fg"><label class="fl">Comissão R$</label><input class="fi" id="v-com" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
       <div class="fg"><label class="fl">Frete</label><input class="fi" id="v-frete" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
     <div class="divider"></div>
@@ -3158,7 +3158,7 @@ function calcRes(){
   var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
   var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
   var impPct=parseFloat(document.getElementById('v-imp').value)||0;
-  var comPct=parseFloat(document.getElementById('v-com').value)||0;
+  var comBRL=parseBRL(document.getElementById('v-com').value||'0')||0;
   var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
   // Always update taxa display from current select value
   var txNow=getTaxaVal();
@@ -3178,7 +3178,7 @@ function calcRes(){
   } else {
     taxa=venda*getTaxaVal()/100;
   }
-  var imp=venda*impPct/100,com=venda*comPct/100;
+  var com=comBRL;var comPct=venda>0?Math.round(com/venda*10000)/100:0;
   var lsi=venda-custo-taxa-frete-com,ll=venda-custo-taxa-frete-imp-com;
   var msi=venda>0?(lsi/venda*100):0,mll=venda>0?(ll/venda*100):0;
   document.getElementById('r-tx').textContent=fmt(taxa);
@@ -3201,7 +3201,7 @@ function salvarVenda(){
   var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
   var custo=parseBRL(document.getElementById('v-custo').value||'0')||0;
   var impPct=parseFloat(document.getElementById('v-imp').value)||0;
-  var comPct=parseFloat(document.getElementById('v-com').value)||0;
+  var comBRL2=parseBRL(document.getElementById('v-com').value||'0')||0;
   var frete=parseBRL(document.getElementById('v-frete').value||'0')||0;
   var duplo=document.getElementById('v-duplo').checked;
 
@@ -3231,7 +3231,7 @@ function salvarVenda(){
   for(i=0;i<skus.length;i++){if(skus[i].id===prodId){sku=skus[i];break;}}
   if(!sku){toast('Produto nao encontrado',true);return;}
 
-  var imp=venda*impPct/100,com=venda*comPct/100;
+  var imp=venda*impPct/100,com=comBRL2,comPct=venda>0?Math.round(com/venda*10000)/100:0;
   var lucroSI=venda-custo-taxa-frete-com;
   var lucroLL=venda-custo-taxa-frete-imp-com;
   var dateISO=dataVal?dataVal+'T12:00:00.000Z':new Date().toISOString();
@@ -3316,7 +3316,7 @@ function editarVenda(id){
   var tx1d3=document.getElementById('v-tx1-display');
   if(tx1d3) tx1d3.textContent=(v.taxaPct||0)+'%';
   document.getElementById('v-imp').value=v.impPct;
-  document.getElementById('v-com').value=v.comPct;
+  document.getElementById('v-com').value=fmtN(v.com||0);
   document.getElementById('v-frete').value=fmtN(v.frete||0);
   if(v.duplo){
     document.getElementById('v-duplo').checked=true;
@@ -8584,6 +8584,15 @@ function buildVerVendaHTML(rows){
         +'</div>';
       return;
     }
+    if(r.com){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">💼 Comissão</span>'
+        +'<input type="text" inputmode="decimal" value="'+fmtN(r.comVal)+'" '
+        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onchange="salvarComVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     var fs=r.big?'18px':r.bold?'14px':'12px';
     var fw=r.bold?'800':'400';
     var col=r.color||'var(--text)';
@@ -8610,7 +8619,7 @@ function _buildVerVendaRows(v){
     {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0},
     {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0},
     {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
-    {label:'💼 Comissão',val:fmt(v.com||0)+' ('+comPct.toFixed(1)+'%)',color:'#ef4444'},
+    {label:'💼 Comissão',com:true,comVal:v.com||0},
     {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
@@ -8674,6 +8683,20 @@ function salvarFreteVenda(rawVal){
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
   toast('Frete atualizado!');
+}
+
+function salvarComVenda(rawVal){
+  if(!_verVendaId) return;
+  var novaCom=parseBRL(rawVal||'0')||0;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.com=novaCom;
+  v.comPct=v.venda>0?Math.round(novaCom/v.venda*10000)/100:0;
+  _recalcVenda(v);
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('Comissão atualizada!');
 }
 
 function verVenda(id){
