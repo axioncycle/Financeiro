@@ -10134,23 +10134,23 @@ function setCxCenario(factor){
 }
 
 // ── RELATÓRIO PDF ────────────────────────────────────────────────────────────
-var _relPeriodo = 'mes';
+var _relPeriodo = 'tudo';
 
 function setRelPeriodo(p){
   _relPeriodo=p;
-  ['mes','tri','ano','tudo','custom'].forEach(function(k){
+  ['tudo','ano','sem1','sem2','mes'].forEach(function(k){
     var btn=document.getElementById('rel-p-'+k);
     if(btn){
       btn.style.background=k===p?'#1E90FF22':'';
-      btn.style.border=k===p?'1px solid #1E90FF':'';
+      btn.style.border=k===p?'1px solid #1E90FF':'1px solid transparent';
     }
   });
   var cd=document.getElementById('rel-custom-dates');
-  if(cd) cd.style.display=p==='custom'?'grid':'none';
+  if(cd) cd.style.display=p==='mes'?'grid':'none';
 }
 
 function openRelatorio(){
-  setRelPeriodo('mes');
+  setRelPeriodo('tudo');
   var today=new Date();
   var yy=today.getFullYear();
   var mm=String(today.getMonth()+1).padStart(2,'0');
@@ -10180,16 +10180,15 @@ function gerarRelatorio(){
   var mkAtual=yy+'-'+String(mm).padStart(2,'0');
   var mkFrom='',mkTo=mkAtual;
 
-  if(_relPeriodo==='mes'){
-    mkFrom=mkAtual; mkTo=mkAtual;
-  } else if(_relPeriodo==='tri'){
-    var d3=new Date(yy,today.getMonth()-2,1);
-    mkFrom=d3.getFullYear()+'-'+String(d3.getMonth()+1).padStart(2,'0');
-  } else if(_relPeriodo==='ano'){
-    mkFrom=yy+'-01';
+  if(_relPeriodo==='ano'){
+    mkFrom=yy+'-01'; mkTo=yy+'-12';
+  } else if(_relPeriodo==='sem1'){
+    mkFrom=yy+'-01'; mkTo=yy+'-06';
+  } else if(_relPeriodo==='sem2'){
+    mkFrom=yy+'-07'; mkTo=yy+'-12';
   } else if(_relPeriodo==='tudo'){
     mkFrom=''; mkTo='';
-  } else if(_relPeriodo==='custom'){
+  } else if(_relPeriodo==='mes'){
     mkFrom=(document.getElementById('rel-date-from')||{}).value||'';
     mkTo=(document.getElementById('rel-date-to')||{}).value||mkAtual;
   }
@@ -10204,22 +10203,71 @@ function gerarRelatorio(){
   });
 
   // Opções selecionadas
+  function chk(id){var el=document.getElementById(id);return !!(el&&el.checked);}
   var opts={
-    resumo:document.getElementById('rel-resumo')&&document.getElementById('rel-resumo').checked,
-    resultado:document.getElementById('rel-resultado')&&document.getElementById('rel-resultado').checked,
-    vendas_canal:document.getElementById('rel-vendas')&&document.getElementById('rel-vendas').checked,
-    produtos:document.getElementById('rel-produtos')&&document.getElementById('rel-produtos').checked,
-    estoque:document.getElementById('rel-estoque')&&document.getElementById('rel-estoque').checked,
-    estoque_qtd:document.getElementById('rel-estoque-qtd')&&document.getElementById('rel-estoque-qtd').checked,
-    despesas:document.getElementById('rel-despesas')&&document.getElementById('rel-despesas').checked,
-    caixa:document.getElementById('rel-caixa')&&document.getElementById('rel-caixa').checked,
-    lista:document.getElementById('rel-lista')&&document.getElementById('rel-lista').checked
+    resumo:chk('rel-resumo'),
+    resultado:chk('rel-resultado'),
+    vendas_canal:chk('rel-vendas'),
+    produtos:chk('rel-produtos'),
+    estoque:chk('rel-estoque'),
+    estoque_qtd:chk('rel-estoque-qtd'),
+    despesas:chk('rel-despesas'),
+    caixa:chk('rel-caixa'),
+    lista:chk('rel-lista'),
+    g_fat:chk('rel-g-fat'),
+    g_fat_ano:chk('rel-g-fat-ano'),
+    g_liq:chk('rel-g-liq'),
+    g_liq_ano:chk('rel-g-liq-ano'),
+    g_qtd:chk('rel-g-qtd'),
+    g_qtd_ano:chk('rel-g-qtd-ano'),
+    g_canal:chk('rel-g-canal'),
+    g_sku_est:chk('rel-g-sku-est'),
+    g_sku_fat:chk('rel-g-sku-fat'),
+    g_taxa:chk('rel-g-taxa'),
+    g_canal_fat:chk('rel-g-canal-fat'),
+    g_marg:chk('rel-g-marg'),
+    g_sazon:chk('rel-g-sazon')
   };
+
+  // Capturar imagens dos gráficos selecionados
+  var chartImgs={};
+  function _capChart(type,canvasId){
+    try{
+      if(type==='fat'||type==='liq'||type==='qtd') drawChart();
+      else if(type==='fat-ano'||type==='liq-ano'||type==='qtd-ano') drawAnualChart(type);
+      else if(type==='canal') drawCanalChart();
+      else if(type==='sku-est') drawSkuEstoqueChart();
+      else if(type==='sku-fat') drawSkuFatChart();
+      // show correct chart-main type
+      if(type==='fat'||type==='fat-ano'){if(typeof showChart==='function') showChart(type);}
+      var c=document.getElementById(canvasId);
+      if(c) chartImgs[type]=c.toDataURL('image/png');
+    }catch(e){console.warn('capChart',type,e);}
+  }
+  function _capDreChart(renderFn,canvasId,key){
+    try{if(typeof renderFn==='function') renderFn();var c=document.getElementById(canvasId);if(c) chartImgs[key]=c.toDataURL('image/png');}catch(e){console.warn('capDreChart',key,e);}
+  }
+  // Dashboard charts — must call showChart to set activeChart and render
+  var _dashCharts=[
+    {k:'g_fat',type:'fat',cvs:'chart-main'},{k:'g_fat_ano',type:'fat-ano',cvs:'chart-main'},
+    {k:'g_liq',type:'liq',cvs:'chart-main'},{k:'g_liq_ano',type:'liq-ano',cvs:'chart-main'},
+    {k:'g_qtd',type:'qtd',cvs:'chart-main'},{k:'g_qtd_ano',type:'qtd-ano',cvs:'chart-main'},
+    {k:'g_canal',type:'canal',cvs:'chart-main'},
+    {k:'g_sku_est',type:'sku-est',cvs:'chart-alt'},{k:'g_sku_fat',type:'sku-fat',cvs:'chart-alt'}
+  ];
+  _dashCharts.forEach(function(c){
+    if(!opts[c.k]) return;
+    try{showChart(c.type);var el=document.getElementById(c.cvs);if(el) chartImgs[c.k]=el.toDataURL('image/png');}catch(e){console.warn('chart',c.k,e);}
+  });
+  if(opts.g_taxa) _capDreChart(renderTaxaChart,'chart-taxa','g_taxa');
+  if(opts.g_canal_fat) _capDreChart(renderCanalFatChart,'chart-canal-fat','g_canal_fat');
+  if(opts.g_marg) _capDreChart(renderMargLiqChart,'chart-marg-liq','g_marg');
+  if(opts.g_sazon) _capDreChart(renderSazonChart,'chart-sazon','g_sazon');
 
   relShowStatus('Gerando relatório...','#1E90FF');
   setTimeout(function(){
     try{
-      var html=buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual);
+      var html=buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs);
       var win=window.open('','_blank');
       if(!win){toast('Permita pop-ups para gerar o PDF',true);relShowStatus('Permita pop-ups no browser','#ef4444');return;}
       win.document.write(html);
@@ -10236,7 +10284,8 @@ function gerarRelatorio(){
   },100);
 }
 
-function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
+function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
+  chartImgs=chartImgs||{};
   var today=new Date();
   var geradoEm=today.toLocaleDateString('pt-BR')+' às '+today.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   var periodo=mkFrom&&mkTo?(mlabel3(mkFrom)+(mkFrom!==mkTo?' a '+mlabel3(mkTo):'')):'Todo o período';
@@ -10305,6 +10354,32 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
   }
 
   var sections='';
+
+  // ── GRÁFICOS ─────────────────────────────────────────────────
+  var _chartDefs=[
+    {k:'g_fat',label:'Faturamento Mensal'},{k:'g_fat_ano',label:'Faturamento Anual'},
+    {k:'g_liq',label:'Lucro Líquido Mensal'},{k:'g_liq_ano',label:'Lucro Anual'},
+    {k:'g_qtd',label:'Qtd Vendas Mensal'},{k:'g_qtd_ano',label:'Qtd Vendas Anual'},
+    {k:'g_canal',label:'Vendas por Canal'},{k:'g_sku_est',label:'Estoque por SKU'},
+    {k:'g_sku_fat',label:'Mix Faturamento SKU'},{k:'g_taxa',label:'Taxa/Custos (DRE)'},
+    {k:'g_canal_fat',label:'Canal — Fat. Mensal (DRE)'},{k:'g_marg',label:'Margem Líquida (DRE)'},
+    {k:'g_sazon',label:'Sazonalidade (DRE)'}
+  ];
+  var _chartSections=_chartDefs.filter(function(d){return opts[d.k]&&chartImgs[d.k];});
+  if(_chartSections.length>0){
+    var _pairs=[];
+    for(var _ci=0;_ci<_chartSections.length;_ci+=2){
+      var _a=_chartSections[_ci],_b=_chartSections[_ci+1];
+      _pairs.push(_b
+        ?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">'
+          +'<div><div style="font-size:9px;font-weight:700;color:'+C.text2+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+_a.label+'</div><img src="'+chartImgs[_a.k]+'" style="width:100%;border-radius:6px;border:1px solid '+C.border+';"></div>'
+          +'<div><div style="font-size:9px;font-weight:700;color:'+C.text2+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+_b.label+'</div><img src="'+chartImgs[_b.k]+'" style="width:100%;border-radius:6px;border:1px solid '+C.border+';"></div>'
+          +'</div>'
+        :'<div style="margin-bottom:16px;"><div style="font-size:9px;font-weight:700;color:'+C.text2+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+_a.label+'</div><img src="'+chartImgs[_a.k]+'" style="width:100%;border-radius:6px;border:1px solid '+C.border+';"></div>'
+      );
+    }
+    sections+=secao('📈 Gráficos',_pairs.join(''));
+  }
 
   // ── RESUMO EXECUTIVO ────────────────────────────────────────
   if(opts.resumo){
@@ -10704,12 +10779,13 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📅 Período</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        <button class="btn btn-s" onclick="setRelPeriodo('mes')" id="rel-p-mes" style="font-size:11px;background:#1E90FF22;border:1px solid #1E90FF;">Este mês</button>
-        <button class="btn btn-s" onclick="setRelPeriodo('tri')" id="rel-p-tri" style="font-size:11px;">Trimestre</button>
-        <button class="btn btn-s" onclick="setRelPeriodo('ano')" id="rel-p-ano" style="font-size:11px;">Este ano</button>
-        <button class="btn btn-s" onclick="setRelPeriodo('tudo')" id="rel-p-tudo" style="font-size:11px;">Tudo</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('tudo')" id="rel-p-tudo" style="font-size:11px;background:#1E90FF22;border:1px solid #1E90FF;">Tudo</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('ano')" id="rel-p-ano" style="font-size:11px;border:1px solid transparent;">Este Ano</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('sem1')" id="rel-p-sem1" style="font-size:11px;border:1px solid transparent;">1º Semestre</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('sem2')" id="rel-p-sem2" style="font-size:11px;border:1px solid transparent;">2º Semestre</button>
+        <button class="btn btn-s" onclick="setRelPeriodo('mes')" id="rel-p-mes" style="font-size:11px;border:1px solid transparent;grid-column:1/-1;">Mês a Mês</button>
       </div>
-      <div id="rel-custom-dates" style="display:none;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div id="rel-custom-dates" style="display:none;margin-top:8px;grid-template-columns:1fr 1fr;gap:6px;">
         <div>
           <div style="font-size:9px;color:var(--text3);margin-bottom:2px;">De</div>
           <input class="fi" type="month" id="rel-date-from">
@@ -10759,6 +10835,68 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual){
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
           <input type="checkbox" id="rel-lista" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📝 Lista de Vendas</div><div style="font-size:9px;color:var(--text3);">Detalhamento individual (máx. 200)</div></div>
+        </label>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📈 Gráficos</div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Dashboard</div>
+      <div style="display:grid;gap:6px;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-fat" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Faturamento Mensal</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-fat-ano" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Faturamento Anual</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-liq" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Lucro Líquido Mensal</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-liq-ano" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Lucro Anual</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-qtd" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Qtd Vendas Mensal</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-qtd-ano" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Qtd Vendas Anual</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-canal" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Vendas por Canal</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-sku-est" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Estoque por SKU</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-sku-fat" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Mix Faturamento SKU</span>
+        </label>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">DRE / Análise</div>
+      <div style="display:grid;gap:6px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-taxa" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Taxa / Custos</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-canal-fat" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Canal — Fat. Mensal</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-marg" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Margem Líquida</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px;background:#ffffff06;border-radius:6px;">
+          <input type="checkbox" id="rel-g-sazon" style="width:14px;height:14px;accent-color:#1E90FF;">
+          <span style="font-size:11px;color:var(--text);">Sazonalidade</span>
         </label>
       </div>
     </div>
