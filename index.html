@@ -884,6 +884,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <input class="fi" id="srch-vendedor" type="text" placeholder="Filtrar vendedor..." oninput="renderHist()" style="flex:1;font-size:12px;padding:8px;">
   </div>
   <div id="srch-info" style="font-size:10px;color:#666;margin-bottom:6px;display:none;"></div>
+  <div id="sync-pending-bar" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:11px;color:#f59e0b;" id="sync-pending-msg"></span>
+    <button onclick="syncPendingVendas(true)" style="padding:4px 10px;background:#f59e0b;color:#000;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Sincronizar</button>
+  </div>
   <div id="v-hist"></div>
 </div>
 
@@ -1433,7 +1437,7 @@ function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){
   if(merged.length) ss("ax_v6_vendas",merged);cb(merged);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){
   var row={
-    id:v.id,date:v.date,cliente:v.cliente,canal:v.canal,produto:v.produto,
+    id:v.id,date:(v.date||'').slice(0,10),cliente:v.cliente,canal:v.canal,produto:v.produto,
     prod_id:v.prodId,origem:v.origem,container_id:v.containerId,
     venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,
     imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,
@@ -1601,17 +1605,34 @@ function loadSkuRowsForCont(cid,cb){
   }).catch(function(){cb([]);});
 }
 
-function syncPendingVendas(){
-  // Push any localStorage-only vendas (large timestamp IDs that never reached Supabase)
+function syncPendingVendas(manual){
   var pending=DB_VENDAS.filter(function(v){return v.id>2000000000;});
-  if(!pending.length) return;
-  console.log('syncPending: pushing',pending.length,'venda(s) to Supabase');
-  pending.forEach(function(v){saveVendaDB(v);});
+  if(!pending.length){if(manual) toast('Nenhuma venda pendente de sync');return;}
+  if(manual) toast('Sincronizando '+pending.length+' venda(s)...');
+  var ok=0,fail=0;
+  var promises=pending.map(function(v){
+    return saveVendaDB(v).then(function(res){
+      if(Array.isArray(res)&&res.length) ok++;
+      else fail++;
+    }).catch(function(){fail++;});
+  });
+  if(manual){
+    Promise.all(promises).then(function(){
+      toast(ok+' venda(s) sincronizada(s)'+(fail?' | '+fail+' falha(s)':'')+'!');
+      if(ok>0){renderHist&&renderHist();renderDash&&renderDash();}
+    });
+  }
 }
 
 function initDB(cb){
   var done=0;
-  function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();setTimeout(syncPendingVendas,2000);}}
+  function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();setTimeout(function(){
+    var p=DB_VENDAS.filter(function(v){return v.id>2000000000;});
+    var bar=document.getElementById('sync-pending-bar');
+    var msg=document.getElementById('sync-pending-msg');
+    if(p.length&&bar&&msg){bar.style.display='flex';msg.textContent=p.length+' venda(s) apenas neste dispositivo — clique para sincronizar';}
+    syncPendingVendas(false);
+  },2000);}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
   loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
   loadLocaisDB(function(l){DB_LOCAIS=l;chk();});
