@@ -8659,6 +8659,15 @@ function buildVerVendaHTML(rows){
         +'</div>';
       return;
     }
+    if(r.vendedor){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">🧑‍💼 Vendedor</span>'
+        +'<input type="text" value="'+((r.vendedorVal||'').replace(/"/g,'&quot;'))+'" placeholder="Nome do vendedor" '
+        +'style="width:140px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'onchange="salvarVendedorVenda(this.value)">'
+        +'</div>';
+      return;
+    }
     var fs=r.big?'18px':r.bold?'14px':'12px';
     var fw=r.bold?'800':'400';
     var col=r.color||'var(--text)';
@@ -8686,6 +8695,7 @@ function _buildVerVendaRows(v){
     {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0},
     {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
     {label:'💼 Comissão',com:true,comVal:v.com||0},
+    {label:'🧑‍💼 Vendedor',vendedor:true,vendedorVal:v.vendedor||''},
     {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
@@ -8749,6 +8759,17 @@ function salvarFreteVenda(rawVal){
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
   toast('Frete atualizado!');
+}
+
+function salvarVendedorVenda(val){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.vendedor=val||'';
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('Vendedor atualizado!');
 }
 
 function salvarComVenda(rawVal){
