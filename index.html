@@ -2188,7 +2188,7 @@ function renderDash(){
     var _vd=vendas[i];
     if(selMonth==='all') fv.push(_vd);
     else if(_anoAtual&&(_vd.date||'').slice(0,4)===_anoAtual) fv.push(_vd);
-    else if(_cutoffPeriod&&new Date(_vd.date+'T12:00:00Z')>=_cutoffPeriod) fv.push(_vd);
+    else if(_cutoffPeriod&&new Date((_vd.date||'').slice(0,10)+'T12:00:00Z')>=_cutoffPeriod) fv.push(_vd);
     else if(!_cutoffPeriod&&!_anoAtual&&mkey(_vd.date)===selMonth) fv.push(_vd);
   }
   // ── DRE METHODOLOGY (same as Análise tab) ──────────────────
@@ -2332,7 +2332,7 @@ function renderDash(){
   // Top 5 últimos 4 meses (always from all vendas)
   var now4=new Date();
   var cutoff4=new Date(now4.getFullYear(),now4.getMonth()-3,1);
-  var fv4=vendas.filter(function(v){return new Date(v.date+'T12:00:00Z')>=cutoff4;});
+  var fv4=vendas.filter(function(v){return new Date((v.date||'').slice(0,10)+'T12:00:00Z')>=cutoff4;});
   var skuMap4={};
   for(i=0;i<fv4.length;i++){
     var v4=fv4[i];
@@ -2347,7 +2347,7 @@ function renderDash(){
   // Canal - total (fv) + últimos 12 meses
   var now12=new Date();
   var cutoff12=new Date(now12.getFullYear(),now12.getMonth()-11,1);
-  var fv12=vendas.filter(function(v){return new Date(v.date+'T12:00:00Z')>=cutoff12;});
+  var fv12=vendas.filter(function(v){return new Date((v.date||'').slice(0,10)+'T12:00:00Z')>=cutoff12;});
 
   function buildCanal(arr,label){
     var cm={};
@@ -6573,7 +6573,7 @@ function getD2Vendas(){
   if(d2SelPeriod==='12m'||d2SelPeriod==='6m'||d2SelPeriod==='3m'){
     var n={'12m':12,'6m':6,'3m':3}[d2SelPeriod];
     var cut=new Date();cut.setMonth(cut.getMonth()-n);cut.setDate(1);cut.setHours(0,0,0,0);
-    return vendas.filter(function(v){return new Date(v.date+'T12:00:00Z')>=cut;});
+    return vendas.filter(function(v){return new Date((v.date||'').slice(0,10)+'T12:00:00Z')>=cut;});
   }
   return vendas.filter(function(v){return mkey2(v.date)===d2SelPeriod;});
 }
