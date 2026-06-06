@@ -1950,7 +1950,7 @@ function renderResDebounced(){
   _resTimer=setTimeout(function(){renderRes();},600);
 }
 
-function fmtDate(iso){try{var s=(!iso||iso.length>10)?iso:(iso+'T12:00:00Z');return new Date(s).toLocaleDateString('pt-BR');}catch(e){return '';}}function mkey(iso){return iso?iso.slice(0,7):'';}
+function fmtDate(iso){if(!iso)return'';var d=(iso||'').slice(0,10);var p=d.split('-');if(p.length!==3)return d;return p[2]+'/'+p[1]+'/'+p[0];}function mkey(iso){return iso?iso.slice(0,7):'';}
 function mlabel(k){
   var p=k.split('-');
   var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
