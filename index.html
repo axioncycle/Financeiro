@@ -860,6 +860,14 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <input type="file" id="imp-file" accept=".csv,.txt" style="display:none;" onchange="importCSV(this)">
     </label>
     <div id="imp-status" style="margin-top:8px;font-size:12px;color:#666;display:none;"></div>
+    <div style="margin-top:8px;border-top:1px solid #222;padding-top:8px;">
+      <div style="font-size:10px;color:#f59e0b;font-weight:700;margin-bottom:6px;">🔄 RESTAURAR BACKUP JSON</div>
+      <label style="display:block;cursor:pointer;">
+        <div class="btn" style="background:#f59e0b22;border:1px solid #f59e0b44;color:#f59e0b;">&#128194; SELECIONAR BACKUP .JSON</div>
+        <input type="file" id="restore-json-file" accept=".json" style="display:none;" onchange="restaurarBackupJSON(this)">
+      </label>
+      <div id="restore-status" style="margin-top:6px;font-size:11px;color:#666;display:none;"></div>
+    </div>
     <div id="imp-preview" style="margin-top:8px;display:none;"></div>
     <button id="imp-ok" class="btn" onclick="confirmarImport()" style="display:none;margin-top:8px;background:#22c55e;">&#10003; CONFIRMAR IMPORTACAO</button>
   </div>
@@ -3892,6 +3900,68 @@ function confirmarImport(){
   if(impStatus){impStatus.style.display='block';impStatus.style.color='#f59e0b';impStatus.textContent='Salvando '+total+' vendas no banco...';}
   document.getElementById('imp-ok').style.display='none';
   document.getElementById('imp-file').value='';
+}
+
+function restaurarBackupJSON(input){
+  var file=input.files[0];if(!file)return;
+  var status=document.getElementById('restore-status');
+  status.style.display='block';status.style.color='#f59e0b';status.textContent='Lendo arquivo...';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      var backupVendas=(data.dados&&data.dados.vendas)?data.dados.vendas:(Array.isArray(data)?data:[]);
+      if(!backupVendas.length){status.style.color='#ef4444';status.textContent='Nenhuma venda encontrada no arquivo.';return;}
+      status.textContent='Backup: '+backupVendas.length+' vendas. Comparando com Supabase...';
+      var hdrs={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+      // Fetch existing to avoid re-inserting
+      fetch(SUPA_URL+'/rest/v1/vendas?select=date,cliente,canal,venda&limit=2000',{headers:hdrs})
+        .then(function(r){return r.json();})
+        .then(function(existing){
+          var supaKeys={};
+          (existing||[]).forEach(function(r){
+            var k=(r.date||'').slice(0,10)+'|'+(r.cliente||'')+'|'+(r.canal||'')+'|'+(+r.venda||0);
+            supaKeys[k]=(supaKeys[k]||0)+1;
+          });
+          var toInsert=backupVendas.filter(function(v){
+            var k=(v.date||'').slice(0,10)+'|'+(v.cliente||'')+'|'+(v.canal||'')+'|'+(+v.venda||0);
+            if(!supaKeys[k]) return true;
+            supaKeys[k]--;
+            return false;
+          });
+          if(!toInsert.length){status.style.color='#22c55e';status.textContent='Todas as '+backupVendas.length+' vendas já estão no Supabase. Nada a restaurar.';return;}
+          status.textContent='Restaurando '+toInsert.length+' venda(s) ausentes...';
+          var ok=0,fail=0,idx=0;
+          function next(){
+            if(idx>=toInsert.length){
+              status.style.color=fail>0&&ok===0?'#ef4444':'#22c55e';
+              status.textContent=ok+' venda(s) restaurada(s)'+(fail?' | '+fail+' falha(s)':'')+'!';
+              if(ok>0){loadVendasDB(function(v){DB_VENDAS=v;if(typeof renderHist==='function')renderHist();});}
+              document.getElementById('restore-json-file').value='';
+              return;
+            }
+            var v=toInsert[idx++];
+            var row={date:(v.date||'').slice(0,10),cliente:v.cliente||'',vendedor:v.vendedor||'',canal:v.canal||'',produto:v.produto||'',
+              prod_id:v.prod_id||null,origem:v.origem||'',container_id:v.container_id||null,
+              venda:+v.venda||0,custo:+v.custo||0,taxa_pct:+v.taxa_pct||0,taxa:+v.taxa||0,
+              imp_pct:+v.imp_pct||0,imp:+v.imp||0,com_pct:+v.com_pct||0,com:+v.com||0,frete:+v.frete||0,
+              lucro_si:+v.lucro_si||0,lucro_ll:+v.lucro_ll||0,duplo:!!(v.duplo),
+              pag1_tipo:v.pag1_tipo||'',pag1_val:+v.pag1_val||0,pag1_taxa:+v.pag1_taxa||0,
+              pag2_tipo:v.pag2_tipo||'',pag2_val:+v.pag2_val||0,pag2_taxa:+v.pag2_taxa||0};
+            if(v.ml_order_id) row.ml_order_id=v.ml_order_id;
+            fetch(SUPA_URL+'/rest/v1/vendas',{method:'POST',headers:hdrs,body:JSON.stringify(row)})
+              .then(function(res){
+                if(res.status===201||res.ok) ok++;
+                else fail++;
+                if(idx%20===0) status.textContent='Restaurando... '+idx+'/'+toInsert.length;
+                setTimeout(next,80);
+              }).catch(function(){fail++;setTimeout(next,80);});
+          }
+          next();
+        }).catch(function(){status.style.color='#ef4444';status.textContent='Erro ao consultar Supabase.';});
+    }catch(err){status.style.color='#ef4444';status.textContent='Erro ao ler arquivo: '+err.message;}
+  };
+  reader.readAsText(file);
 }
 
 function exportCSV(){
