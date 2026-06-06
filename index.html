@@ -884,8 +884,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <input class="fi" id="srch-vendedor" type="text" placeholder="Filtrar vendedor..." oninput="renderHist()" style="flex:1;font-size:12px;padding:8px;">
   </div>
   <div id="srch-info" style="font-size:10px;color:#666;margin-bottom:6px;display:none;"></div>
-  <div id="sync-pending-bar" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-    <span style="font-size:11px;color:#f59e0b;" id="sync-pending-msg"></span>
+  <div id="sync-pending-bar" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+    <span style="font-size:11px;color:#f59e0b;flex:1;" id="sync-pending-msg"></span>
+    <button onclick="limparDuplicatasSupabase()" style="padding:4px 10px;background:#ef444422;color:#ef4444;border:1px solid #ef444433;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;" title="Remove duplicatas no Supabase">Limpar Dup.</button>
     <button onclick="syncPendingVendas(true)" style="padding:4px 10px;background:#f59e0b;color:#000;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Sincronizar</button>
   </div>
   <div id="v-hist"></div>
@@ -1479,10 +1480,36 @@ function saveVendaDB(v){
   }
   function _trySave(r){
     if(isLocalId){
-      return _insert(r,false).then(function(ri){
-        if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2,false).then(function(ri2){return ri2.json().then(_applyNewId).catch(function(){return[];});});}
-        return ri.json().then(_applyNewId).catch(function(){return[];});
-      }).catch(function(e){console.error('saveVendaDB insert:',e.message);return[];});
+      // For timestamp IDs: look up existing Supabase row by content before inserting
+      var date10=(v.date||'').slice(0,10);
+      var qLookup='select=id&date=eq.'+date10+'&cliente=eq.'+encodeURIComponent(v.cliente||'')+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
+      return dbGet('vendas',qLookup).then(function(existing){
+        if(Array.isArray(existing)&&existing.length){
+          // Row exists in Supabase — PATCH it and update local ID
+          var supaId=existing[0].id;
+          var patchBody=Object.assign({},r);delete patchBody.id;
+          return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(patchBody)})
+            .then(function(resp){
+              return resp.json().then(function(res){
+                // Update local references to use Supabase ID
+                var oldId=v.id;
+                for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===oldId){DB_VENDAS[i].id=supaId;break;}}
+                ss('ax_v6_vendas',DB_VENDAS);
+                return res;
+              }).catch(function(){return[];});
+            }).catch(function(){return[];});
+        }
+        // Not found in Supabase — INSERT
+        return _insert(r,false).then(function(ri){
+          if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2,false).then(function(ri2){return ri2.json().then(_applyNewId).catch(function(){return[];});});}
+          return ri.json().then(_applyNewId).catch(function(){return[];});
+        }).catch(function(e){console.error('saveVendaDB insert:',e.message);return[];});
+      }).catch(function(){
+        // Lookup failed — fall back to direct insert
+        return _insert(r,false).then(function(ri){
+          return ri.json().then(_applyNewId).catch(function(){return[];});
+        }).catch(function(){return[];});
+      });
     }
     return _patch(r).then(function(resp){
       if(resp.status===400){
@@ -1680,6 +1707,32 @@ function syncPendingVendas(manual){
     }
     next();
   }).catch(function(){if(manual) toast('Erro ao verificar Supabase',true);});
+}
+
+function limparDuplicatasSupabase(){
+  toast('Buscando duplicatas...');
+  dbGet('vendas','select=id,date,cliente,canal,venda&order=id.asc').then(function(rows){
+    if(!Array.isArray(rows)||!rows.length){toast('Nenhuma venda no Supabase');return;}
+    var seen={};var toDelete=[];
+    rows.forEach(function(r){
+      var k=(r.date||'').slice(0,10)+'|'+(r.cliente||'')+'|'+(r.canal||'')+'|'+(+r.venda||0);
+      if(seen[k]){toDelete.push(r.id);}
+      else{seen[k]=r.id;}
+    });
+    if(!toDelete.length){toast('Nenhuma duplicata encontrada!');return;}
+    toast('Removendo '+toDelete.length+' duplicata(s)...');
+    var done=0;
+    toDelete.forEach(function(id){
+      fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+id,{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}})
+        .then(function(){
+          done++;
+          if(done===toDelete.length){
+            toast(toDelete.length+' duplicata(s) removida(s)!');
+            loadVendasDB(function(v){DB_VENDAS=v;if(typeof renderHist==='function')renderHist();});
+          }
+        }).catch(function(){done++;});
+    });
+  }).catch(function(){toast('Erro ao buscar duplicatas',true);});
 }
 
 function initDB(cb){
