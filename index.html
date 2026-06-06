@@ -1541,6 +1541,21 @@ function saveVendaDB(v){
   return _trySave(row);
 }
 function deleteVendaDB(id){
+  if(id>2000000000){
+    // Timestamp ID — find real Supabase ID by content
+    var v=null;
+    for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){v=DB_VENDAS[i];break;}}
+    if(v){
+      var date10=(v.date||'').slice(0,10);
+      var q='select=id&date=eq.'+date10+'&cliente=eq.'+encodeURIComponent(v.cliente||'')+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
+      dbGet('vendas',q).then(function(rows){
+        if(Array.isArray(rows)&&rows.length){
+          rows.forEach(function(r){dbDel('vendas','id=eq.'+r.id);});
+        }
+      }).catch(function(){});
+    }
+    return;
+  }
   dbDel("vendas","id=eq."+id);
 }
 function loadContainersDB(cb){
