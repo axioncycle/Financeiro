@@ -1431,9 +1431,17 @@ function saveEstoque(containerId,skuId,local,qty){
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
 function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});
-  // Merge: Supabase is authoritative, but keep localStorage-only items (e.g. not yet persisted)
+  // Merge: Supabase is authoritative; add localStorage-only items not in Supabase
   var local=sg("ax_v6_vendas",[]);var supaIds={};v.forEach(function(x){supaIds[x.id]=1;});
-  var merged=v.slice();local.forEach(function(x){if(!supaIds[x.id])merged.push(x);});
+  // Build a dedup key (date+cliente+canal+venda) from Supabase rows to avoid content-duplicates
+  var supaKeys={};v.forEach(function(x){supaKeys[(x.date||'').slice(0,10)+'|'+(x.cliente||'')+'|'+(x.canal||'')+'|'+(x.venda||0)]=1;});
+  var merged=v.slice();
+  local.forEach(function(x){
+    if(supaIds[x.id]) return; // same ID already in Supabase
+    var k=(x.date||'').slice(0,10)+'|'+(x.cliente||'')+'|'+(x.canal||'')+'|'+(x.venda||0);
+    if(supaKeys[k]) return; // same content already in Supabase (different ID = old timestamp ID after sync)
+    merged.push(x);
+  });
   if(merged.length) ss("ax_v6_vendas",merged);cb(merged);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
 function saveVendaDB(v){
   var row={
@@ -1630,7 +1638,14 @@ function syncPendingVendas(manual){
         if(bar) bar.style.display='none';
         var t=ok+' sincronizada(s)'+(fail?' | '+fail+' falha(s)'+(firstErr?' ('+firstErr+')':''):'');
         toast(t,fail>0&&ok===0);
-        if(ok>0&&typeof renderHist==='function') renderHist();
+        if(ok>0){
+          // Reload fresh from Supabase to eliminate any duplicate entries
+          loadVendasDB(function(v){
+            DB_VENDAS=v;
+            if(typeof renderHist==='function') renderHist();
+            if(typeof renderDash==='function') renderDash();
+          });
+        }
         return;
       }
       var v=pending[idx++];
