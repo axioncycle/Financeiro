@@ -891,6 +891,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     </select>
     <input class="fi" id="srch-vendedor" type="text" placeholder="Filtrar vendedor..." oninput="renderHist()" style="flex:1;font-size:12px;padding:8px;">
   </div>
+  <div style="display:flex;gap:6px;margin-bottom:6px;">
+    <select class="fi" id="srch-ordem" onchange="renderHist()" style="width:100%;font-size:12px;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+      <option value="data">Ordenar por data</option>
+      <option value="recentes">Últimas adicionadas</option>
+    </select>
+  </div>
   <div id="srch-info" style="font-size:10px;color:#666;margin-bottom:6px;display:none;"></div>
   <div id="sync-pending-bar" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
     <span style="font-size:11px;color:#f59e0b;flex:1;" id="sync-pending-msg"></span>
@@ -1450,7 +1456,7 @@ function loadVendasDB(cb){dbGet("vendas","order=date.desc&is_deleted=neq.true").
     var k=(r.date||'').slice(0,10)+'|'+(r.cliente||'')+'|'+(r.canal||'')+'|'+(+r.venda||0);
     return !deletedKeys[k];
   });
-  var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null};});
+  var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null,createdAt:r.created_at?new Date(r.created_at).getTime():0};});
   // Merge: Supabase is authoritative; add localStorage-only items not in Supabase
   var local=sg("ax_v6_vendas",[]);var supaIds={};v.forEach(function(x){supaIds[x.id]=1;});
   // Build a dedup key (date+cliente+canal+venda) from Supabase rows to avoid content-duplicates
@@ -3637,6 +3643,7 @@ function clearSearch(){
   document.getElementById('srch-data').value='';
   var sc=document.getElementById('srch-canal');if(sc) sc.value='';
   var sv=document.getElementById('srch-vendedor');if(sv) sv.value='';
+  var so=document.getElementById('srch-ordem');if(so) so.value='data';
   renderHist();
 }
 
@@ -3666,7 +3673,12 @@ function renderHist(){
     fv.push(v);
   }
   var hasFilter=nome||data||dataDe||dataAte||canal||vendedor;
-  fv.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  var ordem=(document.getElementById('srch-ordem')||{}).value||'data';
+  if(ordem==='recentes'){
+    fv.sort(function(a,b){return (b.createdAt||b.id||0)-(a.createdAt||a.id||0);});
+  } else {
+    fv.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  }
   if(hasFilter){
     inf.style.display='block';
     var filterDesc='';
