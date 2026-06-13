@@ -1507,7 +1507,7 @@ function saveVendaDB(v){
     if(isLocalId){
       // For timestamp IDs: look up existing Supabase row by content before inserting
       var date10=(v.date||'').slice(0,10);
-      var qLookup='select=id&date=eq.'+date10+'&cliente=eq.'+encodeURIComponent(v.cliente||'')+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
+      var qLookup='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0)+'&is_deleted=neq.true';
       return dbGet('vendas',qLookup).then(function(existing){
         if(Array.isArray(existing)&&existing.length){
           // Row exists in Supabase — PATCH it and update local ID
@@ -1569,7 +1569,7 @@ function deleteVendaDB(id){
     for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){v=DB_VENDAS[i];break;}}
     if(v){
       var date10=(v.date||'').slice(0,10);
-      var q='select=id&date=eq.'+date10+'&cliente=eq.'+encodeURIComponent(v.cliente||'')+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
+      var q='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
       dbGet('vendas',q).then(function(rows){
         if(Array.isArray(rows)&&rows.length) rows.forEach(function(r){patchDeleted(r.id);});
       }).catch(function(){});
@@ -1782,6 +1782,14 @@ function initDB(cb){
   var done=0;
   function chk(){done++;if(done>=6){DB_READY=true;if(cb)cb();setTimeout(function(){
     syncPendingVendas(false);
+    // Poll Supabase every 30s to pick up changes from other devices
+    setInterval(function(){
+      loadVendasDB(function(v){
+        DB_VENDAS=v;
+        if(typeof renderHist==='function'&&curPage==='hist') renderHist();
+        if(typeof renderDash==='function'&&curPage==='dash') renderDash();
+      });
+    },30000);
   },3000);}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
   loadContainersDB(function(c){DB_CONTAINERS=c;chk();});
