@@ -1470,7 +1470,7 @@ function saveVendaDB(v){
 
   // IDs > 2^31-1 are locally-generated timestamps that exceed Supabase int4 range.
   // For these we skip PATCH and INSERT without id so Supabase assigns a valid int4.
-  var isLocalId=(v.id>2000000000);
+  var isLocalId=(Number(v.id)>2000000000);
 
   function _hdrs(){return{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};}
   function _patch(r){
@@ -1488,10 +1488,12 @@ function saveVendaDB(v){
     return fetch(SUPA_URL+'/rest/v1/vendas',{method:'POST',headers:_hdrs(),body:JSON.stringify(body)});
   }
   function _applyNewId(res){
-    if(Array.isArray(res)&&res.length&&res[0].id&&res[0].id!==v.id){
-      var oldId=v.id,newId=res[0].id;
-      for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===oldId){DB_VENDAS[i].id=newId;break;}}
-      ss('ax_v6_vendas',DB_VENDAS);
+    if(Array.isArray(res)&&res.length&&res[0].id){
+      var newId=String(res[0].id);
+      if(newId!==String(v.id)){
+        var oldId=v.id;
+        for(var i=0;i<DB_VENDAS.length;i++){if(String(DB_VENDAS[i].id)===String(oldId)){DB_VENDAS[i].id=newId;break;}}
+      }
     }
     return res;
   }
@@ -1506,18 +1508,18 @@ function saveVendaDB(v){
     if(isLocalId){
       // For timestamp IDs: look up existing Supabase row by content before inserting
       var date10=(v.date||'').slice(0,10);
-      var qLookup='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
+      var qLookup='select=id::text&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
       return dbGet('vendas',qLookup).then(function(existing){
         if(Array.isArray(existing)&&existing.length){
           // Row exists in Supabase — PATCH it and update local ID
-          var supaId=existing[0].id;
+          var supaId=String(existing[0].id);
           var patchBody=Object.assign({},r);delete patchBody.id;
           return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(patchBody)})
             .then(function(resp){
               return resp.json().then(function(res){
                 // Update local references to use Supabase ID
                 var oldId=v.id;
-                for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===oldId){DB_VENDAS[i].id=supaId;break;}}
+                for(var i=0;i<DB_VENDAS.length;i++){if(String(DB_VENDAS[i].id)===String(oldId)){DB_VENDAS[i].id=supaId;break;}}
                 ss('ax_v6_vendas',DB_VENDAS);
                 return res;
               }).catch(function(){return[];});
@@ -1680,10 +1682,10 @@ function syncPendingVendas(manual){
   // Fetch IDs currently in Supabase, then insert only truly missing ones
   var allLocal=DB_VENDAS.slice();
   if(manual) toast('Verificando pendentes...');
-  dbGet('vendas','select=id').then(function(rows){
+  dbGet('vendas','select=id::text').then(function(rows){
     var supaIds={};
-    if(Array.isArray(rows)) rows.forEach(function(r){supaIds[r.id]=1;});
-    var pending=allLocal.filter(function(v){return !supaIds[v.id];});
+    if(Array.isArray(rows)) rows.forEach(function(r){supaIds[String(r.id)]=1;});
+    var pending=allLocal.filter(function(v){return !supaIds[String(v.id)];});
     var bar=document.getElementById('sync-pending-bar');
     var msg=document.getElementById('sync-pending-msg');
     if(!pending.length){
@@ -1747,7 +1749,7 @@ function syncPendingVendas(manual){
 
 function limparDuplicatasSupabase(){
   toast('Buscando duplicatas...');
-  dbGet('vendas','select=id,date,cliente,canal,venda&order=id.asc').then(function(rows){
+  dbGet('vendas','select=id::text,date,cliente,canal,venda&order=id.asc').then(function(rows){
     if(!Array.isArray(rows)||!rows.length){toast('Nenhuma venda no Supabase');return;}
     var seen={};var toDelete=[];
     rows.forEach(function(r){
@@ -3516,7 +3518,7 @@ function salvarVenda(){
     toast('Venda registrada!');
     // Save to Supabase first to get real ID, then add to DB_VENDAS
     saveVendaDB(vend).then(function(res){
-      if(Array.isArray(res)&&res.length&&res[0].id){vend.id=res[0].id;}
+      if(Array.isArray(res)&&res.length&&res[0].id){vend.id=String(res[0].id);}
       else if(!vend.id){vend.id=Math.floor(Date.now()/1000)*1000+Math.floor(Math.random()*999);}
       DB_VENDAS.unshift(vend);
     }).catch(function(){
@@ -3606,7 +3608,7 @@ function abrirDelVenda(id){
   delId=id;
   // Show estoque return option if venda has prodId and origem
   var vendas=loadVendas();
-  var v=vendas.find(function(vv){return vv.id===id;});
+  var v=vendas.find(function(vv){return String(vv.id)===String(id);});
   var optEl=document.getElementById('del-v-estoque-opt');
   var infoEl=document.getElementById('del-v-estoque-info');
   if(optEl&&v&&v.prodId&&v.origem){
@@ -3624,7 +3626,7 @@ function confirmarDelVenda(){
   var removedVend=null;
   var nv=[]; 
   for(var i=0;i<vendas.length;i++){
-    if(vendas[i].id!==id) nv.push(vendas[i]);
+    if(String(vendas[i].id)!==String(id)) nv.push(vendas[i]);
     else removedVend=vendas[i];
   }
   var devolverCheck=document.getElementById('del-v-devolver');
