@@ -1551,26 +1551,21 @@ function saveVendaDB(v){
   return _trySave(row);
 }
 function deleteVendaDB(id){
-  // Always look up by content to get the real Supabase ID
   var vv=null;
   for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){vv=DB_VENDAS[i];break;}}
-  if(!vv){console.error('deleteVendaDB: venda not found in memory id='+id);return;}
+  if(!vv){console.error('deleteVendaDB: not found id='+id);return;}
+  // Delete by content (date+canal+produto+venda) to avoid float precision issues with large IDs
   var date10=(vv.date||'').slice(0,10);
-  var q='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(vv.canal||'')+'&venda=eq.'+encodeURIComponent(vv.venda||0)+'&produto=eq.'+encodeURIComponent(vv.produto||'');
-  dbGet('vendas',q).then(function(rows){
-    if(!Array.isArray(rows)||!rows.length){
-      alert('Venda não encontrada no Supabase para apagar.\nData:'+date10+' Canal:'+vv.canal+' Valor:'+vv.venda);
-      return;
-    }
-    // Delete first matching row only (to avoid deleting duplicates unintentionally)
-    var supaId=rows[0].id;
-    fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'DELETE',
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}
-    }).then(function(r){
-      if(!r.ok) r.text().then(function(t){console.error('DELETE failed',r.status,t);alert('Erro ao apagar: '+r.status+' '+t);});
-      else console.log('DELETE ok supaId='+supaId+' (localId='+id+')');
-    }).catch(function(e){console.error('deleteVendaDB',e);alert('Erro de rede: '+e.message);});
-  }).catch(function(e){console.error('deleteVendaDB lookup',e);});
+  var q='date=eq.'+date10+'&canal=eq.'+encodeURIComponent(vv.canal||'')+'&venda=eq.'+encodeURIComponent(vv.venda||0)+'&produto=eq.'+encodeURIComponent(vv.produto||'');
+  fetch(SUPA_URL+'/rest/v1/vendas?'+q+'&limit=1',{method:'DELETE',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'}
+  }).then(function(r){
+    return r.json().then(function(res){
+      if(r.ok&&Array.isArray(res)&&res.length) console.log('DELETE ok by content, id='+res[0].id);
+      else if(!r.ok) {console.error('DELETE failed',r.status,JSON.stringify(res));alert('Erro ao apagar: '+r.status);}
+      else console.warn('DELETE matched 0 rows',q);
+    });
+  }).catch(function(e){console.error('deleteVendaDB',e);alert('Erro de rede: '+e.message);});
 }
 function loadContainersDB(cb){
   dbGet("containers","order=data.desc").then(function(rows){
