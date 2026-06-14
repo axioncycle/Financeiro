@@ -1447,8 +1447,7 @@ function saveEstoque(containerId,skuId,local,qty){
 }
 function loadVendasDB(cb){dbGet("vendas","order=date.desc&is_deleted=neq.true").then(function(rows){if(!Array.isArray(rows))rows=[];
   var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null,createdAt:r.created_at?new Date(r.created_at).getTime():0};});
-  ss("ax_v6_vendas",v); // cache for offline fallback only
-  cb(v);}).catch(function(){cb(sg("ax_v6_vendas",[]));});}
+  cb(v);}).catch(function(){cb([]);});}
 function saveVendaDB(v){
   var row={
     id:v.id,date:(v.date||'').slice(0,10),cliente:v.cliente,canal:v.canal,produto:v.produto,
@@ -7903,31 +7902,34 @@ function mlProcessOrders(orders,dasRate,comRate){
         mlSyncDone();return;
       }
 
-      // Save all vendas to memory, then persist to Supabase
+      // Save vendas sequentially to avoid parallel INSERT duplicates
       vendas.forEach(function(v){DB_VENDAS.push(v);});
-      var savePromises=vendas.map(function(v){return saveVendaDB(v);});
-      Promise.all(savePromises).then(function(results){
-        var saved=results.filter(function(r){return Array.isArray(r)&&r.length>0;}).length;
-        loadContainersDB(function(freshCs2){
-          DB_CONTAINERS=freshCs2;
-          vendas.forEach(function(vv){
-            if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
+      var idx=0;
+      function saveNext(){
+        if(idx>=vendas.length){
+          loadContainersDB(function(freshCs2){
+            DB_CONTAINERS=freshCs2;
+            vendas.forEach(function(vv){
+              if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
+            });
+            renderHist();
+            renderDash();
+            if(curPage==='est') renderEst();
+            if(!window._mlSyncedIds) window._mlSyncedIds={};
+            vendas.forEach(function(vv){if(vv.mlOrderId) window._mlSyncedIds[String(vv.mlOrderId)]=1;});
+            mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
+            toast(vendas.length+' vendas do ML importadas!');
+            mlSyncDone();
           });
-          renderHist();
-          renderDash();
-          if(curPage==='est') renderEst();
-          // Cache synced order IDs in session to prevent re-sync
-          if(!window._mlSyncedIds) window._mlSyncedIds={};
-          vendas.forEach(function(vv){if(vv.mlOrderId) window._mlSyncedIds[String(vv.mlOrderId)]=1;});
-          mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
-          toast(vendas.length+' vendas do ML importadas!');
+          return;
+        }
+        saveVendaDB(vendas[idx++]).then(saveNext).catch(function(err){
+          console.error('Save error:',err);
+          mlShowStatus('Erro ao salvar vendas','#ef4444');
           mlSyncDone();
         });
-      }).catch(function(err){
-        console.error('Save error:',err);
-        mlShowStatus('Erro ao salvar vendas','#ef4444');
-        mlSyncDone();
-      });
+      }
+      saveNext();
     });
   });
 }
