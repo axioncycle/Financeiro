@@ -1445,7 +1445,7 @@ function saveEstoque(containerId,skuId,local,qty){
     if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque error:",t);});
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
-function loadVendasDB(cb){dbGet("vendas","order=date.desc&is_deleted=neq.true").then(function(rows){if(!Array.isArray(rows))rows=[];
+function loadVendasDB(cb){dbGet("vendas","order=date.desc").then(function(rows){if(!Array.isArray(rows))rows=[];
   var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null,createdAt:r.created_at?new Date(r.created_at).getTime():0};});
   cb(v);}).catch(function(){cb([]);});}
 function saveVendaDB(v){
@@ -1546,25 +1546,25 @@ function saveVendaDB(v){
   return _trySave(row);
 }
 function deleteVendaDB(id){
-  var patchDeleted=function(supaId){
-    fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'PATCH',
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({is_deleted:true})
-    }).catch(function(){});
-  };
-  if(id>2000000000){
-    var v=null;
-    for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){v=DB_VENDAS[i];break;}}
-    if(v){
-      var date10=(v.date||'').slice(0,10);
-      var q='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
+  function hardDelete(supaId){
+    fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'DELETE',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}
+    }).then(function(r){if(!r.ok)r.text().then(function(t){console.error('DELETE vendas',r.status,t);});})
+    .catch(function(e){console.error('deleteVendaDB',e);});
+  }
+  if(!id||id>2000000000){
+    // Timestamp ID — find the real Supabase row by content
+    var vv=null;
+    for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){vv=DB_VENDAS[i];break;}}
+    if(vv){
+      var q='select=id&date=eq.'+(vv.date||'').slice(0,10)+'&canal=eq.'+encodeURIComponent(vv.canal||'')+'&venda=eq.'+encodeURIComponent(vv.venda||0);
       dbGet('vendas',q).then(function(rows){
-        if(Array.isArray(rows)&&rows.length) rows.forEach(function(r){patchDeleted(r.id);});
+        if(Array.isArray(rows)) rows.forEach(function(r){hardDelete(r.id);});
       }).catch(function(){});
     }
     return;
   }
-  patchDeleted(id);
+  hardDelete(id);
 }
 function loadContainersDB(cb){
   dbGet("containers","order=data.desc").then(function(rows){
@@ -3624,14 +3624,6 @@ function confirmarDelVenda(){
   }
   var devolverCheck=document.getElementById('del-v-devolver');
   var devolver=!devolverCheck||devolverCheck.checked;
-  // Register deleted content key so loadVendasDB filters it out on next refresh
-  if(removedVend){
-    var dk=(removedVend.date||'').slice(0,10)+'|'+(removedVend.cliente||'')+'|'+(removedVend.canal||'')+'|'+(+removedVend.venda||0);
-    var dl=sg('ax_v6_deleted',[]);
-    dl.push({k:dk,t:Date.now()});
-    ss('ax_v6_deleted',dl);
-  }
-  // Delete from DB immediately
   deleteVendaDB(id);
   if(devolver&&removedVend&&removedVend.origem&&removedVend.prodId){
     restoreStock(removedVend.origem,removedVend.prodId,removedVend.containerId);
