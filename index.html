@@ -1778,6 +1778,13 @@ function initDB(cb){
         if(typeof renderHist==='function'&&curPage==='hist') renderHist();
         if(typeof renderDash==='function'&&curPage==='dash') renderDash();
       });
+      loadContainersDB(function(c){
+        DB_CONTAINERS=c;
+        if(typeof renderEst==='function'&&curPage==='est') renderEst();
+      });
+      loadCustomSKUsDB(function(){
+        if(typeof renderEst==='function'&&curPage==='est') renderEst();
+      });
     },30000);
   },3000);}}
   loadVendasDB(function(v){DB_VENDAS=v;chk();});
