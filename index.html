@@ -1506,7 +1506,7 @@ function saveVendaDB(v){
     if(isLocalId){
       // For timestamp IDs: look up existing Supabase row by content before inserting
       var date10=(v.date||'').slice(0,10);
-      var qLookup='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0)+'&is_deleted=neq.true';
+      var qLookup='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
       return dbGet('vendas',qLookup).then(function(existing){
         if(Array.isArray(existing)&&existing.length){
           // Row exists in Supabase — PATCH it and update local ID
