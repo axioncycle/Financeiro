@@ -1493,6 +1493,13 @@ function saveVendaDB(v){
     return res;
   }
   function _trySave(r){
+    // No ID at all (e.g. new ML venda) — INSERT directly to get Supabase-assigned ID
+    if(!v.id){
+      return _insert(r,false).then(function(ri){
+        if(!ri.ok) return ri.text().then(function(t){console.error('INSERT(new) '+ri.status+':',t.slice(0,200));return[];});
+        return ri.json().then(_applyNewId).catch(function(){return[];});
+      }).catch(function(e){console.error('saveVendaDB insert(new):',e.message);return[];});
+    }
     if(isLocalId){
       // For timestamp IDs: look up existing Supabase row by content before inserting
       var date10=(v.date||'').slice(0,10);
