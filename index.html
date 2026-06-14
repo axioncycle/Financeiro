@@ -1467,7 +1467,12 @@ function saveVendaDB(v){
 
   function _hdrs(){return{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};}
   function _patch(r){
-    return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(r)});
+    console.log('PATCH vendas id='+v.id);
+    return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+v.id,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(r)}).then(function(resp){
+      if(!resp.ok) resp.clone().text().then(function(t){console.error('PATCH failed',resp.status,t);alert('Erro ao editar: '+resp.status+' '+t);});
+      else console.log('PATCH ok id='+v.id+' status='+resp.status);
+      return resp;
+    });
   }
   function _insert(r,keepId){
     var body=Object.assign({},r);
@@ -1549,8 +1554,10 @@ function deleteVendaDB(id){
   function hardDelete(supaId){
     fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'DELETE',
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}
-    }).then(function(r){if(!r.ok)r.text().then(function(t){console.error('DELETE vendas',r.status,t);});})
-    .catch(function(e){console.error('deleteVendaDB',e);});
+    }).then(function(r){
+      if(!r.ok) r.text().then(function(t){console.error('DELETE failed',r.status,t);alert('Erro ao apagar: '+r.status+' '+t);});
+      else console.log('DELETE ok id='+supaId);
+    }).catch(function(e){console.error('deleteVendaDB network error',e);alert('Erro de rede ao apagar: '+e.message);});
   }
   if(!id||id>2000000000){
     // Timestamp ID — find the real Supabase row by content
