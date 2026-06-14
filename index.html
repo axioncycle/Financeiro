@@ -7935,9 +7935,10 @@ function mlProcessOrders(orders,dasRate,comRate){
           headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
           body:JSON.stringify(row)
         }).then(function(r){
-          if(!r.ok) r.text().then(function(t){console.error('ML INSERT failed',r.status,t);});
+          if(!r.ok) r.text().then(function(t){console.error('ML INSERT failed',r.status,t);alert('Erro ML INSERT: '+r.status+'\n'+t.slice(0,300));});
+          else console.log('ML INSERT ok',row.date,row.cliente);
           setTimeout(saveNext,80);
-        }).catch(function(e){console.error('ML INSERT error',e);setTimeout(saveNext,80);});
+        }).catch(function(e){console.error('ML INSERT error',e);alert('Erro rede ML: '+e.message);setTimeout(saveNext,80);});
       }
       saveNext();
     });
