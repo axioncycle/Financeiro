@@ -1551,27 +1551,26 @@ function saveVendaDB(v){
   return _trySave(row);
 }
 function deleteVendaDB(id){
-  function hardDelete(supaId){
+  // Always look up by content to get the real Supabase ID
+  var vv=null;
+  for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){vv=DB_VENDAS[i];break;}}
+  if(!vv){console.error('deleteVendaDB: venda not found in memory id='+id);return;}
+  var date10=(vv.date||'').slice(0,10);
+  var q='select=id&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(vv.canal||'')+'&venda=eq.'+encodeURIComponent(vv.venda||0)+'&produto=eq.'+encodeURIComponent(vv.produto||'');
+  dbGet('vendas',q).then(function(rows){
+    if(!Array.isArray(rows)||!rows.length){
+      alert('Venda não encontrada no Supabase para apagar.\nData:'+date10+' Canal:'+vv.canal+' Valor:'+vv.venda);
+      return;
+    }
+    // Delete first matching row only (to avoid deleting duplicates unintentionally)
+    var supaId=rows[0].id;
     fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'DELETE',
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}
     }).then(function(r){
       if(!r.ok) r.text().then(function(t){console.error('DELETE failed',r.status,t);alert('Erro ao apagar: '+r.status+' '+t);});
-      else console.log('DELETE ok id='+supaId);
-    }).catch(function(e){console.error('deleteVendaDB network error',e);alert('Erro de rede ao apagar: '+e.message);});
-  }
-  if(!id||id>2000000000){
-    // Timestamp ID — find the real Supabase row by content
-    var vv=null;
-    for(var i=0;i<DB_VENDAS.length;i++){if(DB_VENDAS[i].id===id){vv=DB_VENDAS[i];break;}}
-    if(vv){
-      var q='select=id&date=eq.'+(vv.date||'').slice(0,10)+'&canal=eq.'+encodeURIComponent(vv.canal||'')+'&venda=eq.'+encodeURIComponent(vv.venda||0);
-      dbGet('vendas',q).then(function(rows){
-        if(Array.isArray(rows)) rows.forEach(function(r){hardDelete(r.id);});
-      }).catch(function(){});
-    }
-    return;
-  }
-  hardDelete(id);
+      else console.log('DELETE ok supaId='+supaId+' (localId='+id+')');
+    }).catch(function(e){console.error('deleteVendaDB',e);alert('Erro de rede: '+e.message);});
+  }).catch(function(e){console.error('deleteVendaDB lookup',e);});
 }
 function loadContainersDB(cb){
   dbGet("containers","order=data.desc").then(function(rows){
@@ -7905,12 +7904,11 @@ function mlProcessOrders(orders,dasRate,comRate){
         mlSyncDone();return;
       }
 
-      // Save vendas sequentially to avoid parallel INSERT duplicates
-      vendas.forEach(function(v){DB_VENDAS.push(v);});
+      // Insert vendas sequentially — each waits for Supabase to assign real ID before next
       var idx=0;
       function saveNext(){
         if(idx>=vendas.length){
-          // Reload from Supabase to get real IDs — ensures delete/edit work correctly
+          // All saved — reload from Supabase so DB_VENDAS has real IDs
           loadVendasDB(function(freshV){
             DB_VENDAS=freshV;
             loadContainersDB(function(freshCs2){
@@ -7918,8 +7916,7 @@ function mlProcessOrders(orders,dasRate,comRate){
               vendas.forEach(function(vv){
                 if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
               });
-              renderHist();
-              renderDash();
+              renderHist();renderDash();
               if(curPage==='est') renderEst();
               if(!window._mlSyncedIds) window._mlSyncedIds={};
               vendas.forEach(function(vv){if(vv.mlOrderId) window._mlSyncedIds[String(vv.mlOrderId)]=1;});
@@ -7930,11 +7927,22 @@ function mlProcessOrders(orders,dasRate,comRate){
           });
           return;
         }
-        saveVendaDB(vendas[idx++]).then(function(){setTimeout(saveNext,50);}).catch(function(err){
-          console.error('Save error:',err);
-          mlShowStatus('Erro ao salvar vendas','#ef4444');
-          mlSyncDone();
-        });
+        var v=vendas[idx++];
+        // INSERT without local id — Supabase assigns real id
+        var row={date:(v.date||'').slice(0,10),cliente:v.cliente,canal:v.canal,produto:v.produto,
+          prod_id:v.prodId,origem:v.origem,container_id:v.containerId,
+          venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,
+          imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,
+          lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:false,
+          pag1_tipo:'',pag1_val:0,pag1_taxa:0,pag2_tipo:'',pag2_val:0,pag2_taxa:0,
+          vendedor:v.vendedor||'',ml_order_id:v.mlOrderId||null};
+        fetch(SUPA_URL+'/rest/v1/vendas',{method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+          body:JSON.stringify(row)
+        }).then(function(r){
+          if(!r.ok) r.text().then(function(t){console.error('ML INSERT failed',r.status,t);});
+          setTimeout(saveNext,80);
+        }).catch(function(e){console.error('ML INSERT error',e);setTimeout(saveNext,80);});
       }
       saveNext();
     });
