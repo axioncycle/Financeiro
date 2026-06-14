@@ -7691,12 +7691,13 @@ function mlProcessOrders(orders,dasRate,comRate){
         var o=orders[i];
         var items=o.order_items||[];
 
-        // ── FIX 2: Cliente — nickname + nome completo ─────────────
+        // Cliente — nome completo, fallback para nickname
         var cliente='ML';
         if(o.buyer){
-          if(o.buyer.nickname) cliente=o.buyer.nickname;
-          else if(o.buyer.first_name){
+          if(o.buyer.first_name){
             cliente=o.buyer.first_name+(o.buyer.last_name?' '+o.buyer.last_name:'');
+          } else if(o.buyer.nickname){
+            cliente=o.buyer.nickname;
           }
         }
 
