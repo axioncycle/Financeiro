@@ -5380,17 +5380,21 @@ async function siteSync(){
 
     siteShowStatus('Salvando '+vendas.length+' vendas...','#1E90FF');
     vendas.forEach(function(v){DB_VENDAS.push(v);});
-    await Promise.all(vendas.map(function(v){return saveVendaDB(v);}));
+    for(var si=0;si<vendas.length;si++){await saveVendaDB(vendas[si]);}
 
-    loadContainersDB(function(freshCs){
-      DB_CONTAINERS=freshCs;
-      vendas.forEach(function(v){
-        if(v.prodId&&v.origem) consumeFIFO(v.origem,v.prodId,1);
+    // Reload from Supabase to get real IDs so delete/edit work correctly
+    loadVendasDB(function(freshV){
+      DB_VENDAS=freshV;
+      loadContainersDB(function(freshCs){
+        DB_CONTAINERS=freshCs;
+        vendas.forEach(function(v){
+          if(v.prodId&&v.origem) consumeFIFO(v.origem,v.prodId,1);
+        });
+        renderHist();renderDash();
+        if(curPage==='est') renderEst();
+        siteShowStatus(vendas.length+' vendas importadas! ✅','#22c55e');
+        toast(vendas.length+' vendas do Site sincronizadas!');
       });
-      renderHist();renderDash();
-      if(curPage==='est') renderEst();
-      siteShowStatus(vendas.length+' vendas importadas! ✅','#22c55e');
-      toast(vendas.length+' vendas do Site sincronizadas!');
     });
 
   }catch(e){
@@ -7907,23 +7911,27 @@ function mlProcessOrders(orders,dasRate,comRate){
       var idx=0;
       function saveNext(){
         if(idx>=vendas.length){
-          loadContainersDB(function(freshCs2){
-            DB_CONTAINERS=freshCs2;
-            vendas.forEach(function(vv){
-              if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
+          // Reload from Supabase to get real IDs — ensures delete/edit work correctly
+          loadVendasDB(function(freshV){
+            DB_VENDAS=freshV;
+            loadContainersDB(function(freshCs2){
+              DB_CONTAINERS=freshCs2;
+              vendas.forEach(function(vv){
+                if(vv.prodId&&vv.origem) consumeFIFO(vv.origem,vv.prodId,1);
+              });
+              renderHist();
+              renderDash();
+              if(curPage==='est') renderEst();
+              if(!window._mlSyncedIds) window._mlSyncedIds={};
+              vendas.forEach(function(vv){if(vv.mlOrderId) window._mlSyncedIds[String(vv.mlOrderId)]=1;});
+              mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
+              toast(vendas.length+' vendas do ML importadas!');
+              mlSyncDone();
             });
-            renderHist();
-            renderDash();
-            if(curPage==='est') renderEst();
-            if(!window._mlSyncedIds) window._mlSyncedIds={};
-            vendas.forEach(function(vv){if(vv.mlOrderId) window._mlSyncedIds[String(vv.mlOrderId)]=1;});
-            mlShowStatus(vendas.length+' vendas sincronizadas! ✅','#22c55e');
-            toast(vendas.length+' vendas do ML importadas!');
-            mlSyncDone();
           });
           return;
         }
-        saveVendaDB(vendas[idx++]).then(saveNext).catch(function(err){
+        saveVendaDB(vendas[idx++]).then(function(){setTimeout(saveNext,50);}).catch(function(err){
           console.error('Save error:',err);
           mlShowStatus('Erro ao salvar vendas','#ef4444');
           mlSyncDone();
