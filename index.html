@@ -4167,6 +4167,43 @@ function renderEst(){
   sumBody.innerHTML='<div><div style="font-size:9px;color:#666;font-weight:600;">FAT.</div><div style="font-size:14px;font-weight:800;color:#1E90FF;">'+fmt(cFat)+'</div><div style="font-size:9px;color:#666;">'+cQtd+' venda'+(cQtd!==1?'s':'')+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">MARG. CONTRIBUIÇÃO</div><div style="font-size:14px;font-weight:800;color:'+(cLSI>=0?'#22c55e':'#ef4444')+';">'+fmt(cLSI)+'</div></div><div><div style="font-size:9px;color:#666;font-weight:600;">MARGEM</div><div style="font-size:14px;font-weight:800;color:'+(cMg>=0?'#22c55e':'#ef4444')+';">'+cMg.toFixed(1)+'%</div></div>';
   sumCard.appendChild(sumBody);
   listEl.appendChild(sumCard);
+  // Stock count per location
+  var locTotals={};
+  var totalAll=0;
+  for(i=0;i<skus.length;i++){
+    var sid2=skus[i].id;
+    var sk2=cont.skus[sid2];
+    if(!sk2||!sk2.un) continue;
+    for(var li=0;li<locais.length;li++){
+      var q2=sk2.un[locais[li]]||0;
+      if(q2>0){locTotals[locais[li]]=(locTotals[locais[li]]||0)+q2;totalAll+=q2;}
+    }
+  }
+  if(totalAll>0){
+    var locCard=document.createElement('div');
+    locCard.style.cssText='background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:10px 12px;margin-bottom:12px;';
+    var locTitle=document.createElement('div');
+    locTitle.style.cssText='font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;';
+    locTitle.textContent='Estoque por Unidade';
+    locCard.appendChild(locTitle);
+    var locGrid=document.createElement('div');
+    locGrid.style.cssText='display:flex;flex-wrap:wrap;gap:8px;';
+    var locKeys=Object.keys(locTotals).sort();
+    for(var lk=0;lk<locKeys.length;lk++){
+      var loc2=locKeys[lk];
+      var chip=document.createElement('div');
+      chip.style.cssText='background:#111;border:1px solid #1E90FF33;border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;';
+      chip.innerHTML='<div style="font-size:18px;font-weight:800;color:#1E90FF;">'+locTotals[loc2]+'</div><div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;">'+loc2+'</div>';
+      locGrid.appendChild(chip);
+    }
+    // Total chip
+    var totalChip=document.createElement('div');
+    totalChip.style.cssText='background:#111;border:1px solid #22c55e33;border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;';
+    totalChip.innerHTML='<div style="font-size:18px;font-weight:800;color:#22c55e;">'+totalAll+'</div><div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;">Total</div>';
+    locGrid.appendChild(totalChip);
+    locCard.appendChild(locGrid);
+    listEl.appendChild(locCard);
+  }
   // Empty state if no SKUs planned
   var hasAny=false;
   for(var pi=0;pi<skus.length;pi++){var psk=cont.skus[skus[pi].id];if(psk&&psk.custoQty>0){hasAny=true;break;}}
