@@ -1186,6 +1186,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       </div>
     </div>
     <button class="btn btn-r" onclick="confirmarDelVenda()" style="font-size:15px;font-weight:700;margin-bottom:8px;">SIM, REMOVER</button>
+    <button class="btn btn-s" id="del-v-add-estoque-btn" style="display:none;margin-bottom:8px;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;" onclick="abrirEntradaDaVenda()">+ Repor estoque manualmente</button>
     <button class="btn btn-s" onclick="closeModal('m-del-v')">Cancelar</button>
   </div>
 </div>
@@ -3578,20 +3579,44 @@ function editarVenda(id){
   document.getElementById('pg-vend').scrollTop=0;
 }
 
+var _delVenda=null;
 function abrirDelVenda(id){
   delId=id;
-  // Show estoque return option if venda has prodId and origem
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return String(vv.id)===String(id);});
+  _delVenda=v||null;
   var optEl=document.getElementById('del-v-estoque-opt');
   var infoEl=document.getElementById('del-v-estoque-info');
+  var addBtn=document.getElementById('del-v-add-estoque-btn');
   if(optEl&&v&&v.prodId&&v.origem){
     optEl.style.display='block';
     if(infoEl) infoEl.textContent='Devolve 1 unidade para '+v.origem+' (contêiner original)';
+    if(addBtn) addBtn.style.display='none'; // só aparece após confirmação sem devolver
   } else {
     if(optEl) optEl.style.display='none';
+    if(addBtn) addBtn.style.display=(v&&v.prodId)?'block':'none';
   }
   openModal('m-del-v');
+}
+function abrirEntradaDaVenda(){
+  if(!_delVenda||!_delVenda.prodId) return;
+  closeModal('m-del-v');
+  var cs=loadContainers();
+  var el=document.getElementById('ent-cont');el.innerHTML='';
+  for(var i=0;i<cs.length;i++){var o=document.createElement('option');o.value=cs[i].id;o.textContent=cs[i].nome+(cs[i].data?' ('+cs[i].data.split('-').reverse().join('/')+')':'');el.appendChild(o);}
+  // Pre-select container
+  if(_delVenda.containerId) el.value=_delVenda.containerId;
+  var skus=getAllSKUs();
+  var pe=document.getElementById('ent-prod');pe.innerHTML='';
+  for(var j=0;j<skus.length;j++){var op=document.createElement('option');op.value=skus[j].id;op.textContent=skus[j].nome;pe.appendChild(op);}
+  // Pre-select SKU
+  if(_delVenda.prodId) pe.value=_delVenda.prodId;
+  // Pre-select local
+  var loc=document.getElementById('ent-local');
+  if(loc&&_delVenda.origem) loc.value=_delVenda.origem;
+  document.getElementById('ent-qty').value='1';
+  document.getElementById('ent-custo').value='';
+  openModal('m-entrada');
 }
 function confirmarDelVenda(){
   if(!delId) return;
@@ -3609,12 +3634,22 @@ function confirmarDelVenda(){
   if(devolver&&removedVend&&removedVend.origem&&removedVend.prodId){
     restoreStock(removedVend.origem,removedVend.prodId,removedVend.containerId);
     toast('Venda removida — estoque devolvido');
+    DB_VENDAS=nv;
+    closeModal('m-del-v');
+    delId=null;
   } else {
     toast('Venda removida');
+    DB_VENDAS=nv;
+    delId=null;
+    // If venda had a product, offer manual stock entry
+    if(removedVend&&removedVend.prodId){
+      var addBtn=document.getElementById('del-v-add-estoque-btn');
+      if(addBtn) addBtn.style.display='block';
+      // Keep modal open so user can click "+ Repor estoque"
+    } else {
+      closeModal('m-del-v');
+    }
   }
-  DB_VENDAS=nv;
-  closeModal('m-del-v');
-  delId=null;
   renderHist();
   if(curPage==='dash') renderDash();
   if(curPage==='est') renderEst();
