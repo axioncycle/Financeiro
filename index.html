@@ -1498,65 +1498,39 @@ function saveVendaDB(v){
     return res;
   }
   function _trySave(r){
-    // No ID at all (e.g. new ML venda) — INSERT directly to get Supabase-assigned ID
+    // No ID — INSERT (new venda, gets Supabase-assigned ID)
     if(!v.id){
       return _insert(r,false).then(function(ri){
-        if(!ri.ok) return ri.text().then(function(t){console.error('INSERT(new) '+ri.status+':',t.slice(0,200));return[];});
+        if(!ri.ok) return ri.text().then(function(t){console.error('INSERT '+ri.status+':',t.slice(0,200));return[];});
         return ri.json().then(_applyNewId).catch(function(){return[];});
-      }).catch(function(e){console.error('saveVendaDB insert(new):',e.message);return[];});
+      }).catch(function(e){console.error('saveVendaDB insert:',e.message);return[];});
     }
-    if(isLocalId){
-      // For timestamp IDs: look up existing Supabase row by content before inserting
-      var date10=(v.date||'').slice(0,10);
-      var qLookup='select=id::text&date=eq.'+date10+'&canal=eq.'+encodeURIComponent(v.canal||'')+'&venda=eq.'+encodeURIComponent(v.venda||0);
-      return dbGet('vendas',qLookup).then(function(existing){
-        if(Array.isArray(existing)&&existing.length){
-          // Row exists in Supabase — PATCH it and update local ID
-          var supaId=String(existing[0].id);
-          var patchBody=Object.assign({},r);delete patchBody.id;
-          return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+supaId,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(patchBody)})
-            .then(function(resp){
-              return resp.json().then(function(res){
-                // Update local references to use Supabase ID
-                var oldId=v.id;
-                for(var i=0;i<DB_VENDAS.length;i++){if(String(DB_VENDAS[i].id)===String(oldId)){DB_VENDAS[i].id=supaId;break;}}
-                ss('ax_v6_vendas',DB_VENDAS);
-                return res;
-              }).catch(function(){return[];});
-            }).catch(function(){return[];});
-        }
-        // Not found in Supabase — INSERT
-        return _insert(r,false).then(function(ri){
-          if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2,false).then(function(ri2){if(!ri2.ok) return ri2.text().then(function(t){console.error('INSERT2 '+ri2.status+':',t.slice(0,200));return[];});return ri2.json().then(_applyNewId).catch(function(){return[];});});}
-          if(!ri.ok) return ri.text().then(function(t){console.error('INSERT '+ri.status+':',t.slice(0,200));return[];});
-          return ri.json().then(_applyNewId).catch(function(){return[];});
-        }).catch(function(e){console.error('saveVendaDB insert:',e.message);return[];});
-      }).catch(function(){
-        // Lookup failed — fall back to direct insert
-        return _insert(r,false).then(function(ri){
-          if(!ri.ok) return ri.text().then(function(t){console.error('INSERT(fb) '+ri.status+':',t.slice(0,200));return[];});
-          return ri.json().then(_applyNewId).catch(function(){return[];});
-        }).catch(function(){return[];});
-      });
-    }
-    return _patch(r).then(function(resp){
-      if(resp.status===400){
-        var r2=Object.assign({},r);delete r2.vendedor;
-        return _patch(r2).then(function(resp2){
-          if(!resp2.ok) return resp2.text().then(function(t){console.error('PATCH2 '+resp2.status+':',t.slice(0,200));return [];});
-          return resp2.json().then(function(rows){return(!rows||!rows.length)?_insert(r2,true).then(function(ri){return ri.json().then(_applyNewId).catch(function(){return[];});}):rows;}).catch(function(){return[];});
+    // Has ID — always PATCH by string ID (works for both int8 timestamp and sequential IDs)
+    var idStr=String(v.id);
+    var patchBody=Object.assign({},r);delete patchBody.id;
+    return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+idStr,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(patchBody)})
+      .then(function(resp){
+        if(!resp.ok) return resp.text().then(function(t){
+          // Try without vendedor field (older schema)
+          var r2=Object.assign({},patchBody);delete r2.vendedor;
+          return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+idStr,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(r2)})
+            .then(function(resp2){
+              if(!resp2.ok) return resp2.text().then(function(t2){console.error('PATCH failed',resp2.status,t2);alert('Erro ao salvar: '+resp2.status);return[];});
+              return resp2.json().catch(function(){return[];});
+            });
         });
-      }
-      if(!resp.ok) return resp.text().then(function(t){console.error('PATCH '+resp.status+':',t.slice(0,200));return [];});
-      return resp.json().then(function(rows){
-        return(!rows||!rows.length)?_insert(r,false).then(function(ri){
-          return ri.json().then(function(res){
-            if(ri.status===400){var r2=Object.assign({},r);delete r2.vendedor;return _insert(r2,false).then(function(ri2){return ri2.json().then(_applyNewId).catch(function(){return[];});});}
-            return _applyNewId(res);
-          }).catch(function(){return[];});
-        }):rows;
-      }).catch(function(){return[];});
-    }).catch(function(e){console.error('saveVendaDB:',e.message);return[];});
+        return resp.json().then(function(rows){
+          if(!rows||!rows.length){
+            // Row not found by ID — this venda may not be in Supabase yet, INSERT it
+            console.warn('PATCH matched 0 rows for id='+idStr+', inserting...');
+            return _insert(patchBody,false).then(function(ri){
+              if(!ri.ok) return ri.text().then(function(t){console.error('INSERT fallback '+ri.status+':',t.slice(0,200));return[];});
+              return ri.json().then(_applyNewId).catch(function(){return[];});
+            });
+          }
+          return rows;
+        }).catch(function(){return[];});
+      }).catch(function(e){console.error('saveVendaDB:',e.message);return[];});
   }
   return _trySave(row);
 }
