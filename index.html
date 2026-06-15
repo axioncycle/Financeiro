@@ -1817,7 +1817,7 @@ function saveContainer(cid){
   // Save only ONE specific container - avoids overwriting other containers
   var cs=DB_CONTAINERS,i;
   for(i=0;i<cs.length;i++){
-    if(cs[i].id===cid){
+    if(String(cs[i].id)===String(cid)){
       var c=cs[i],sid,sk,loc,qty;
       dbUpsert("containers",{id:c.id,nome:c.nome,data:c.data||null});
       // Collect SKU IDs that have custoQty>0
@@ -4375,7 +4375,7 @@ function confirmarEntrada(){
   if(!cid||!sid||!local||qty<=0){toast('Preencha todos os campos',true);return;}
   var cs=loadContainers();var i;
   for(i=0;i<cs.length;i++){
-    if(cs[i].id===cid){
+    if(String(cs[i].id)===String(cid)){
       if(!cs[i].skus[sid]) cs[i].skus[sid]={custo:custo,un:{}};
       cs[i].skus[sid].custo=custo;
       if(!cs[i].skus[sid].un) cs[i].skus[sid].un={};
@@ -4406,7 +4406,7 @@ function confirmarSaida(){
   if(!cid||!sid||!local||qty<=0){toast('Preencha todos os campos',true);return;}
   var cs=loadContainers();var i;
   for(i=0;i<cs.length;i++){
-    if(cs[i].id===cid){
+    if(String(cs[i].id)===String(cid)){
       var sk=cs[i].skus[sid];
       if(!sk||!sk.un||!(sk.un[local]>=qty)){toast('Estoque insuficiente',true);return;}
       sk.un[local]-=qty;saveContainers(cs);break;
@@ -5950,7 +5950,7 @@ function onCustoContChange(){
       // Fallback: rebuild from container custoQty
       var cs=loadContainers(),ci,allS=getAllSKUs();
       for(ci=0;ci<cs.length;ci++){
-        if(cs[ci].id!==custoContId) continue;
+        if(String(cs[ci].id)!==String(custoContId)) continue;
         var cont=cs[ci],sid;
         for(sid in cont.skus){
           var sk=cont.skus[sid];
@@ -6516,7 +6516,7 @@ function salvarCustoConteiner(){
   var cs=loadContainers();
   var ci;
   for(ci=0;ci<cs.length;ci++){
-    if(cs[ci].id!==custoContId) continue;
+    if(String(cs[ci].id)!==String(custoContId)) continue;
     var cont=cs[ci];
     // Step 1: Reset only custoQty (NOT stock distribution)
     var sk;
@@ -6552,12 +6552,12 @@ function salvarCustoConteiner(){
     var changed=false;
     for(var vi=0;vi<vendas.length;vi++){
       var v=vendas[vi];
-      if(v.containerId!==custoContId) continue;
+      if(String(v.containerId)!==String(custoContId)) continue;
       // Find new unit cost from updated container
       var newCusto=0;
       var csArr=loadContainers();
       for(var ci2=0;ci2<csArr.length;ci2++){
-        if(csArr[ci2].id!==custoContId) continue;
+        if(String(csArr[ci2].id)!==String(custoContId)) continue;
         if(v.prodId&&csArr[ci2].skus&&csArr[ci2].skus[v.prodId]){
           newCusto=csArr[ci2].skus[v.prodId].custo||0;
         }
@@ -6569,13 +6569,14 @@ function salvarCustoConteiner(){
       vendas[vi].custo=newCusto;
       vendas[vi].lucroSI=newLSI;
       vendas[vi].lucroLL=newLLL;
+      vendas[vi]._custoChanged=true;
       changed=true;
     }
     if(changed){
       saveVendas(vendas);
       // Persist each changed venda to DB
       for(var vi2=0;vi2<vendas.length;vi2++){
-        if(vendas[vi2].containerId===custoContId&&vendas[vi2].custo!==undefined){
+        if(String(vendas[vi2].containerId)===String(custoContId)&&vendas[vi2]._custoChanged){
           saveVendaDB(vendas[vi2]);
         }
       }
@@ -6726,7 +6727,7 @@ function abrirEditarContainer(cid){
   var cs=loadContainers();
   var i;
   for(i=0;i<cs.length;i++){
-    if(cs[i].id===cid){
+    if(String(cs[i].id)===String(cid)){
       editContId=cid;
       document.getElementById('ec-nome').value=cs[i].nome||'';
       document.getElementById('ec-data').value=cs[i].data||today();
