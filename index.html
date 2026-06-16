@@ -7679,9 +7679,8 @@ function mlEnrichWithBuyers(orders,dasRate,comRate){
   }
   buyerIds.forEach(function(bid){
     mlFetch(ML_API+'/users/'+bid,mlCredentials.accessToken)
-    .then(function(r){
-      var u=r&&r.body?r.body:r;
-      if(u&&u.id) buyerMap[bid]={first_name:u.first_name||'',last_name:u.last_name||''};
+    .then(function(u){
+      if(u&&(u.first_name||u.last_name)) buyerMap[bid]={first_name:u.first_name||'',last_name:u.last_name||''};
       done++;checkDone();
     }).catch(function(){done++;checkDone();});
   });
@@ -7704,22 +7703,20 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
   ordersWithShip.forEach(function(o){
     var shipId=o.shipping.id;
     mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
-    .then(function(resp){
-      var s=resp&&resp.body?resp.body:resp;
+    .then(function(s){
       // Enrich logistic_type for Full detection
       if(s&&s.logistic_type) o.shipping.logistic_type=s.logistic_type;
       if(s&&s.type) o.shipping.shipment_type=s.type;
       // Try to get cost from costs endpoint
       mlFetch(ML_API+'/shipments/'+shipId+'/costs',mlCredentials.accessToken)
-      .then(function(resp2){
-        var c=resp2&&resp2.body?resp2.body:resp2;
+      .then(function(c){
         var sellerCost=0;
         if(c&&c.senders&&c.senders.length) sellerCost=+(c.senders[0].cost)||0;
-        if(!sellerCost) sellerCost=+(s&&s.base_cost)||0;
+        if(!sellerCost&&s) sellerCost=+s.base_cost||0;
         shipMap[shipId]=sellerCost;
         done++; checkDone();
       }).catch(function(){
-        shipMap[shipId]=+(s&&s.base_cost)||0;
+        if(s) shipMap[shipId]=+s.base_cost||0;
         done++; checkDone();
       });
     }).catch(function(){
