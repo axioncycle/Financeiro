@@ -7669,20 +7669,27 @@ function mlEnrichWithShipments(orders,dasRate,comRate){
   }
   ordersWithShip.forEach(function(o){
     var shipId=o.shipping.id;
-    mlFetch(ML_API+'/shipments/'+shipId+'/costs',mlCredentials.accessToken)
+    mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
     .then(function(resp){
-      var c=resp&&resp.body?resp.body:resp;
-      var sellerCost=0;
-      if(c&&c.senders&&c.senders.length) sellerCost=+(c.senders[0].cost)||0;
-      shipMap[shipId]=sellerCost;
-      done++; checkDone();
-    }).catch(function(){
-      mlFetch(ML_API+'/shipments/'+shipId,mlCredentials.accessToken)
-      .then(function(r2){
-        var s=r2&&r2.body?r2.body:r2;
+      var s=resp&&resp.body?resp.body:resp;
+      // Enrich logistic_type for Full detection
+      if(s&&s.logistic_type) o.shipping.logistic_type=s.logistic_type;
+      if(s&&s.type) o.shipping.shipment_type=s.type;
+      // Try to get cost from costs endpoint
+      mlFetch(ML_API+'/shipments/'+shipId+'/costs',mlCredentials.accessToken)
+      .then(function(resp2){
+        var c=resp2&&resp2.body?resp2.body:resp2;
+        var sellerCost=0;
+        if(c&&c.senders&&c.senders.length) sellerCost=+(c.senders[0].cost)||0;
+        if(!sellerCost) sellerCost=+(s&&s.base_cost)||0;
+        shipMap[shipId]=sellerCost;
+        done++; checkDone();
+      }).catch(function(){
         shipMap[shipId]=+(s&&s.base_cost)||0;
         done++; checkDone();
-      }).catch(function(){done++;checkDone();});
+      });
+    }).catch(function(){
+      done++; checkDone();
     });
   });
 }
@@ -7786,12 +7793,14 @@ function mlProcessOrders(orders,dasRate,comRate){
         // Full vs Normal
         var tags=o.tags||[];
         // logistic_type is enriched from /shipments endpoint by mlEnrichWithShipments
-        var logType=(o.shipping&&o.shipping.logistic_type)||'';
-        var isFull=logType==='fulfillment'||
-          logType.indexOf('fulfillment')>=0||
-          logType.indexOf('self_service')>=0||
+        var logType=((o.shipping&&o.shipping.logistic_type)||'').toLowerCase();
+        var shipType=((o.shipping&&o.shipping.shipment_type)||'').toLowerCase();
+        var isFull=logType.indexOf('fulfillment')>=0||
+          shipType.indexOf('fulfillment')>=0||
           tags.indexOf('fulfillment')>=0||
-          (o.fulfillment&&o.fulfillment.type==='fulfillment');
+          (o.fulfillment&&o.fulfillment.type==='fulfillment')||
+          (o.order_type&&o.order_type==='fulfillment');
+        console.log('[ML] ordem '+o.id+' logistic_type='+logType+' shipType='+shipType+' tags='+JSON.stringify(tags)+' isFull='+isFull);
 
         // Data
         var dateStr='';
