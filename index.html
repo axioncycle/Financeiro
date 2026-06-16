@@ -734,7 +734,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="fg"><label class="fl">Valor da Venda</label><input class="fi" id="v-venda" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
       <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="v-custo" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
-<div id="taxa-ml-wrap" style="display:none;"><div class="fg"><label class="fl" id="taxa-ml-label">Taxa ML %</label><div style="display:flex;gap:6px;align-items:center;"><input class="fi" id="v-tx1-ml" type="number" value="16.5" step="0.01" oninput="calcRes()" style="background:#0a0a1a;color:#1E90FF;font-weight:700;flex:1;margin-bottom:0;"><div style="display:flex;border:1px solid #1E90FF;border-radius:6px;overflow:hidden;font-size:12px;font-weight:700;flex-shrink:0;"><button type="button" id="taxa-ml-btn-pct" onclick="setMlTaxaMode('pct')" style="padding:6px 12px;background:#1E90FF;color:#fff;border:none;cursor:pointer;">%</button><button type="button" id="taxa-ml-btn-brl" onclick="setMlTaxaMode('brl')" style="padding:6px 12px;background:transparent;color:#1E90FF;border:none;cursor:pointer;">R$</button></div></div><div id="tx-hint" style="font-size:10px;color:#1E90FF;margin-top:3px;">Mercado Livre: editável</div></div></div>
+<div id="taxa-ml-wrap" style="display:none;"><div class="fg"><label class="fl" style="display:flex;justify-content:space-between;align-items:center;"><span id="taxa-ml-label">Taxa ML</span><span id="taxa-ml-mode-toggle" onclick="setMlTaxaMode(mlTaxaMode==='pct'?'brl':'pct')" style="cursor:pointer;font-size:10px;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:1px 6px;user-select:none;">%</span></label><input class="fi" id="v-tx1-ml" type="number" value="16.5" step="0.01" oninput="calcRes()" style="background:#0a0a1a;color:#1E90FF;font-weight:700;"><div id="tx-hint" style="font-size:10px;color:#1E90FF;margin-top:3px;">Mercado Livre: editável</div></div></div>
     <div style="margin-bottom:10px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:#666;font-weight:600;" id="duplo-label">
         <input type="checkbox" id="v-duplo" onchange="toggleDuplo()" style="width:15px;height:15px;">
@@ -1424,23 +1424,16 @@ var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Rib
 var mlTaxaMode='pct';
 function setMlTaxaMode(mode){
   mlTaxaMode=mode;
-  var lbl=document.getElementById('taxa-ml-label');
+  var tog=document.getElementById('taxa-ml-mode-toggle');
   var inp=document.getElementById('v-tx1-ml');
-  var btnP=document.getElementById('taxa-ml-btn-pct');
-  var btnB=document.getElementById('taxa-ml-btn-brl');
+  var hint=document.getElementById('tx-hint');
   if(mode==='brl'){
-    if(lbl) lbl.textContent='Taxa ML R$';
+    if(tog) tog.textContent='R$';
     if(inp){inp.step='0.01';inp.value='';}
-    if(btnP){btnP.style.background='transparent';btnP.style.color='#1E90FF';}
-    if(btnB){btnB.style.background='#1E90FF';btnB.style.color='#fff';}
-    var hint=document.getElementById('tx-hint');
     if(hint) hint.textContent='Valor absoluto da taxa em reais';
   } else {
-    if(lbl) lbl.textContent='Taxa ML %';
+    if(tog) tog.textContent='%';
     if(inp){inp.step='0.01';inp.value='16.5';}
-    if(btnP){btnP.style.background='#1E90FF';btnP.style.color='#fff';}
-    if(btnB){btnB.style.background='transparent';btnB.style.color='#1E90FF';}
-    var hint=document.getElementById('tx-hint');
     if(hint) hint.textContent='Mercado Livre: editável';
   }
   calcRes();
