@@ -7648,10 +7648,43 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset,allOrders){
     if(orders.length===limit&&allOrders.length<total){
       mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset+limit,allOrders);
     } else {
-      // Fetch shipment details for all orders that have shipping
-      mlEnrichWithShipments(allOrders,dasRate,comRate);
+      // Fetch buyer names then shipment details
+      mlEnrichWithBuyers(allOrders,dasRate,comRate);
     }
   }).catch(function(e){mlShowStatus('Erro: '+e.message,'#ef4444');mlSyncDone();});
+}
+
+function mlEnrichWithBuyers(orders,dasRate,comRate){
+  // Collect unique buyer IDs that don't have first_name yet
+  var buyerIds=[];
+  var seen={};
+  orders.forEach(function(o){
+    var bid=o.buyer&&o.buyer.id;
+    if(bid&&!o.buyer.first_name&&!seen[bid]){seen[bid]=1;buyerIds.push(bid);}
+  });
+  if(!buyerIds.length){mlEnrichWithShipments(orders,dasRate,comRate);return;}
+  mlShowStatus('Buscando nomes dos compradores...','#1E90FF');
+  var done=0,buyerMap={};
+  function checkDone(){
+    if(done===buyerIds.length){
+      orders.forEach(function(o){
+        var bid=o.buyer&&o.buyer.id;
+        if(bid&&buyerMap[bid]){
+          o.buyer.first_name=buyerMap[bid].first_name||'';
+          o.buyer.last_name=buyerMap[bid].last_name||'';
+        }
+      });
+      mlEnrichWithShipments(orders,dasRate,comRate);
+    }
+  }
+  buyerIds.forEach(function(bid){
+    mlFetch(ML_API+'/users/'+bid,mlCredentials.accessToken)
+    .then(function(r){
+      var u=r&&r.body?r.body:r;
+      if(u&&u.id) buyerMap[bid]={first_name:u.first_name||'',last_name:u.last_name||''};
+      done++;checkDone();
+    }).catch(function(){done++;checkDone();});
+  });
 }
 
 function mlEnrichWithShipments(orders,dasRate,comRate){
