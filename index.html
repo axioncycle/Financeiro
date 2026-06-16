@@ -734,7 +734,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <div class="fg"><label class="fl">Valor da Venda</label><input class="fi" id="v-venda" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
       <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="v-custo" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
-<div id="taxa-ml-wrap" style="display:none;"><div class="fg"><label class="fl">Taxa ML %</label><input class="fi" id="v-tx1-ml" type="number" value="16.5" step="0.01" oninput="calcRes()" style="background:#0a0a1a;color:#1E90FF;font-weight:700;"><div id="tx-hint" style="font-size:10px;color:#1E90FF;margin-top:3px;">Mercado Livre: editavel</div></div></div>
+<div id="taxa-ml-wrap" style="display:none;"><div class="fg"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><label class="fl" id="taxa-ml-label" style="margin-bottom:0;">Taxa ML %</label><div style="display:flex;border:1px solid #1E90FF;border-radius:6px;overflow:hidden;font-size:11px;font-weight:700;"><button type="button" id="taxa-ml-btn-pct" onclick="setMlTaxaMode('pct')" style="padding:2px 10px;background:#1E90FF;color:#fff;border:none;cursor:pointer;">%</button><button type="button" id="taxa-ml-btn-brl" onclick="setMlTaxaMode('brl')" style="padding:2px 10px;background:transparent;color:#1E90FF;border:none;cursor:pointer;">R$</button></div></div><input class="fi" id="v-tx1-ml" type="number" value="16.5" step="0.01" oninput="calcRes()" style="background:#0a0a1a;color:#1E90FF;font-weight:700;"><div id="tx-hint" style="font-size:10px;color:#1E90FF;margin-top:3px;">Mercado Livre: editável</div></div></div>
     <div style="margin-bottom:10px;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:#666;font-weight:600;" id="duplo-label">
         <input type="checkbox" id="v-duplo" onchange="toggleDuplo()" style="width:15px;height:15px;">
@@ -1421,6 +1421,30 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
 var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
+var mlTaxaMode='pct';
+function setMlTaxaMode(mode){
+  mlTaxaMode=mode;
+  var lbl=document.getElementById('taxa-ml-label');
+  var inp=document.getElementById('v-tx1-ml');
+  var btnP=document.getElementById('taxa-ml-btn-pct');
+  var btnB=document.getElementById('taxa-ml-btn-brl');
+  if(mode==='brl'){
+    if(lbl) lbl.textContent='Taxa ML R$';
+    if(inp){inp.step='0.01';inp.value='';}
+    if(btnP){btnP.style.background='transparent';btnP.style.color='#1E90FF';}
+    if(btnB){btnB.style.background='#1E90FF';btnB.style.color='#fff';}
+    var hint=document.getElementById('tx-hint');
+    if(hint) hint.textContent='Valor absoluto da taxa em reais';
+  } else {
+    if(lbl) lbl.textContent='Taxa ML %';
+    if(inp){inp.step='0.01';inp.value='16.5';}
+    if(btnP){btnP.style.background='#1E90FF';btnP.style.color='#fff';}
+    if(btnB){btnB.style.background='transparent';btnB.style.color='#1E90FF';}
+    var hint=document.getElementById('tx-hint');
+    if(hint) hint.textContent='Mercado Livre: editável';
+  }
+  calcRes();
+}
 var editSkuId=null;
 window.DB_META=0;
 function supaFetch(method,table,body,query){try{var url=SUPA_URL+"/rest/v1/"+table+(query?"?"+query:"");var h={"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=representation"};var opts={method:method,headers:h};if(body)opts.body=JSON.stringify(body);return fetch(url,opts).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("fe",e.message);return[];});}catch(e){return Promise.resolve([]);}}
@@ -3282,7 +3306,13 @@ function getTaxaVal(){
   var c=canal?canal.value:'';
   if(c==='Mercado Livre'){
     var mlInp=document.getElementById('v-tx1-ml');
-    return mlInp?parseFloat(mlInp.value)||16.5:16.5;
+    var mlVal=mlInp?parseFloat(mlInp.value)||0:0;
+    if(mlTaxaMode==='brl'){
+      var vEl=document.getElementById('v-venda');
+      var vv=vEl?parseBRL(vEl.value||'0')||0:0;
+      return vv>0?parseFloat((mlVal/vv*100).toFixed(4)):0;
+    }
+    return mlVal||16.5;
   }
   var sel=document.getElementById('v-p1t');
   if(!sel) return 0;
@@ -3307,6 +3337,7 @@ function onCanalChange(){
     if(ps) ps.style.display='block';
     if(dl) dl.style.opacity='1';
     if(dc) dc.disabled=false;
+    if(mlTaxaMode!=='pct') setMlTaxaMode('pct');
     onPagChange();
     return;
   }
@@ -3403,7 +3434,12 @@ function calcRes(){
     var r1=document.getElementById('v-dp1txr');if(r1) r1.textContent=fmt(tx1r);
     var r2=document.getElementById('v-dp2txr');if(r2) r2.textContent=fmt(tx2r);
   } else {
-    taxa=venda*txNow/100;
+    if(mlTaxaMode==='brl'&&document.getElementById('v-canal')&&document.getElementById('v-canal').value==='Mercado Livre'){
+      var mlInpV=document.getElementById('v-tx1-ml');
+      taxa=mlInpV?parseFloat(mlInpV.value)||0:0;
+    } else {
+      taxa=venda*txNow/100;
+    }
   }
   var imp=_getImpVal(venda);
   var com=_getComVal(venda);
