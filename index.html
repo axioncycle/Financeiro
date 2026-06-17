@@ -4388,6 +4388,10 @@ function renderEst(){
     cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
     var newQtyM=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
+    var skSaveM=cs2[ci2].skus[sid];
+    if(skSaveM.custoQty>0){
+      supaFetch("PATCH","container_skus",{custo:skSaveM.custo||0,custo_qty:skSaveM.custoQty},"container_id=eq."+cid+"&sku_id=eq."+parseInt(sid));
+    }
     saveEstoque(cid,sid,loc,newQtyM).then(function(){renderEst();fillProdSelect();}).catch(function(e){console.warn("Save error:",e);renderEst();fillProdSelect();});
     break;
   }
@@ -4422,7 +4426,9 @@ function renderEst(){
     cs2[ci2].skus[sid].un[loc]=(cs2[ci2].skus[sid].un[loc]||0)+1;
     var newQty=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
-    // Save container_skus first, then estoque_distribuicao
+    // Save distribution + container_skus (custo/custoQty) together
+    var skSave=cs2[ci2].skus[sid];
+    dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(sid),custo:skSave.custo||0,custo_qty:skSave.custoQty||0});
     saveEstoque(cid,sid,loc,newQty).then(function(){renderEst();fillProdSelect();}).catch(function(e){console.warn("Save error:",e);renderEst();fillProdSelect();});
     break;
   }
