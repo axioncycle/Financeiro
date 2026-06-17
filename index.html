@@ -4382,7 +4382,7 @@ function renderEst(){
       bm.onclick=(function(cid,sid,loc){return function(){
   var cs2=loadContainers();var ci2;
   for(ci2=0;ci2<cs2.length;ci2++){
-    if(cs2[ci2].id!==cid) continue;
+    if(String(cs2[ci2].id)!==String(cid)) continue;
     if(!cs2[ci2].skus[sid]) cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};
     if(!cs2[ci2].skus[sid].un) cs2[ci2].skus[sid].un={};
     cs2[ci2].skus[sid].un[loc]=Math.max(0,(cs2[ci2].skus[sid].un[loc]||0)-1);
@@ -4397,7 +4397,7 @@ function renderEst(){
       bp.onclick=(function(cid,sid,loc){return function(){
   var cs2=loadContainers();var ci2;
   for(ci2=0;ci2<cs2.length;ci2++){
-    if(cs2[ci2].id!==cid) continue;
+    if(String(cs2[ci2].id)!==String(cid)) continue;
     if(!cs2[ci2].skus[sid]) cs2[ci2].skus[sid]={custo:0,custoQty:0,un:{}};
     if(!cs2[ci2].skus[sid].un) cs2[ci2].skus[sid].un={};
     // Check limit: distributed + soldQty cannot exceed planned
@@ -4407,12 +4407,12 @@ function renderEst(){
       var allLocs=loadLocais();
       var distNow=0;
       for(var li=0;li<allLocs.length;li++) distNow+=(skNow.un[allLocs[li]]||0);
-      // Count sold for this SKU in this container (correto: apenas com containerId match)
+      // Count sold for this SKU in this container
       var soldNow=0;
       for(var vi=0;vi<DB_VENDAS.length;vi++){
         var vx=DB_VENDAS[vi];
         if(String(vx.prodId)!==String(sid)) continue;
-        if(vx.containerId===cid) soldNow++;
+        if(String(vx.containerId)===String(cid)) soldNow++;
       }
       if(distNow+soldNow>=plannedNow){
         toast('Limite: '+plannedNow+' un planejadas',true);
