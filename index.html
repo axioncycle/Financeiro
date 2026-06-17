@@ -1447,21 +1447,44 @@ function dbPost(t,b){return supaFetch("POST",t,b);}
 function dbDel(t,q){return supaFetch("DELETE",t,null,q);}
 function dbUpsert(t,b){try{return fetch(SUPA_URL+"/rest/v1/"+t,{method:"POST",headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)}).then(function(r){return r.json().catch(function(){return[];});}).catch(function(e){console.warn("ue",e.message);return[];});}catch(e){return Promise.resolve([]);}}
 
+function saveContainerSku(containerId,skuId,custo,custoQty){
+  // PATCH first; if 0 rows matched (no existing row) fall back to INSERT
+  var q="container_id=eq."+containerId+"&sku_id=eq."+parseInt(skuId);
+  return fetch(SUPA_URL+"/rest/v1/container_skus?"+q,{
+    method:"PATCH",
+    headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
+    body:JSON.stringify({custo:custo||0,custo_qty:custoQty||0})
+  }).then(function(r){
+    return r.json().then(function(rows){
+      if(!rows||!rows.length){
+        return fetch(SUPA_URL+"/rest/v1/container_skus",{
+          method:"POST",
+          headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+          body:JSON.stringify({container_id:containerId,sku_id:parseInt(skuId),custo:custo||0,custo_qty:custoQty||0})
+        }).then(function(r2){
+          if(r2&&!r2.ok) r2.text().then(function(t){console.warn("saveContainerSku insert error:",t);});
+        });
+      }
+    });
+  }).catch(function(e){console.warn("saveContainerSku catch:",e);});
+}
+
 function saveEstoque(containerId,skuId,local,qty){
   var sid=parseInt(skuId);
-  if(qty<=0){
-    var q="container_id=eq."+containerId+"&sku_id=eq."+sid+"&local=eq."+encodeURIComponent(local);
-    return fetch(SUPA_URL+"/rest/v1/estoque_distribuicao?"+q,{
-      method:"DELETE",
-      headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=minimal"}
-    }).catch(function(e){console.warn("saveEstoque delete catch:",e);});
-  }
-  return fetch(SUPA_URL+"/rest/v1/estoque_distribuicao",{
-    method:"POST",
-    headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"},
-    body:JSON.stringify({container_id:containerId,sku_id:sid,local:local,qty:qty})
-  }).then(function(r){
-    if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque error:",t);});
+  var q="container_id=eq."+containerId+"&sku_id=eq."+sid+"&local=eq."+encodeURIComponent(local);
+  // Always DELETE first, then INSERT if qty > 0 (avoids PK vs unique-constraint upsert issues)
+  return fetch(SUPA_URL+"/rest/v1/estoque_distribuicao?"+q,{
+    method:"DELETE",
+    headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=minimal"}
+  }).then(function(){
+    if(qty<=0) return;
+    return fetch(SUPA_URL+"/rest/v1/estoque_distribuicao",{
+      method:"POST",
+      headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+      body:JSON.stringify({container_id:containerId,sku_id:sid,local:local,qty:qty})
+    }).then(function(r){
+      if(r&&!r.ok) r.text().then(function(t){console.warn("saveEstoque insert error:",t);});
+    });
   }).catch(function(e){console.warn("saveEstoque catch:",e);});
 }
 function loadVendasDB(cb){
@@ -4389,9 +4412,7 @@ function renderEst(){
     var newQtyM=cs2[ci2].skus[sid].un[loc];
     DB_CONTAINERS=cs2;
     var skSaveM=cs2[ci2].skus[sid];
-    if(skSaveM.custoQty>0){
-      supaFetch("PATCH","container_skus",{custo:skSaveM.custo||0,custo_qty:skSaveM.custoQty},"container_id=eq."+cid+"&sku_id=eq."+parseInt(sid));
-    }
+    saveContainerSku(cid,parseInt(sid),skSaveM.custo||0,skSaveM.custoQty||0);
     saveEstoque(cid,sid,loc,newQtyM).then(function(){renderEst();fillProdSelect();}).catch(function(e){console.warn("Save error:",e);renderEst();fillProdSelect();});
     break;
   }
@@ -4428,7 +4449,7 @@ function renderEst(){
     DB_CONTAINERS=cs2;
     // Save distribution + container_skus (custo/custoQty) together
     var skSave=cs2[ci2].skus[sid];
-    dbUpsert("container_skus",{container_id:cid,sku_id:parseInt(sid),custo:skSave.custo||0,custo_qty:skSave.custoQty||0});
+    saveContainerSku(cid,parseInt(sid),skSave.custo||0,skSave.custoQty||0);
     saveEstoque(cid,sid,loc,newQty).then(function(){renderEst();fillProdSelect();}).catch(function(e){console.warn("Save error:",e);renderEst();fillProdSelect();});
     break;
   }
