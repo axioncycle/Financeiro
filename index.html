@@ -6365,7 +6365,8 @@ function calcResumo(){
   var totUSD=0,totQtd=0,i;
   for(i=0;i<skuRows.length;i++){
     var r=skuRows[i];
-    var q=r.qty||1;
+    if(!r.skuNome||r.skuNome==='__outro__'||r.skuNome==='__manage__') continue;
+    var q=parseInt(r.qty)||0;
     totUSD+=r.usd*q;
     totQtd+=q;
   }
@@ -6391,9 +6392,10 @@ function calcROI(){
   var totUSD=0,totQtd=0,i;
   for(i=0;i<skuRows.length;i++){
     var r=skuRows[i];
-    var q=r.qty||1;
+    if(!r.skuNome||r.skuNome==='__outro__'||r.skuNome==='__manage__') continue;
+    var q=parseInt(r.qty)||0;
     totUSD+=r.usd*q;
-    if(r.skuNome&&r.skuNome!=='__outro__') totQtd+=q;
+    totQtd+=q;
   }
 
   // Total investido = total pago BRL
