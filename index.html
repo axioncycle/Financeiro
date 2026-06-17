@@ -6253,8 +6253,17 @@ function onSkuChange(i,field,val){
     skuRows[i].qty=parseInt(val)||1;
   }
   calcResumo();
-  // Auto-save bloco2 changes to Supabase
-  if(custoContId) saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
+  // Auto-save bloco2 changes to Supabase (debounced to avoid race condition)
+  if(custoContId) debounceSaveCusto();
+}
+
+var _saveCustoTimer=null;
+function debounceSaveCusto(){
+  if(_saveCustoTimer) clearTimeout(_saveCustoTimer);
+  _saveCustoTimer=setTimeout(function(){
+    _saveCustoTimer=null;
+    if(custoContId) saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
+  },600);
 }
 
 function getAllCustoSKUs(){
