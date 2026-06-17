@@ -1654,9 +1654,18 @@ function saveContainersDB(cs){
   }
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
-function saveDespDB(mk,data){DB_DESP[mk]=data;dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
+var _saveDespTimers={};
+function saveDespDB(mk,data){
+  DB_DESP[mk]=data;
+  // Debounce per-month to avoid DELETE+POST race condition
+  if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
+  _saveDespTimers[mk]=setTimeout(function(){
+    delete _saveDespTimers[mk];
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
     if(data.prolabore>0){r2={mes:mk,nome:'Pró-labore',valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
-    if(data.distribuicao>0){r2={mes:mk,nome:'Distribuição de lucros',valor:data.distribuicao,tipo:'distribuicao'};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});}
+    if(data.distribuicao>0){r2={mes:mk,nome:'Distribuição de lucros',valor:data.distribuicao,tipo:'distribuicao'};rows.push(r2);}if(rows.length)dbPost("despesas",rows);});
+  },500);
+}
 function loadCustomSKUsDB(cb){
   var done=0;
   function chk(){done++;if(done>=3&&cb)cb();}
