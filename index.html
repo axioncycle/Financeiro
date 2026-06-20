@@ -7743,7 +7743,6 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset,allOrders){
       mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset+limit,allOrders);
     } else {
       // Fetch buyer names then shipment details
-      if(allOrders[0]&&allOrders[0].buyer) console.log('[ML buyer sample]',JSON.stringify(allOrders[0].buyer));
       mlEnrichWithBuyers(allOrders,dasRate,comRate);
     }
   }).catch(function(e){mlShowStatus('Erro: '+e.message,'#ef4444');mlSyncDone();});
@@ -7761,10 +7760,11 @@ function mlEnrichWithBuyers(orders,dasRate,comRate){
   ordersNeedingName.forEach(function(o){
     mlFetch(ML_API+'/orders/'+o.id+'/billing_info',mlCredentials.accessToken)
     .then(function(b){
-      console.log('[ML billing_info]',o.id,JSON.stringify(b));
-      if(b&&b.buyer){
-        var first=(b.buyer.first_name||'').trim();
-        var last=(b.buyer.last_name||'').trim();
+      if(b&&b.billing_info&&b.billing_info.additional_info){
+        var info=b.billing_info.additional_info;
+        function getVal(t){var e=info.find(function(x){return x.type===t;});return e?e.value:'';}
+        var first=(getVal('FIRST_NAME')||'').trim();
+        var last=(getVal('LAST_NAME')||'').trim();
         var fullName=first+(last?' '+last:'');
         if(fullName) o.buyer._fullName=fullName;
       }
