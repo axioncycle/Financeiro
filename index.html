@@ -7743,6 +7743,7 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset,allOrders){
       mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset+limit,allOrders);
     } else {
       // Fetch buyer names then shipment details
+      if(allOrders[0]&&allOrders[0].buyer) console.log('[ML buyer sample]',JSON.stringify(allOrders[0].buyer));
       mlEnrichWithBuyers(allOrders,dasRate,comRate);
     }
   }).catch(function(e){mlShowStatus('Erro: '+e.message,'#ef4444');mlSyncDone();});
