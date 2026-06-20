@@ -7763,10 +7763,7 @@ function mlEnrichWithBuyers(orders,dasRate,comRate){
     if(done===buyerIds.length){
       orders.forEach(function(o){
         var bid=o.buyer&&o.buyer.id;
-        if(bid&&buyerMap[bid]){
-          o.buyer.first_name=buyerMap[bid].first_name||'';
-          o.buyer.last_name=buyerMap[bid].last_name||'';
-        }
+        if(bid&&buyerMap[bid]) o.buyer._fullName=buyerMap[bid];
       });
       mlEnrichWithShipments(orders,dasRate,comRate);
     }
@@ -7774,7 +7771,12 @@ function mlEnrichWithBuyers(orders,dasRate,comRate){
   buyerIds.forEach(function(bid){
     mlFetch(ML_API+'/users/'+bid,mlCredentials.accessToken)
     .then(function(u){
-      if(u&&(u.first_name||u.last_name)) buyerMap[bid]={first_name:u.first_name||'',last_name:u.last_name||''};
+      if(u){
+        // ML /users/{id} returns full name in u.name, or split in first_name+last_name
+        var fullName=(u.name||'').trim();
+        if(!fullName&&u.first_name) fullName=(u.first_name+(u.last_name?' '+u.last_name:'')).trim();
+        if(fullName) buyerMap[bid]=fullName;
+      }
       done++;checkDone();
     }).catch(function(){done++;checkDone();});
   });
@@ -7899,11 +7901,13 @@ function mlProcessOrders(orders,dasRate,comRate){
         var o=orders[i];
         var items=o.order_items||[];
 
-        // Cliente — nome completo, fallback para nickname
+        // Cliente — nome completo do /users/{id}, fallback nickname
         var cliente='ML';
         if(o.buyer){
-          if(o.buyer.first_name){
-            cliente=o.buyer.first_name+(o.buyer.last_name?' '+o.buyer.last_name:'');
+          if(o.buyer._fullName){
+            cliente=o.buyer._fullName;
+          } else if(o.buyer.first_name){
+            cliente=(o.buyer.first_name+(o.buyer.last_name?' '+o.buyer.last_name:'')).trim();
           } else if(o.buyer.nickname){
             cliente=o.buyer.nickname;
           }
