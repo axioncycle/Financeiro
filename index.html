@@ -7749,37 +7749,25 @@ function mlFetchOrders(dateFrom,dateTo,dasRate,comRate,offset,allOrders){
 }
 
 function mlEnrichWithBuyers(orders,dasRate,comRate){
-  // Collect unique buyer IDs that don't have first_name yet
-  var buyerIds=[];
-  var seen={};
-  orders.forEach(function(o){
-    var bid=o.buyer&&o.buyer.id;
-    if(bid&&!o.buyer.first_name&&!seen[bid]){seen[bid]=1;buyerIds.push(bid);}
-  });
-  if(!buyerIds.length){mlEnrichWithShipments(orders,dasRate,comRate);return;}
+  // Use billing_info per order to get real buyer name (privacy-restricted on /users endpoint)
+  var ordersNeedingName=orders.filter(function(o){return o.buyer&&!o.buyer.first_name;});
+  if(!ordersNeedingName.length){mlEnrichWithShipments(orders,dasRate,comRate);return;}
   mlShowStatus('Buscando nomes dos compradores...','#1E90FF');
-  var done=0,buyerMap={};
+  var done=0;
   function checkDone(){
-    if(done===buyerIds.length){
-      orders.forEach(function(o){
-        var bid=o.buyer&&o.buyer.id;
-        if(bid&&buyerMap[bid]) o.buyer._fullName=buyerMap[bid];
-      });
-      mlEnrichWithShipments(orders,dasRate,comRate);
-    }
+    if(done===ordersNeedingName.length) mlEnrichWithShipments(orders,dasRate,comRate);
   }
-  buyerIds.forEach(function(bid){
-    mlFetch(ML_API+'/users/'+bid,mlCredentials.accessToken)
-    .then(function(u){
-      console.log('[ML buyer]',bid,JSON.stringify({name:u&&u.name,first:u&&u.first_name,last:u&&u.last_name,nick:u&&u.nickname}));
-      if(u){
-        var fullName=(u.name||'').trim();
-        if(!fullName&&u.first_name) fullName=(u.first_name+(u.last_name?' '+u.last_name:'')).trim();
-        if(!fullName&&u.nickname) fullName=u.nickname;
-        if(fullName) buyerMap[bid]=fullName;
+  ordersNeedingName.forEach(function(o){
+    mlFetch(ML_API+'/orders/'+o.id+'/billing_info',mlCredentials.accessToken)
+    .then(function(b){
+      if(b&&b.buyer){
+        var first=(b.buyer.first_name||'').trim();
+        var last=(b.buyer.last_name||'').trim();
+        var fullName=first+(last?' '+last:'');
+        if(fullName) o.buyer._fullName=fullName;
       }
       done++;checkDone();
-    }).catch(function(e){console.warn('[ML buyer] erro',bid,e.message);done++;checkDone();});
+    }).catch(function(e){console.warn('[ML billing_info] erro',o.id,e.message);done++;checkDone();});
   });
 }
 
