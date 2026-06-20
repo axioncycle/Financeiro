@@ -7771,14 +7771,15 @@ function mlEnrichWithBuyers(orders,dasRate,comRate){
   buyerIds.forEach(function(bid){
     mlFetch(ML_API+'/users/'+bid,mlCredentials.accessToken)
     .then(function(u){
+      console.log('[ML buyer]',bid,JSON.stringify({name:u&&u.name,first:u&&u.first_name,last:u&&u.last_name,nick:u&&u.nickname}));
       if(u){
-        // ML /users/{id} returns full name in u.name, or split in first_name+last_name
         var fullName=(u.name||'').trim();
         if(!fullName&&u.first_name) fullName=(u.first_name+(u.last_name?' '+u.last_name:'')).trim();
+        if(!fullName&&u.nickname) fullName=u.nickname;
         if(fullName) buyerMap[bid]=fullName;
       }
       done++;checkDone();
-    }).catch(function(){done++;checkDone();});
+    }).catch(function(e){console.warn('[ML buyer] erro',bid,e.message);done++;checkDone();});
   });
 }
 
