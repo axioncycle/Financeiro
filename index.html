@@ -7760,6 +7760,7 @@ function mlEnrichWithBuyers(orders,dasRate,comRate){
   ordersNeedingName.forEach(function(o){
     mlFetch(ML_API+'/orders/'+o.id+'/billing_info',mlCredentials.accessToken)
     .then(function(b){
+      console.log('[ML billing_info]',o.id,JSON.stringify(b&&b.buyer));
       if(b&&b.buyer){
         var first=(b.buyer.first_name||'').trim();
         var last=(b.buyer.last_name||'').trim();
