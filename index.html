@@ -280,6 +280,86 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 /* ── FOCUS VISIBLE ── */
 :focus-visible{outline:2px solid var(--accent,#3b82f6);outline-offset:2px;border-radius:4px;}
 
+/* ── AX PRODUTO (Gravel Wheel Page) ── */
+.ax{padding:0 0 16px;max-width:480px;margin:0 auto;}
+
+.ax-hero{background:linear-gradient(135deg,#0e1223 0%,#0f172a 100%);border:1px solid var(--border);border-radius:14px;padding:20px 16px 16px;margin-bottom:10px;position:relative;overflow:hidden;}
+.ax-hero::before{content:'';position:absolute;top:-40%;right:-20%;width:200px;height:200px;background:rgba(59,130,246,0.07);border-radius:50%;pointer-events:none;}
+.ax-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:4px 10px;font-size:9px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.ax-hero h2{font-size:20px;font-weight:800;line-height:1.25;color:var(--text);letter-spacing:-.3px;margin-bottom:8px;}
+.ax-hero p{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:16px;}
+
+.ax-specs{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ax-spec{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;position:relative;}
+.ax-spec:not(:last-child)::after{content:'';position:absolute;right:0;top:20%;height:60%;width:1px;background:var(--border);}
+.ax-spec .val{font-family:'Fira Code','Fira Mono',monospace;font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;}
+.ax-spec .lbl{font-size:7px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.8px;}
+
+.ax-pix{background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.04));border:1px solid rgba(34,197,94,0.25);border-radius:14px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;}
+.ax-pix-badge{background:#22c55e;color:#fff;font-size:10px;font-weight:900;padding:6px 10px;border-radius:8px;letter-spacing:1px;flex-shrink:0;line-height:1.4;}
+.ax-pix-label{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+.ax-pix-price{font-family:'Fira Code','Fira Mono',monospace;font-size:26px;font-weight:800;color:#22c55e;line-height:1.1;font-variant-numeric:tabular-nums;}
+.ax-pix-parcel{font-size:11px;color:var(--text2);margin-top:3px;}
+
+.ax-urgency{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:9px;padding:9px 14px;font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:12px;text-align:center;letter-spacing:.2px;}
+
+.ax-social{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;}
+.ax-soc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;}
+.ax-soc .num{font-family:'Fira Code','Fira Mono',monospace;font-size:16px;font-weight:700;color:#3b82f6;font-variant-numeric:tabular-nums;line-height:1;}
+.ax-soc .desc{font-size:8px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+
+.ax-h3{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.8px;margin:16px 0 10px;}
+
+.ax-grid{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;}
+.ax-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;transition:border-color .15s,background .15s;}
+.ax-item:hover{border-color:var(--border2);background:var(--surface-hover,rgba(248,250,252,0.04));}
+.ax-item .ic{font-size:16px;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.12);border-radius:8px;flex-shrink:0;}
+.ax-item .tit{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.ax-item .sub{font-size:11px;color:var(--text2);line-height:1.5;}
+
+.ax-perf{background:linear-gradient(135deg,rgba(59,130,246,0.07),rgba(34,197,94,0.04));border:1px solid rgba(59,130,246,0.2);border-radius:14px;padding:16px;margin-bottom:16px;}
+.ax-perf .ph{font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.2px;}
+.ax-perf p{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:12px;}
+.ax-perf .res{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600;color:#22c55e;line-height:1.5;}
+
+.ax-mid-cta{margin-bottom:16px;text-align:center;}
+.btn-mid-cta{display:block;width:100%;padding:14px;background:var(--accent,#3b82f6);color:#fff;border-radius:10px;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:.3px;transition:opacity .15s,box-shadow .15s,transform .1s;margin-bottom:8px;}
+.btn-mid-cta:hover{opacity:.92;box-shadow:0 6px 20px rgba(59,130,246,0.3);}
+.btn-mid-cta:active{opacity:.82;transform:scale(0.99);}
+.ax-mid-cta-note{font-size:10px;color:var(--text3);letter-spacing:.3px;}
+
+.ax-anc{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent,#3b82f6);border-radius:12px;padding:16px;margin-bottom:16px;}
+.ax-anc .ah{font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.2px;}
+.ax-anc .an{font-size:12px;color:var(--text2);line-height:1.65;}
+
+.ax-tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.ax-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.ax-tbl tr{border-bottom:1px solid var(--border);transition:background .15s;}
+.ax-tbl tr:last-child{border-bottom:none;}
+.ax-tbl tr:hover td{background:var(--row-hover,rgba(59,130,246,0.06));}
+.ax-tbl td{padding:9px 14px;}
+.ax-tbl td:first-child{color:var(--text3);font-weight:600;}
+.ax-tbl td:last-child{text-align:right;color:var(--text);font-family:'Fira Code','Fira Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums;}
+
+.ax-rv{margin-bottom:16px;}
+.ax-rvh{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:10px;}
+.ax-cd{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.ax-cd .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.ax-cd .ca{font-size:12px;font-weight:700;color:var(--text);}
+.ax-cd .cv{font-size:9px;color:#22c55e;font-weight:700;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);padding:2px 8px;border-radius:5px;letter-spacing:.4px;}
+.ax-cd .cs{color:#f59e0b;font-size:13px;margin-bottom:6px;letter-spacing:2px;}
+.ax-cd .cq{font-size:12px;color:var(--text2);line-height:1.6;font-style:italic;}
+
+.ax-cta{background:linear-gradient(135deg,#0e1223,#0f172a);border:1px solid rgba(59,130,246,0.25);border-radius:14px;padding:20px 16px;text-align:center;}
+.ax-cta h3{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.2px;}
+.ax-cta>p{font-size:10px;color:var(--text3);margin-bottom:14px;letter-spacing:.5px;text-transform:uppercase;}
+.btn-c{display:block;width:100%;padding:14px;background:var(--accent,#3b82f6);color:#fff;border-radius:10px;font-size:15px;font-weight:800;text-decoration:none;letter-spacing:.3px;transition:opacity .15s,box-shadow .15s,transform .1s;margin-bottom:10px;}
+.btn-c:hover{opacity:.92;box-shadow:0 6px 24px rgba(59,130,246,0.35);}
+.btn-c:active{opacity:.82;transform:scale(0.99);}
+.btn-w{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:rgba(34,197,94,0.09);border:1px solid rgba(34,197,94,0.25);color:#22c55e;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:.2px;transition:background .15s,border-color .15s;margin-bottom:12px;}
+.btn-w:hover{background:rgba(34,197,94,0.16);border-color:rgba(34,197,94,0.4);}
+.ax-hint{font-size:10px;color:var(--text3);letter-spacing:.3px;}
+
 </style>
 </head>
 <body><div id="toast" class="toast"></div><div id="d2-tip" style="display:none;position:fixed;background:#111;border:1px solid #333;border-radius:8px;padding:8px 12px;font-size:11px;color:#fff;z-index:9999;pointer-events:none;max-width:220px;line-height:1.6;"></div>
@@ -11765,6 +11845,137 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
   </div>
 </div>
 
+<!-- ── AX PRODUTO: Gravel Wheel ── -->
+<div id="pg-gravel" class="pg" style="padding:12px;">
+<div class="ax">
+
+<!-- HERO -->
+<div class="ax-hero" id="comprar">
+  <div class="ax-tag">Gravel Performance &bull; Rolamento Selado</div>
+  <h2>Mais velocidade com menos esforço no Gravel</h2>
+  <p>Rodas 45mm com largura interna 25mm e externa 32mm — estabilidade, controle e performance real.</p>
+
+  <div class="ax-specs">
+    <div class="ax-spec"><div class="val">45mm</div><div class="lbl">Perfil</div></div>
+    <div class="ax-spec"><div class="val">1640g</div><div class="lbl">Par</div></div>
+    <div class="ax-spec"><div class="val">Selado</div><div class="lbl">Rolam.</div></div>
+    <div class="ax-spec"><div class="val">125kg</div><div class="lbl">Carga</div></div>
+    <div class="ax-spec"><div class="val">2 anos</div><div class="lbl">Garantia</div></div>
+  </div>
+</div>
+
+<!-- PREÇO -->
+<div class="ax-pix">
+  <div class="ax-pix-badge">PIX</div>
+  <div>
+    <div class="ax-pix-label">à vista com desconto</div>
+    <div class="ax-pix-price">R$ 3.990</div>
+    <div class="ax-pix-parcel">ou 12x de <b>R$ 349</b> sem juros</div>
+  </div>
+</div>
+
+<div class="ax-urgency">🔥 Últimos pares disponíveis neste lote</div>
+
+<!-- SOCIAL PROOF -->
+<div class="ax-social">
+  <div class="ax-soc"><div class="num">+600</div><div class="desc">Rodas entregues</div></div>
+  <div class="ax-soc"><div class="num">5.0★</div><div class="desc">Avaliação média</div></div>
+  <div class="ax-soc"><div class="num">100%</div><div class="desc">Recomendam</div></div>
+</div>
+
+<!-- DESTAQUES -->
+<div class="ax-h3">Destaques do Produto</div>
+
+<div class="ax-grid">
+  <div class="ax-item">
+    <div class="ic">⚡</div>
+    <div><div class="tit">Perfil 45mm otimizado</div><div class="sub">Equilíbrio perfeito entre aerodinâmica e controle em vento lateral.</div></div>
+  </div>
+  <div class="ax-item">
+    <div class="ic">⚙️</div>
+    <div><div class="tit">Rolamentos selados</div><div class="sub">Mais durabilidade, menos manutenção e giro suave.</div></div>
+  </div>
+  <div class="ax-item">
+    <div class="ic">🪶</div>
+    <div><div class="tit">1640g o par</div><div class="sub">Leve, responsivo e eficiente em subida e sprint.</div></div>
+  </div>
+  <div class="ax-item">
+    <div class="ic">🚀</div>
+    <div><div class="tit">Alta eficiência</div><div class="sub">Transferência de potência direta, sem perda de energia.</div></div>
+  </div>
+  <div class="ax-item">
+    <div class="ic">🛡️</div>
+    <div><div class="tit">Certificação INMETRO</div><div class="sub">Segurança comprovada para uso real.</div></div>
+  </div>
+  <div class="ax-item">
+    <div class="ic">🌍</div>
+    <div><div class="tit">Gravel / Speed</div><div class="sub">Versátil para estrada, treino e terrenos mistos.</div></div>
+  </div>
+</div>
+
+<!-- PERFORMANCE -->
+<div class="ax-perf">
+  <div class="ph">Performance que você sente pedalando</div>
+  <p>A largura interna de 25mm melhora o contato do pneu com o solo, aumentando controle e tração. Os 32mm externos entregam melhor fluxo de ar e estabilidade em alta velocidade.</p>
+  <div class="res">Resultado: mais velocidade, mais controle e menos esforço em qualquer terreno.</div>
+</div>
+
+<!-- CTA INTERMEDIÁRIO -->
+<div class="ax-mid-cta">
+  <a href="#comprar" class="btn-mid-cta">Comprar Agora com Desconto</a>
+  <div class="ax-mid-cta-note">Frete grátis &nbsp;&bull;&nbsp; 12x sem juros &nbsp;&bull;&nbsp; Garantia de 2 anos</div>
+</div>
+
+<!-- DIFERENCIAL -->
+<div class="ax-anc">
+  <div class="ah">Por que escolher esse modelo?</div>
+  <div class="an">Diferente de rodas comuns, esse conjunto combina largura moderna (25mm interno) com perfil 45mm, entregando estabilidade, conforto e velocidade no mesmo produto.</div>
+</div>
+
+<!-- ESPECIFICAÇÕES -->
+<div class="ax-h3">Especificações Técnicas</div>
+
+<div class="ax-tbl-wrap">
+  <table class="ax-tbl">
+    <tr><td>Perfil</td><td>45mm</td></tr>
+    <tr><td>Largura interna</td><td>25mm</td></tr>
+    <tr><td>Largura externa</td><td>32mm</td></tr>
+    <tr><td>Peso</td><td>1640g (par)</td></tr>
+    <tr><td>Rolamentos</td><td>Selados</td></tr>
+    <tr><td>Peso máximo</td><td>125kg</td></tr>
+    <tr><td>Freio</td><td>Disc Brake</td></tr>
+    <tr><td>Eixo dianteiro</td><td>12&times;100mm</td></tr>
+    <tr><td>Eixo traseiro</td><td>12&times;142mm</td></tr>
+    <tr><td>Cassete</td><td>Shimano / SRAM</td></tr>
+    <tr><td>Garantia</td><td>2 anos</td></tr>
+  </table>
+</div>
+
+<!-- DEPOIMENTO -->
+<div class="ax-rv">
+  <div class="ax-rvh">O que os clientes dizem</div>
+  <div class="ax-cd">
+    <div class="ch">
+      <div class="ca">João &bull; SP</div>
+      <div class="cv">✓ Compra verificada</div>
+    </div>
+    <div class="cs">★★★★★</div>
+    <div class="cq">"Upgrade absurdo. A bike ficou mais rápida e estável. Vale cada real."</div>
+  </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="ax-cta">
+  <h3>Garanta seu upgrade agora</h3>
+  <p>Estoque limitado &nbsp;&bull;&nbsp; Envio imediato</p>
+  <a href="#comprar" class="btn-c">Comprar Agora</a>
+  <a href="#" class="btn-w">💬 Falar no WhatsApp</a>
+  <span class="ax-hint">Compra segura &nbsp;&bull;&nbsp; Garantia de 2 anos &nbsp;&bull;&nbsp; Suporte especializado</span>
+</div>
+
+</div>
+</div>
+<!-- /AX PRODUTO -->
 
 </body>
 </html>
