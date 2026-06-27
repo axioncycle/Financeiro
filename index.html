@@ -996,6 +996,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <div style="display:flex;gap:8px;margin-bottom:8px;">
     <button class="btn btn-o" style="flex:1;" onclick="openNovoContainer()">+ Conteiner</button>
     <button class="btn" style="flex:1;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;" onclick="openEntrada()">+ Entrada</button>
+    <button class="btn" style="flex:1;background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;" onclick="exportEstoquePDF()">Exportar PDF</button>
   </div>
   <div style="background:#111;border:1px solid #1E90FF22;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
     <span style="font-size:14px;">&#128667;</span>
@@ -4581,6 +4582,167 @@ function renderEst(){
     addCell.onclick=(function(cid,sid){return function(){openAddLocal(cid,sid);};})(cont.id,s.id);
     lrow.appendChild(addCell);item.appendChild(lrow);listEl.appendChild(item);
   }
+}
+
+function exportEstoquePDF(){
+  var today2=new Date();
+  var dateStr=today2.toLocaleDateString('pt-BR');
+  var cs=loadContainers();
+  var skus=getAllSKUs();
+  var locais=loadLocais();
+
+  // Build data: geral + per container
+  function getSkuTot(sid){
+    var t=0;
+    for(var j=0;j<locais.length;j++) t+=getQtyLocal(locais[j],sid);
+    return t;
+  }
+
+  // Geral table rows
+  var geralRows='';
+  var totalGeral=0;
+  for(var i=0;i<skus.length;i++){
+    var s=skus[i],tot=getSkuTot(s.id);
+    if(tot===0) continue;
+    totalGeral+=tot;
+    var status=tot<=1?'alert':'ok';
+    geralRows+='<tr class="'+status+'">'
+      +'<td>'+s.nome+'</td>';
+    for(var j=0;j<locais.length;j++){
+      var q=getQtyLocal(locais[j],s.id);
+      geralRows+='<td class="num">'+(q>0?q:'—')+'</td>';
+    }
+    geralRows+='<td class="num total-col">'+tot+'</td></tr>';
+  }
+
+  // Per-container sections
+  var contSections='';
+  var sortedCs=cs.slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  for(var ci=0;ci<sortedCs.length;ci++){
+    var cont=sortedCs[ci];
+    var rows='';
+    var contTotal=0;
+    var locTotals={};
+    for(var li=0;li<locais.length;li++) locTotals[locais[li]]=0;
+
+    for(var si=0;si<skus.length;si++){
+      var sk2=skus[si];
+      var skData=cont.skus[sk2.id]||{};
+      if(!skData.custoQty||skData.custoQty<=0) continue;
+      var un=skData.un||{};
+      var rowTot=0;
+      var cells='';
+      for(var li2=0;li2<locais.length;li2++){
+        var q2=un[locais[li2]]||0;
+        rowTot+=q2;
+        locTotals[locais[li2]]+=q2;
+        cells+='<td class="num unit-cell">'+(q2>0?q2:'—')+'</td>';
+      }
+      contTotal+=rowTot;
+
+      // Sold qty
+      var soldQ=0;
+      for(var vi=0;vi<DB_VENDAS.length;vi++){
+        var vx=DB_VENDAS[vi];
+        if(String(vx.prodId)!==String(sk2.id)) continue;
+        if(vx.containerId&&vx.containerId===cont.id) soldQ++;
+      }
+      var inStk=Math.max(0,skData.custoQty-soldQ);
+      var statusC=rowTot===0&&inStk===0?'sold':rowTot<=1?'alert':'ok';
+      rows+='<tr class="'+statusC+'">'
+        +'<td>'+sk2.nome+'</td>'
+        +cells
+        +'<td class="num total-col">'+rowTot+'</td>'
+        +'<td class="num">'+skData.custoQty+'</td>'
+        +'<td class="num '+(soldQ>0?'sold-num':'')+'">'+soldQ+'</td>'
+        +'<td class="num '+(inStk>0?'stock-num':'zero-num')+'">'+inStk+'</td>'
+        +'</tr>';
+    }
+    if(!rows) continue;
+
+    // Footer totals row
+    var footCells='';
+    for(var lf=0;lf<locais.length;lf++) footCells+='<td class="num foot">'+locTotals[locais[lf]]+'</td>';
+
+    var dataFmt=cont.data?cont.data.split('-').reverse().join('/'):'—';
+    contSections+='<section class="cont-section">'
+      +'<div class="cont-header">'
+      +'<span class="cont-name">'+cont.nome+'</span>'
+      +'<span class="cont-date">Chegada: '+dataFmt+'</span>'
+      +'<span class="cont-badge">'+contTotal+' un em estoque</span>'
+      +'</div>'
+      +'<table><thead><tr>'
+      +'<th>Produto</th>'
+      +locais.map(function(l){return '<th class="num">'+l+'</th>';}).join('')
+      +'<th class="num">Total</th>'
+      +'<th class="num">Plan.</th>'
+      +'<th class="num">Vendido</th>'
+      +'<th class="num">Estoque</th>'
+      +'</tr></thead>'
+      +'<tbody>'+rows+'</tbody>'
+      +'<tfoot><tr class="foot-row"><td>Total</td>'+footCells+'<td class="num foot">'+contTotal+'</td><td></td><td></td><td></td></tr></tfoot>'
+      +'</table>'
+      +'</section>';
+  }
+
+  var locHeaders=locais.map(function(l){return '<th class="num">'+l+'</th>';}).join('');
+
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+    +'<title>Estoque Axion Cycle — '+dateStr+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:20px 24px;}'
+    +'h1{font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:2px;}'
+    +'.subtitle{font-size:11px;color:#555;margin-bottom:20px;}'
+    +'h2{font-size:14px;font-weight:700;color:#1a1a2e;margin:22px 0 10px;padding-bottom:5px;border-bottom:2px solid #e5e7eb;}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:6px;}'
+    +'th{background:#1a1a2e;color:#fff;font-size:10px;font-weight:700;padding:6px 8px;text-align:left;}'
+    +'th.num{text-align:center;}'
+    +'td{padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:11px;}'
+    +'td.num{text-align:center;font-weight:600;color:#374151;}'
+    +'td.total-col{background:#f0f4ff;color:#1d4ed8;font-weight:800;}'
+    +'td.sold-num{color:#dc2626;font-weight:700;}'
+    +'td.stock-num{color:#16a34a;font-weight:700;}'
+    +'td.zero-num{color:#9ca3af;}'
+    +'td.unit-cell{color:#374151;}'
+    +'tr.ok td{background:#f0fdf4;}'
+    +'tr.alert td{background:#fffbeb;}'
+    +'tr.sold td{background:#fef2f2;}'
+    +'tr.foot-row td{background:#f8fafc;font-weight:700;font-size:11px;border-top:2px solid #e2e8f0;}'
+    +'td.foot{color:#1d4ed8;font-weight:800;background:#eff6ff;}'
+    +'.cont-section{margin-bottom:28px;page-break-inside:avoid;}'
+    +'.cont-header{display:flex;align-items:center;gap:12px;background:#1a1a2e;color:#fff;padding:10px 14px;border-radius:8px 8px 0 0;margin-bottom:0;}'
+    +'.cont-name{font-size:14px;font-weight:800;flex:1;}'
+    +'.cont-date{font-size:10px;color:#94a3b8;}'
+    +'.cont-badge{background:#22c55e;color:#fff;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;}'
+    +'.legend{display:flex;gap:16px;margin-bottom:14px;font-size:10px;}'
+    +'.leg{display:flex;align-items:center;gap:5px;}'
+    +'.leg-dot{width:12px;height:12px;border-radius:3px;}'
+    +'.leg-ok{background:#dcfce7;border:1px solid #86efac;}'
+    +'.leg-alert{background:#fef9c3;border:1px solid #fde047;}'
+    +'.leg-sold{background:#fee2e2;border:1px solid #fca5a5;}'
+    +'@media print{body{padding:10px;}.cont-section{page-break-inside:avoid;}}'
+    +'</style></head><body>'
+    +'<h1>Relatório de Estoque</h1>'
+    +'<div class="subtitle">Axion Cycle · Gerado em '+dateStr+'</div>'
+    +'<div class="legend">'
+    +'<div class="leg"><div class="leg-dot leg-ok"></div>Em estoque</div>'
+    +'<div class="leg"><div class="leg-dot leg-alert"></div>Alerta (≤1 un)</div>'
+    +'<div class="leg"><div class="leg-dot leg-sold"></div>Zerado / Vendido</div>'
+    +'</div>'
+    +'<h2>Estoque Geral</h2>'
+    +'<table><thead><tr><th>Produto</th>'+locHeaders+'<th class="num">Total</th></tr></thead>'
+    +'<tbody>'+geralRows+'</tbody></table>'
+    +contSections
+    +'<button onclick="window.print()" style="position:fixed;bottom:20px;right:20px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);">Salvar como PDF</button>'
+    +'</body></html>';
+
+  var win=window.open('','_blank');
+  if(!win){toast('Permita pop-ups para exportar PDF',true);return;}
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},600);
 }
 
 function openNovoContainer(){
