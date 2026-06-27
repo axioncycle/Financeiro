@@ -10809,6 +10809,23 @@ function gerarRelatorio(){
   function _capDreChart(renderFn,canvasId,key){
     try{if(typeof renderFn==='function') renderFn();var c=document.getElementById(canvasId);if(c) chartImgs[key]=c.toDataURL('image/png');}catch(e){console.warn('capDreChart',key,e);}
   }
+  // Force dashboard page visible so canvases have proper offsetWidth for capture
+  var _pgDash=document.getElementById('pg-dashboard');
+  var _pgDashWasHidden=_pgDash&&_pgDash.style.display==='none';
+  if(_pgDash&&_pgDashWasHidden){_pgDash.style.display='block';_pgDash.style.visibility='hidden';_pgDash.style.position='absolute';_pgDash.style.top='-9999px';}
+
+  // Force chart canvases to PDF-friendly width (600px) so labels render clearly
+  var _PDF_W=600;
+  function _forceCanvasW(id){
+    var el=document.getElementById(id); if(!el||!el.parentNode) return;
+    el.parentNode._origW=el.parentNode.style.width;
+    el.parentNode.style.width=_PDF_W+'px';
+  }
+  function _restoreCanvasW(id){
+    var el=document.getElementById(id); if(!el||!el.parentNode) return;
+    if(el.parentNode._origW!==undefined) el.parentNode.style.width=el.parentNode._origW;
+  }
+
   // Dashboard charts — must call showChart to set activeChart and render
   var _dashCharts=[
     {k:'g_fat',type:'fat',cvs:'chart-main'},{k:'g_fat_ano',type:'fat-ano',cvs:'chart-main'},
@@ -10817,14 +10834,25 @@ function gerarRelatorio(){
     {k:'g_canal',type:'canal',cvs:'chart-main'},
     {k:'g_sku_est',type:'sku-est',cvs:'chart-alt'},{k:'g_sku_fat',type:'sku-fat',cvs:'chart-alt'}
   ];
+  _forceCanvasW('chart-main'); _forceCanvasW('chart-alt');
   _dashCharts.forEach(function(c){
     if(!opts[c.k]) return;
     try{showChart(c.type);var el=document.getElementById(c.cvs);if(el) chartImgs[c.k]=el.toDataURL('image/png');}catch(e){console.warn('chart',c.k,e);}
   });
-  if(opts.g_taxa) _capDreChart(renderTaxaChart,'chart-taxa','g_taxa');
-  if(opts.g_canal_fat) _capDreChart(renderCanalFatChart,'chart-canal-fat','g_canal_fat');
-  if(opts.g_marg) _capDreChart(renderMargLiqChart,'chart-marg-liq','g_marg');
-  if(opts.g_sazon) _capDreChart(renderSazonChart,'chart-sazon','g_sazon');
+  _restoreCanvasW('chart-main'); _restoreCanvasW('chart-alt');
+
+  function _capDreChartWide(renderFn,canvasId,key){
+    _forceCanvasW(canvasId);
+    try{if(typeof renderFn==='function') renderFn();var c=document.getElementById(canvasId);if(c) chartImgs[key]=c.toDataURL('image/png');}catch(e){console.warn('capDreChart',key,e);}
+    _restoreCanvasW(canvasId);
+  }
+  if(opts.g_taxa) _capDreChartWide(renderTaxaChart,'chart-taxa','g_taxa');
+  if(opts.g_canal_fat) _capDreChartWide(renderCanalFatChart,'chart-canal-fat','g_canal_fat');
+  if(opts.g_marg) _capDreChartWide(renderMargLiqChart,'chart-marg-liq','g_marg');
+  if(opts.g_sazon) _capDreChartWide(renderSazonChart,'chart-sazon','g_sazon');
+
+  // Restore dashboard page visibility
+  if(_pgDash&&_pgDashWasHidden){_pgDash.style.display='none';_pgDash.style.visibility='';_pgDash.style.position='';_pgDash.style.top='';}
 
   relShowStatus('Gerando relatório...','#1E90FF');
   setTimeout(function(){
