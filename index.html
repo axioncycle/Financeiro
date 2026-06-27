@@ -511,7 +511,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;" id="cx-filter"></div>
 
   <!-- Resumo do período -->
-  <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:10px;">
+  <div style="background:var(--card);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:10px;">
     <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">RESUMO DO PERÍODO</div>
     <div id="cx-mini" style="display:flex;gap:6px;margin-bottom:10px;"></div>
   <div id="cx-resumo"></div>
@@ -534,7 +534,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- Projeção 3 meses -->
-  <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:10px;">
+  <div style="background:var(--card);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:10px;">
     <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🔮 PROJEÇÃO — PRÓXIMOS 6 MESES</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">Baseado na média dos últimos 6 meses reais</div>
     <div id="cx-projecao"></div>
@@ -555,7 +555,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- DRE Cascata -->
-  <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:12px;">
+  <div style="background:var(--card);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:12px;">
     <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">DRE — DEMONSTRAÇÃO DE RESULTADO</div>
     <div id="d2-dre"></div>
   </div>
@@ -640,7 +640,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div id="chart-sazon-info" style="margin-top:8px;"></div>
   </div>
 
-  <div style="background:linear-gradient(135deg,#0f1f0f,#0a2a0a);border:1px solid #22c55e33;border-radius:14px;padding:14px;margin-bottom:12px;">
+  <div style="background:var(--card);border:1px solid #22c55e33;border-radius:14px;padding:14px;margin-bottom:12px;">
     <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">🚀 SIMULADORES ESTRATÉGICOS</div>
 
     <!-- Simulador de Meta -->
@@ -1348,7 +1348,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- BLOCO 4: Resultado do Investimento -->
-  <div style="background:linear-gradient(135deg,#1a0a1a,#0a0a1a);border:1px solid #a855f744;border-radius:14px;padding:16px;margin-bottom:14px;">
+  <div style="background:var(--card);border:1px solid #a855f744;border-radius:14px;padding:16px;margin-bottom:14px;">
     <div style="font-size:10px;color:#a855f7;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Bloco 4</div>
     <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-bottom:14px;">Resultado do Investimento</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
@@ -1369,7 +1369,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Margem Liquida</div>
         <div style="font-size:20px;font-weight:900;color:#22c55e;margin-top:3px;" id="roi-margem">0%</div>
       </div>
-      <div style="background:linear-gradient(135deg,#1a0a2a,#0a0a1a);border:1px solid #a855f744;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid #a855f744;border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#a855f7;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">ROI (Retorno)</div>
         <div style="font-size:20px;font-weight:900;color:#a855f7;margin-top:3px;" id="roi-pct">0%</div>
         <div style="font-size:9px;color:#444;margin-top:2px;">lucro / investimento</div>
@@ -1443,7 +1443,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- BLOCO 6: Simulação de Compra -->
-  <div style="background:linear-gradient(135deg,#0a1a2e,#0d2240);border:1px solid #1E90FF44;border-radius:14px;padding:16px;margin-bottom:14px;">
+  <div style="background:var(--card);border:1px solid #1E90FF44;border-radius:14px;padding:16px;margin-bottom:14px;">
     <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Bloco 6</div>
     <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:14px;">Simulação de Compra</div>
 
@@ -9023,7 +9023,7 @@ function renderCaixaMini(mMap, meses){
     {icon:'⚠️',label:'Mês crítico',val:criSaldo===Infinity?'—':fmt(criSaldo),sub:criMk?mlabel3(criMk):'—',col:criSaldo>=0?'#f59e0b':'#ef4444'},
   ];
   el.innerHTML=chips.map(function(c){
-    return '<div style="flex:1;background:#ffffff08;border:1px solid #ffffff0a;border-radius:10px;padding:8px;min-width:0;">'+
+    return '<div style="flex:1;background:var(--bg2);border:1px solid #ffffff0a;border-radius:10px;padding:8px;min-width:0;">'+
       '<div style="font-size:14px;">'+c.icon+'</div>'+
       '<div style="font-size:8px;color:var(--text3);text-transform:uppercase;margin:2px 0;">'+c.label+'</div>'+
       '<div style="font-size:13px;font-weight:800;color:'+c.col+';">'+c.val+'</div>'+
@@ -9080,7 +9080,7 @@ function renderCaixaResumo(mMap, meses, saldoIni){
     +'</div>'
     +'<div style="border-top:1px solid #1E90FF33;padding-top:10px;">'
       +(saldoIni?
-        '<div style="margin-bottom:8px;padding:8px;background:#ffffff06;border-radius:8px;">'
+        '<div style="margin-bottom:8px;padding:8px;background:var(--bg3);border-radius:8px;">'
         +'<div style="font-size:9px;color:var(--text2);font-weight:700;margin-bottom:5px;">SALDO INICIAL</div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">'
           +'<div><div style="font-size:9px;color:#22c55e;">Conta</div><div style="font-size:12px;font-weight:700;color:#22c55e;">'+fmt(window._cxCfg&&window._cxCfg.saldoConta||0)+'</div></div>'
@@ -10479,7 +10479,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
     var colMes=saldoMes>=0?'#22c55e':'#ef4444';
     var sem=saldo>=0?'🟢':'🔴';
 
-    h+='<div style="background:#ffffff08;border:1px solid '+(contSaida>0?'#f59e0b44':'#ffffff0a')+';border-radius:12px;padding:12px;">';
+    h+='<div style="background:var(--bg2);border:1px solid '+(contSaida>0?'#f59e0b44':'#ffffff0a')+';border-radius:12px;padding:12px;">';
 
     // Header
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
@@ -10510,7 +10510,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
     h+='</div></div>';
 
     // Detalhamento
-    h+='<div style="background:#00000025;border-radius:8px;padding:8px;">';
+    h+='<div style="background:var(--bg3);border-radius:8px;padding:8px;">';
     h+='<div style="font-size:9px;color:var(--text3);font-weight:700;margin-bottom:6px;text-transform:uppercase;">Detalhamento</div>';
     if(fixas>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Custos fixos'+(isEstimada&&mediaFixas>0?' (herdado)':'')+'</span><span style="color:#ef4444;">'+fmt(fixas)+'</span></div>';
     if(extras>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:var(--text2);">Extras</span><span style="color:#ef4444;">'+fmt(extras)+'</span></div>';
@@ -10519,7 +10519,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
     if(prolabore>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#f59e0b;">💼 Pró-labore</span><span style="color:#f59e0b;">'+fmt(prolabore)+'</span></div>';
     if(distribuicao>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#a78bfa;">💸 Distribuição</span><span style="color:#a78bfa;">'+fmt(distribuicao)+'</span></div>';
     if(contSaida>0) h+='<div style="display:flex;justify-content:space-between;font-size:10px;"><span style="color:#f59e0b;">📦 Contêiner</span><span style="color:#f59e0b;">'+fmt(contSaida)+'</span></div>';
-    h+='<div style="border-top:1px solid #ffffff15;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;">';
+    h+='<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;">';
     h+='<span style="color:var(--text);">Resultado</span>';
     h+='<span style="color:'+colMes+';">'+(saldoMes>=0?'+':'')+fmt(saldoMes)+'</span>';
     h+='</div></div></div>';
@@ -11657,39 +11657,39 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📋 Incluir no Relatório</div>
       <div style="display:grid;gap:8px;">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-resumo" checked style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📊 Resumo Executivo</div><div style="font-size:9px;color:var(--text3);">Faturamento, lucro, margem, ticket médio</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-resultado" checked style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">💰 Resultado por Mês (DRE)</div><div style="font-size:9px;color:var(--text3);">Faturamento, CMV, despesas, DAS, lucro líquido</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-vendas" checked style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">🛒 Vendas por Canal</div><div style="font-size:9px;color:var(--text3);">ML, Site, WhatsApp com participação e margem</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-produtos" checked style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">🚲 Top Produtos</div><div style="font-size:9px;color:var(--text3);">Ranking por faturamento e quantidade</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-estoque" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque Atual</div><div style="font-size:9px;color:var(--text3);">Posição por SKU, contêiner e local</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-estoque-qtd" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📦 Estoque Quantitativo</div><div style="font-size:9px;color:var(--text3);">Apenas quantidades por SKU e local, sem valores</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-despesas" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📋 Despesas Mensais</div><div style="font-size:9px;color:var(--text3);">Fixas, extras e resultado financeiro por mês</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-caixa" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">💵 Fluxo de Caixa</div><div style="font-size:9px;color:var(--text3);">Entradas, saídas e saldo por mês</div></div>
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ffffff06;border-radius:8px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-lista" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📝 Lista de Vendas</div><div style="font-size:9px;color:var(--text3);">Detalhamento individual (máx. 200)</div></div>
         </label>
