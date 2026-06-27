@@ -116,12 +116,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 /* ── NAV ── */
 .nav{display:flex;background:rgba(2,6,23,0.95);border-bottom:1px solid var(--border);position:sticky;top:53px;z-index:50;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
 .nav::-webkit-scrollbar{display:none}
-.nb{flex:1;padding:7px 2px 5px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:8.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;text-transform:uppercase;letter-spacing:.6px;transition:color .2s,border-color .2s;}
+.nb{flex:1;padding:10px 2px 8px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:8.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;text-transform:uppercase;letter-spacing:.6px;transition:color .2s,border-color .2s;}
 .nb:hover{color:var(--text2);}
 .nb.on{color:var(--accent,#3b82f6);border-bottom-color:var(--accent,#3b82f6);}
 .nb.on::after{content:'';position:absolute;bottom:-1px;left:15%;width:70%;height:2px;background:linear-gradient(90deg,#3b82f6,#22c55e);border-radius:2px 2px 0 0;}
 .nb.on .ic{transform:scale(1.12);display:inline-block;}
-.nb .ic{font-size:17px;line-height:1;}
+.nb .ic{font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;}
 
 /* ── PAGES ── */
 .pg{display:none;padding:10px 12px;padding-bottom:64px;}
@@ -340,13 +340,13 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 </header>
 
 <nav class="nav">
-  <button class="nb on" id="nb-dash" onclick="goTo('dash')"><span class="ic">&#128202;</span>Dashboard</button>
-  <button class="nb" id="nb-dash2" onclick="goTo('dash2')"><span class="ic">&#128640;</span>Análise</button>
-  <button class="nb" id="nb-vend" onclick="goTo('vend')"><span class="ic">&#128176;</span>Vendas</button>
-  <button class="nb" id="nb-est" onclick="goTo('est')"><span class="ic">&#128230;</span>Estoque</button>
-  <button class="nb" id="nb-res" onclick="goTo('res')"><span class="ic">&#128200;</span>Resultado</button>
-  <button class="nb" id="nb-custo" onclick="goTo('custo')"><span class="ic">&#128667;</span>Custo</button>
-  <button class="nb" id="nb-caixa" onclick="goTo('caixa')"><span class="ic">&#128181;</span>Caixa</button>
+  <button class="nb on" id="nb-dash" onclick="goTo('dash')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>Dashboard</button>
+  <button class="nb" id="nb-dash2" onclick="goTo('dash2')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Análise</button>
+  <button class="nb" id="nb-vend" onclick="goTo('vend')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>Vendas</button>
+  <button class="nb" id="nb-est" onclick="goTo('est')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>Estoque</button>
+  <button class="nb" id="nb-res" onclick="goTo('res')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>Resultado</button>
+  <button class="nb" id="nb-custo" onclick="goTo('custo')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg></span>Custo</button>
+  <button class="nb" id="nb-caixa" onclick="goTo('caixa')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>Caixa</button>
 </nav>
 
 <!-- DASHBOARD -->
@@ -440,7 +440,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Cenários -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:10px;">
-    <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">📊 Cenário de Projeção</div>
+    <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cenário de Projeção</div>
     <div style="display:flex;gap:6px;">
       <button onclick="setCxCenario(0.7)" id="cx-cen-pess" class="btn btn-s" style="flex:1;font-size:11px;border:2px solid #ef444444;">🔴 Pessimista<br><span style="font-size:9px;opacity:0.7;">70% das vendas</span></button>
       <button onclick="setCxCenario(1.0)" id="cx-cen-real" class="btn btn-s" style="flex:1;font-size:11px;border:2px solid #1E90FF;background:#1E90FF22;">🔵 Realista<br><span style="font-size:9px;opacity:0.7;">100% das vendas</span></button>
@@ -455,7 +455,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <!-- Saldo Inicial -->
     <div style="background:#1E90FF11;border:1px solid #1E90FF33;border-radius:10px;padding:10px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-size:10px;font-weight:700;color:#1E90FF;">💰 Saldo Inicial</div>
+        <div style="font-size:10px;font-weight:700;color:#1E90FF;">Saldo Inicial</div>
         <button onclick="(function(){var b=document.getElementById('cx-saldo-body');var a=document.getElementById('cx-saldo-arrow');if(b.style.display==='none'){b.style.display='block';a.textContent='▲';}else{b.style.display='none';a.textContent='▼';}})()" style="background:#1E90FF22;border:1px solid #1E90FF44;border-radius:6px;color:#1E90FF;font-size:11px;padding:3px 8px;cursor:pointer;"><span id="cx-saldo-arrow">▲</span></button>
       </div>
       <div id="cx-saldo-body">
@@ -469,7 +469,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
             <input class="fi" id="cx-saldo-conta" type="text" inputmode="decimal" placeholder="ex: 20000" oninput="maskBRL(this);saveCaixaConfig();renderCaixa();" style="border-color:#22c55e44;">
           </div>
           <div>
-            <div style="font-size:9px;color:#1E90FF;font-weight:700;margin-bottom:3px;">📈 Investimentos (R$)</div>
+            <div style="font-size:9px;color:#1E90FF;font-weight:700;margin-bottom:3px;">Investimentos (R$)</div>
             <input class="fi" id="cx-saldo-invest" type="text" inputmode="decimal" placeholder="ex: 30000" oninput="maskBRL(this);saveCaixaConfig();renderCaixa();" style="border-color:#1E90FF44;">
           </div>
         </div>
@@ -512,14 +512,14 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Resumo do período -->
   <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:10px;">
-    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">💰 RESUMO DO PERÍODO</div>
+    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">RESUMO DO PERÍODO</div>
     <div id="cx-mini" style="display:flex;gap:6px;margin-bottom:10px;"></div>
   <div id="cx-resumo"></div>
   </div>
 
   <!-- Saldo acumulado -->
   <div id="cx-saldo-box" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">
-    <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:6px;">📈 SALDO ACUMULADO</div>
+    <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:6px;">SALDO ACUMULADO</div>
     <div id="cx-saldo"></div>
   </div>
 
@@ -528,7 +528,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Gráfico Saldo Acumulado -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;">
-    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">📈 EVOLUÇÃO DO CAIXA</div>
+    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">EVOLUÇÃO DO CAIXA</div>
     <canvas id="cx-chart-saldo" onclick="cxChartClick(event,this)" style="width:100%;height:150px;cursor:pointer;" ontouchstart="cxChartClick(event,this)"></canvas>
     <div id="cx-chart-labels" style="display:flex;justify-content:space-between;margin-top:4px;"></div>
   </div>
@@ -556,7 +556,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- DRE Cascata -->
   <div style="background:linear-gradient(135deg,#0a1628,#0d2240);border:1px solid #1E90FF33;border-radius:14px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">📊 DRE — DEMONSTRAÇÃO DE RESULTADO</div>
+    <div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">DRE — DEMONSTRAÇÃO DE RESULTADO</div>
     <div id="d2-dre"></div>
   </div>
 
@@ -564,7 +564,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Comparação entre períodos -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:10px;">📅 COMPARAÇÃO DE PERÍODOS</div>
+    <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:10px;">COMPARAÇÃO DE PERÍODOS</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
       <div>
         <div style="font-size:9px;color:var(--text3);margin-bottom:4px;">Período A</div>
@@ -581,7 +581,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <!-- Simuladores -->
   <!-- Taxa média mensal -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#f59e0b;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">📊 TAXA MÉDIA MENSAL (últimos 12 meses)</div>
+    <div style="font-size:10px;color:#f59e0b;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">TAXA MÉDIA MENSAL (últimos 12 meses)</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">Taxa média geral (ML + Site + WhatsApp) sobre o faturamento</div>
     <canvas id="chart-taxa" onclick="chartClick(event,this,"taxa")" style="width:100%;height:140px;" onclick="chartBarClick(event,this,'taxa')" ontouchstart="chartClick(event,this,'taxa')"></canvas>
     <div id="chart-taxa-labels" style="display:flex;justify-content:space-between;margin-top:4px;overflow:hidden;"></div>
@@ -610,7 +610,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Margem Líquida por Mês -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">📈 MARGEM LÍQUIDA MENSAL</div>
+    <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">MARGEM LÍQUIDA MENSAL</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:8px;">% de lucro líquido sobre faturamento mês a mês</div>
     <canvas id="chart-marg-liq" onclick="chartClick(event,this,"marg")" style="width:100%;height:150px;" onclick="chartBarClick(event,this,'marg')" ontouchstart="chartClick(event,this,'marg')"></canvas>
     <div id="chart-marg-liq-labels" style="display:flex;justify-content:space-between;margin-top:4px;overflow:hidden;"></div>
@@ -773,7 +773,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Margem por Produto -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#a855f7;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">📦 MARGEM POR PRODUTO</div>
+    <div style="font-size:10px;color:#a855f7;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">MARGEM POR PRODUTO</div>
     <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">Ranking de margem de contribuição por SKU (todos os períodos)</div>
     <div style="display:flex;gap:6px;margin-bottom:10px;">
       <button id="btn-marg-prod-mc" onclick="setMargProdMode('mc')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:#a855f7;color:#fff;">Marg. Contrib.</button>
@@ -930,7 +930,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <div class="card" style="border-color:#1E90FF33;">
     <div class="stitle" style="margin-top:0;color:#1E90FF;">Importar CSV</div>
     <p style="font-size:11px;color:#666;margin-bottom:10px;">Colunas: DATA, PRODUTO, CANAL, CUSTO, VENDA, TAXA ML, FRETE, NOTA FISCAL, CLIENTE (opcional)</p>
-    <button onclick="openMLSync()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#f59e0b,#d97706);">🔄 SINCRONIZAR MERCADO LIVRE</button>
+    <button onclick="openMLSync()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#f59e0b,#d97706);">SINCRONIZAR MERCADO LIVRE</button>
     <button onclick="openSiteSync()" class="btn" style="margin-bottom:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;width:100%;">
       🌐 Sincronizar Site (Vowt)
     </button>
@@ -942,7 +942,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     </label>
     <div id="imp-status" style="margin-top:8px;font-size:12px;color:#666;display:none;"></div>
     <div style="margin-top:8px;border-top:1px solid #222;padding-top:8px;">
-      <div style="font-size:10px;color:#f59e0b;font-weight:700;margin-bottom:6px;">🔄 RESTAURAR BACKUP JSON</div>
+      <div style="font-size:10px;color:#f59e0b;font-weight:700;margin-bottom:6px;">RESTAURAR BACKUP JSON</div>
       <label style="display:block;cursor:pointer;">
         <div class="btn" style="background:#f59e0b22;border:1px solid #f59e0b44;color:#f59e0b;">&#128194; SELECIONAR BACKUP .JSON</div>
         <input type="file" id="restore-json-file" accept=".json" style="display:none;" onchange="restaurarBackupJSON(this)">
@@ -1068,7 +1068,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 <div class="ovl" id="m-ml-sync">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="mhdl"></div>
-    <div class="mtitle">🔄 Sincronizar Mercado Livre</div>
+    <div class="mtitle">Sincronizar Mercado Livre</div>
 
     <!-- Status -->
     <div id="ml-status-box" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:12px;">
@@ -1109,7 +1109,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         </button>
         <button id="ml-tab-sync" onclick="mlShowTab('sync')"
           style="flex:1;padding:8px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">
-          🔄 Sincronizar
+          Sincronizar
         </button>
       </div>
 
@@ -1148,7 +1148,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
             <div style="font-size:9px;color:var(--text3);margin-top:2px;">Se houver comissão extra além da taxa ML</div>
           </div>
         </div>
-        <button class="btn" onclick="mlSyncOrders()" id="ml-sync-btn">🔄 SINCRONIZAR PEDIDOS</button>
+        <button class="btn" onclick="mlSyncOrders()" id="ml-sync-btn">SINCRONIZAR PEDIDOS</button>
         <button class="btn btn-s" onclick="mlSyncCancelled()" id="ml-cancel-btn" style="margin-top:6px;background:#ef444411;color:#ef4444;border:1px solid #ef444433;">🚫 VERIFICAR CANCELAMENTOS</button>
         <div id="ml-progress" style="display:none;margin-top:10px;">
           <div style="background:var(--bg3);border-radius:6px;height:6px;overflow:hidden;">
@@ -11441,7 +11441,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
 
     <button onclick="openSiteMapping()" class="btn btn-s" style="width:100%;margin-bottom:8px;font-size:12px;">🔗 Vincular Produtos do Site → SKU App</button>
     <button id="site-remap-btn" class="btn btn-s" onclick="siteRemapVendas()" style="width:100%;margin-bottom:8px;font-size:12px;background:var(--bg2);">♻️ Re-aplicar Mapeamentos em Vendas Existentes</button>
-    <button id="site-sync-btn" class="btn" onclick="siteSync()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;">🔄 Sincronizar</button>
+    <button id="site-sync-btn" class="btn" onclick="siteSync()" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;">Sincronizar</button>
   </div>
 </div>
 
