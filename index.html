@@ -1324,8 +1324,12 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div style="font-size:16px;font-weight:800;color:#22c55e;margin-top:3px;" id="res-brl">R$ 0,00</div>
       </div>
       <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
-        <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Total USD</div>
+        <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">$ Planejado (SKUs)</div>
         <div style="font-size:16px;font-weight:800;color:#1E90FF;margin-top:3px;" id="res-usd">$ 0,00</div>
+      </div>
+      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+        <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">$ Efetuado (Pgto)</div>
+        <div style="font-size:16px;font-weight:800;color:#22c55e;margin-top:3px;" id="res-usd-efet">$ 0,00</div>
       </div>
       <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Cotacao Media</div>
@@ -6099,6 +6103,8 @@ function saveCustoData(cid,data){
     // Save USD values per pagamento in configuracoes (avoids DB schema dependency)
     var pagDesc=data.pagamentos.map(function(p){return p.desc||'';});
     dbUpsert('configuracoes',{chave:'pag_desc_'+cid,valor:JSON.stringify(pagDesc)});
+    var pagUSD=data.pagamentos.map(function(p){return p.usd||0;});
+    dbUpsert('configuracoes',{chave:'pag_usd_'+cid,valor:JSON.stringify(pagUSD)});
     // Save main pagamentos to container_pagamentos table
     dbDel('container_pagamentos','container_id=eq.'+cid).then(function(){
       var rows=[],i,p;
@@ -6118,6 +6124,30 @@ function saveCustoData(cid,data){
         rows.push({container_id:cid,sku_nome:s.skuNome||'',usd:s.usd||0,qty:s.qty||1,brl:s.brl||0});
       }
       if(rows.length) dbPost('container_sku_rows',rows);
+      // Sync container_skus so Estoque tab sees the SKUs
+      var allS=getAllSKUs();
+      var cs=DB_CONTAINERS||loadContainers();
+      var k2;
+      for(var ci3=0;ci3<cs.length;ci3++){
+        if(String(cs[ci3].id)!==String(cid)) continue;
+        var cont3=cs[ci3];
+        for(var sk3 in cont3.skus){if(cont3.skus[sk3]) cont3.skus[sk3].custoQty=0;}
+        for(k2=0;k2<data.skuRows.length;k2++){
+          var sr=data.skuRows[k2];
+          if(!sr.skuNome||sr.skuNome==='__manage__') continue;
+          for(var j3=0;j3<allS.length;j3++){
+            if(allS[j3].nome===sr.skuNome){
+              var sid3=allS[j3].id;
+              if(!cont3.skus[sid3]) cont3.skus[sid3]={custo:0,custoQty:0,un:{}};
+              cont3.skus[sid3].custoQty=parseInt(sr.qty)||0;
+              saveContainerSku(cid,parseInt(sid3),cont3.skus[sid3].custo||0,cont3.skus[sid3].custoQty);
+              break;
+            }
+          }
+        }
+        DB_CONTAINERS=cs;
+        break;
+      }
     });
   }
 }
@@ -6136,6 +6166,24 @@ function initCustoPage(){
   }
   if(custoContId) sel.value=custoContId;
   renderCustoPage();
+  // Load last ROI params as defaults when no container is selected
+  if(!custoContId){
+    dbGet('configuracoes','chave=eq.roi_global').then(function(rows){
+      if(!rows||!rows.length||!rows[0].valor) return;
+      try{
+        var p=JSON.parse(rows[0].valor);
+        if(!custoContId){
+          var fields=['preco-venda','taxa','frete','imp','com'];
+          var vals=[p.preco,p.taxa,p.frete,p.imp,p.com];
+          for(var fi=0;fi<fields.length;fi++){
+            var el=document.getElementById('roi-'+fields[fi]);
+            if(el&&vals[fi]) el.value=(fields[fi]==='preco-venda'||fields[fi]==='frete')?fmtN(parseFloat(vals[fi])||0):vals[fi];
+          }
+          calcROI();
+        }
+      }catch(e){}
+    }).catch(function(){});
+  }
 }
 
 function onCustoContChange(){
@@ -6163,14 +6211,22 @@ function onCustoContChange(){
   function checkDone(){done++;if(done>=2) renderCustoPage();}
   dbGet("container_pagamentos","container_id=eq."+custoContId+"&order=data.asc").then(function(rows){
     if(Array.isArray(rows)&&rows.length){
-      pagamentos=rows.map(function(r){return{data:r.data||"",valor:+r.valor||0,desc:''};});
-      // Load descriptions from configuracoes
+      pagamentos=rows.map(function(r){return{data:r.data||"",valor:+r.valor||0,desc:'',usd:0};});
+      // Load descriptions and USD values from configuracoes
+      var _pagLoadDone=0;
+      function _checkPagLoaded(){_pagLoadDone++;if(_pagLoadDone>=2) renderPagamentos();}
       dbGet('configuracoes','chave=eq.pag_desc_'+custoContId).then(function(dr){
         var descs=[];
         try{descs=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
         for(var di=0;di<pagamentos.length;di++) pagamentos[di].desc=descs[di]||'';
-        renderPagamentos();
-      }).catch(function(){});
+        _checkPagLoaded();
+      }).catch(function(){_checkPagLoaded();});
+      dbGet('configuracoes','chave=eq.pag_usd_'+custoContId).then(function(dr){
+        var usds=[];
+        try{usds=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
+        for(var di=0;di<pagamentos.length;di++) pagamentos[di].usd=parseFloat(usds[di])||0;
+        _checkPagLoaded();
+      }).catch(function(){_checkPagLoaded();});
       // Update localStorage cache
       var cached=sg("ax_custo_"+custoContId,{pagamentos:[],skuRows:[]});
       cached.pagamentos=pagamentos;
@@ -6231,7 +6287,7 @@ function renderCustoPage(){
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────
 function addPagamento(){
-  pagamentos.push({data:today(),valor:0,desc:''});
+  pagamentos.push({data:today(),valor:0,desc:'',usd:0});
   renderPagamentos();
   if(custoContId) saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
 }
@@ -6252,6 +6308,8 @@ function onPagChange(i,field,val){
     pagamentos[i].valor=parseBRL(val);
   } else if(field==='desc'){
     pagamentos[i].desc=val||'';
+  } else if(field==='usd'){
+    pagamentos[i].usd=parseFloat(String(val).replace(',','.'))||0;
   } else {
     pagamentos[i].data=val;
   }
@@ -6259,7 +6317,7 @@ function onPagChange(i,field,val){
   calcResumo();
   // Debounce save to Supabase so edits persist
   var _cid=custoContId;
-  var _pags=pagamentos.slice().map(function(p){return{data:p.data,valor:p.valor,desc:p.desc||''};});
+  var _pags=pagamentos.slice().map(function(p){return{data:p.data,valor:p.valor,desc:p.desc||'',usd:p.usd||0};});
   var _rows=skuRows.slice();
   if(_pagSaveTimer) clearTimeout(_pagSaveTimer);
   _pagSaveTimer=setTimeout(function(){
@@ -6273,7 +6331,7 @@ function calcTotalPago(){
   var el=document.getElementById('pag-total-brl');
   if(el) el.textContent=fmt(tot);
   var elUSD=document.getElementById('pag-total-usd');
-  if(elUSD) elUSD.textContent='';
+  if(elUSD){var totUSD=0;for(i=0;i<pagamentos.length;i++) totUSD+=pagamentos[i].usd||0;elUSD.textContent='$ '+totUSD.toFixed(2);}
   return tot;
 }
 
@@ -6291,19 +6349,23 @@ function renderPagamentos(){
     // Card wrapper
     var card=document.createElement('div');
     card.style.cssText='background:#111;border:1px solid #222;border-radius:10px;padding:8px 10px;margin-bottom:8px;';
-    // Top row: date (full width) + delete button
+    // Top row: date + desc + delete
     var topRow=document.createElement('div');
     topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;';
     var dInp=document.createElement('input');
     dInp.type='date';dInp.value=p.data||today();
     dInp.style.cssText='flex:1;min-width:0;padding:7px 8px;font-size:13px;background:var(--input);border:1px solid var(--input-border);border-radius:8px;color:var(--text);outline:none;';
     dInp.onchange=(function(idx){return function(){onPagChange(idx,'data',this.value);};})(i);
+    var descInp=document.createElement('input');
+    descInp.type='text';descInp.value=p.desc||'';descInp.placeholder='Descrição...';
+    descInp.style.cssText='flex:1.5;min-width:0;padding:7px 8px;font-size:13px;background:var(--input);border:1px solid var(--input-border);border-radius:8px;color:var(--text);outline:none;';
+    descInp.oninput=(function(idx){return function(){onPagChange(idx,'desc',this.value);};})(i);
     var delBtn=document.createElement('button');
     delBtn.textContent='x';
     delBtn.style.cssText='width:28px;height:28px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
     delBtn.onclick=(function(idx){return function(){removePagamento(idx);};})(i);
-    topRow.appendChild(dInp);topRow.appendChild(delBtn);
-    // Bottom row: BRL + USD labels + inputs
+    topRow.appendChild(dInp);topRow.appendChild(descInp);topRow.appendChild(delBtn);
+    // Bottom row: BRL + USD
     var botRow=document.createElement('div');
     botRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;';
     // BRL
@@ -6317,15 +6379,15 @@ function renderPagamentos(){
     vInp.className='fi';vInp.style.cssText='padding:8px 10px;font-size:14px;font-weight:700;';
     vInp.oninput=(function(idx){return function(){maskBRL(this);onPagChange(idx,'valor',this.value);};})(i);
     brlWrap.appendChild(brlLbl);brlWrap.appendChild(vInp);
-    // Descrição
+    // USD
     var usdWrap=document.createElement('div');
     var usdLbl=document.createElement('div');
-    usdLbl.style.cssText='font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
-    usdLbl.textContent='Descrição';
+    usdLbl.style.cssText='font-size:9px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;';
+    usdLbl.textContent='$ USD';
     var uInp=document.createElement('input');
-    uInp.type='text';uInp.value=p.desc||'';uInp.placeholder='ex: TED, PIX...';
-    uInp.className='fi';uInp.style.cssText='padding:8px 10px;font-size:13px;';
-    uInp.oninput=(function(idx){return function(){onPagChange(idx,'desc',this.value);};})(i);
+    uInp.type='number';uInp.step='0.01';uInp.value=p.usd||'';uInp.placeholder='0.00';
+    uInp.className='fi';uInp.style.cssText='padding:8px 10px;font-size:14px;font-weight:700;color:#1E90FF;';
+    uInp.oninput=(function(idx){return function(){onPagChange(idx,'usd',this.value);};})(i);
     usdWrap.appendChild(usdLbl);usdWrap.appendChild(uInp);
     botRow.appendChild(brlWrap);botRow.appendChild(usdWrap);
     card.appendChild(topRow);card.appendChild(botRow);
@@ -6408,7 +6470,7 @@ function buildSkuOptions(selected){
   var i;
   for(i=0;i<all.length;i++){
     var s=all[i];
-    opts+='<option value="'+s.nome+'"'+(s.nome===selected?' selected':'')+'>'+(s.usd>0?'($'+s.usd+') ':'')+s.nome+'</option>';
+    opts+='<option value="'+s.nome+'"'+(s.nome===selected?' selected':'')+'>'+s.nome+'</option>';
   }
   opts+='<option value="__manage__">⚙ Gerenciar SKUs (add/editar/apagar)...</option>';
   return opts;
@@ -6457,7 +6519,7 @@ function renderSkuRows(){
     var usdInp=document.createElement('input');
     usdInp.type='number';usdInp.value=r.usd||'';usdInp.placeholder='0';
     usdInp.className='fi';usdInp.style.cssText='padding:7px 8px;font-size:14px;font-weight:600;color:#1E90FF;text-align:center;';
-    usdInp.oninput=(function(idx){return function(){onSkuChange(idx,'usd',this.value);};})(i);
+    usdInp.onchange=(function(idx){return function(){onSkuChange(idx,'usd',this.value);};})(i);
     usdWrap.appendChild(usdLbl);usdWrap.appendChild(usdInp);
     // QTD
     var qtyWrap=document.createElement('div');
@@ -6504,6 +6566,8 @@ function calcResumo(){
   var resMed=document.getElementById('res-medio');
   if(resBRL) resBRL.textContent=fmt(totBRL);
   if(resUSD) resUSD.textContent='$ '+totUSD.toFixed(2);
+  var resUSDEfet=document.getElementById('res-usd-efet');
+  if(resUSDEfet){var totPagUSD=0;for(var pi2=0;pi2<pagamentos.length;pi2++) totPagUSD+=(pagamentos[pi2].usd||0);resUSDEfet.textContent='$ '+totPagUSD.toFixed(2);}
   if(resCot) resCot.textContent=fmt(cotacao);
   if(resQtd) resQtd.textContent=totQtd;
   if(resMed) resMed.textContent=fmt(medioUnit);
@@ -6749,6 +6813,7 @@ function saveROIParams(){
     com:parseFloat(document.getElementById('roi-com').value)||0
   };
   dbUpsert('configuracoes',{chave:'roi_'+custoContId,valor:JSON.stringify(params)});
+  dbUpsert('configuracoes',{chave:'roi_global',valor:JSON.stringify(params)});
 }
 
 function loadROIParams(cid,cb){
