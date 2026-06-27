@@ -2754,13 +2754,39 @@ function drawAnualChart(type){
   if(!cc) return;
   var ctx=cc.ctx,W=cc.W,H=cc.H;
   var vendas=loadVendas();
-  var yMap={};
+  // Aggregate by month first (same DRE as renderCharts), then sum by year
+  var mMap={};
   vendas.forEach(function(v){
-    var yr=v.date?v.date.substring(0,4):'?';
+    var mk=mkey(v.date);
+    if(!mk) return;
+    if(!mMap[mk]) mMap[mk]={fat:0,taxas:0,custo:0,frete:0,imp:0,qtd:0};
+    mMap[mk].fat+=(+v.venda||0);
+    mMap[mk].taxas+=((+v.taxa||0)+(+v.com||0));
+    mMap[mk].custo+=(+v.custo||0);
+    mMap[mk].frete+=(+v.frete||0);
+    mMap[mk].imp+=(+v.imp||0);
+    mMap[mk].qtd++;
+  });
+  // Exclude future months (year still in progress)
+  var nowMk=(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  var yMap={};
+  Object.keys(mMap).filter(function(mk){return mk<=nowMk;}).forEach(function(mk){
+    var yr=mk.substring(0,4);
     if(!yMap[yr]) yMap[yr]={fat:0,liq:0,qtd:0};
-    yMap[yr].fat+=(+v.venda||0);
-    yMap[yr].liq+=(+v.lucroLL||0);
-    yMap[yr].qtd++;
+    var md=getMDesp(mk);
+    var fixas=0,extras=0,fin=0,das=0,ji;
+    for(ji=0;ji<md.fixas.length;ji++) fixas+=parseFloat(md.fixas[ji].valor)||0;
+    for(ji=0;ji<md.extras.length;ji++) extras+=parseFloat(md.extras[ji].valor)||0;
+    if(md.financeiro) for(ji=0;ji<md.financeiro.length;ji++) fin+=parseFloat(md.financeiro[ji].valor)||0;
+    das=md.das>0?md.das:mMap[mk].imp;
+    var recLiq=mMap[mk].fat-mMap[mk].taxas;
+    var lucroBruto=recLiq-mMap[mk].custo;
+    var margContrib=lucroBruto-mMap[mk].frete-extras;
+    var ebitda=margContrib-fixas;
+    var lucroLiq=ebitda+fin-das;
+    yMap[yr].fat+=mMap[mk].fat;
+    yMap[yr].liq+=lucroLiq;
+    yMap[yr].qtd+=mMap[mk].qtd;
   });
   var years=Object.keys(yMap).sort();
   var n=years.length; if(!n) return;
