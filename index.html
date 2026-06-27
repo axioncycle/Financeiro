@@ -10861,17 +10861,39 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
   });
   meses=Object.keys(mks).sort();
 
-  // ── KPIs globais ────────────────────────────────────────────
+  // ── KPIs globais — DRE por mês (mesmo cálculo do dashboard) ───
   var fat=0,lucroSI=0,lucroLL=0,taxa=0,imp=0,com=0,frete=0,custo=0,qtd=vendas.length;
+  // Aggregate per month then apply DRE cascade (fixas/extras/financeiro/DAS)
+  var _mMapRel={};
   vendas.forEach(function(v){
+    var mk=mkey(v.date||''); if(!mk) return;
+    if(!_mMapRel[mk]) _mMapRel[mk]={fat:0,taxas:0,custo:0,frete:0,imp:0,lucroSI:0};
+    _mMapRel[mk].fat+=(+v.venda||0);
+    _mMapRel[mk].taxas+=((+v.taxa||0)+(+v.com||0));
+    _mMapRel[mk].custo+=(+v.custo||0);
+    _mMapRel[mk].frete+=(+v.frete||0);
+    _mMapRel[mk].imp+=(+v.imp||0);
+    _mMapRel[mk].lucroSI+=(+v.lucroSI||0);
     fat+=(+v.venda||0);
-    lucroSI+=(+v.lucroSI||0);
-    lucroLL+=(+v.lucroLL||0);
     taxa+=(+v.taxa||0);
     imp+=(+v.imp||0);
     com+=(+v.com||0);
     frete+=(+v.frete||0);
     custo+=(+v.custo||0);
+    lucroSI+=(+v.lucroSI||0);
+  });
+  Object.keys(_mMapRel).forEach(function(mk){
+    var m=_mMapRel[mk];
+    var md=getMDesp(mk);
+    var fixas=0,extras=0,fin=0,das=md.das>0?md.das:m.imp,ji;
+    for(ji=0;ji<md.fixas.length;ji++) fixas+=parseFloat(md.fixas[ji].valor)||0;
+    for(ji=0;ji<md.extras.length;ji++) extras+=parseFloat(md.extras[ji].valor)||0;
+    if(md.financeiro) for(ji=0;ji<md.financeiro.length;ji++) fin+=parseFloat(md.financeiro[ji].valor)||0;
+    var recLiq=m.fat-m.taxas;
+    var lucroBruto=recLiq-m.custo;
+    var margContrib=lucroBruto-m.frete-extras;
+    var ebitda=margContrib-fixas;
+    lucroLL+=(ebitda+fin-das);
   });
   var margSI=fat>0?(lucroSI/fat*100):0;
   var margLL=fat>0?(lucroLL/fat*100):0;
@@ -10976,17 +10998,22 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
       mesData[mk].com+=(+v.com||0);
       mesData[mk].frete+=(+v.frete||0);
       mesData[mk].lucroSI+=(+v.lucroSI||0);
-      mesData[mk].lucroLL+=(+v.lucroLL||0);
       mesData[mk].qtd++;
     });
-    // Adicionar fixas e extras de cada mês
+    // Calcular lucroLL via DRE cascata com fixas/extras/DAS reais por mês
     meses.forEach(function(mk){
       var d=getMDesp(mk);
-      var f=0,e=0;
-      if(d.fixas) d.fixas.forEach(function(x){f+=(+x.valor||0);});
-      if(d.extras) d.extras.forEach(function(x){e+=(+x.valor||0);});
-      mesData[mk].fixas=f;
-      mesData[mk].extras=e;
+      var fixas=0,extras=0,fin=0,ji;
+      if(d.fixas) d.fixas.forEach(function(x){fixas+=(+x.valor||0);});
+      if(d.extras) d.extras.forEach(function(x){extras+=(+x.valor||0);});
+      if(d.financeiro) for(ji=0;ji<d.financeiro.length;ji++) fin+=parseFloat(d.financeiro[ji].valor)||0;
+      var das=d.das>0?d.das:mesData[mk].imp;
+      mesData[mk].fixas=fixas+extras;
+      var recLiq=mesData[mk].fat-(mesData[mk].taxa+mesData[mk].com);
+      var lucroBruto=recLiq-mesData[mk].custo;
+      var margContrib=lucroBruto-mesData[mk].frete-extras;
+      var ebitda=margContrib-fixas;
+      mesData[mk].lucroLL=ebitda+fin-das;
     });
     var cols=[
       {label:'Mês'},{label:'Faturamento',right:true},{label:'CMV',right:true},
