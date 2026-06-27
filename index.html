@@ -310,7 +310,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
   <div class="pin-err" id="pin-err"></div>
   <div id="pin-cfg-area" style="display:none;margin-top:16px;width:100%;max-width:300px;">
-    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;padding:16px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;">
       <div style="font-size:11px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Configurar PIN</div>
       <div id="cfg-atual-wrap" style="margin-bottom:10px;">
         <div style="font-size:10px;color:#666;margin-bottom:4px;">PIN atual</div>
@@ -356,7 +356,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Meta do Mes</div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <input id="meta-input" type="text" inputmode="decimal" placeholder="Ex: 50000" oninput="maskBRL(this);renderMetaBar(true)" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:4px 8px;color:#f0f0f0;font-size:12px;font-weight:700;width:100px;outline:none;text-align:right;">
+        <input id="meta-input" type="text" inputmode="decimal" placeholder="Ex: 50000" oninput="maskBRL(this);renderMetaBar(true)" style="background:var(--input);border:1px solid var(--input-border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-weight:700;width:100px;outline:none;text-align:right;">
         <span style="font-size:10px;color:#666;">R$</span>
       </div>
     </div>
@@ -364,7 +364,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <span style="font-size:11px;color:#888;" id="meta-realizado-lbl">R$ 0 realizados</span>
       <span style="font-size:11px;font-weight:700;" id="meta-pct-lbl" style="color:#1E90FF;">0%</span>
     </div>
-    <div style="background:#1a1a1a;border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px;">
+    <div style="background:var(--bg2);border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px;">
       <div id="meta-bar" style="height:100%;border-radius:6px;width:0%;background:linear-gradient(90deg,#1E90FF,#22c55e);transition:width .4s;"></div>
     </div>
     <div style="display:flex;justify-content:space-between;">
@@ -848,7 +848,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       </div>
     </div>
     <div id="pag-duplo" style="display:none;">
-      <div style="background:#1a1a1a;border:1px solid #1E90FF33;border-radius:8px;padding:10px;margin-bottom:8px;">
+      <div style="background:var(--bg2);border:1px solid #1E90FF33;border-radius:8px;padding:10px;margin-bottom:8px;">
         <div style="font-size:9px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Pagamento 1</div>
         <div class="r2">
           <div class="fg"><label class="fl">Forma</label>
@@ -866,10 +866,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         </div>
         <div class="r2">
           <div><label class="fl">Taxa %</label><input class="fi" id="v-dp1tx" type="number" placeholder="0" step="0.01" oninput="calcRes()"></div>
-          <div><label class="fl">Taxa R$ (auto)</label><div class="fi" id="v-dp1txr" style="background:#0a0a0a;color:#666;font-size:13px;padding:11px 12px;">R$ 0,00</div></div>
+          <div><label class="fl">Taxa R$ (auto)</label><div class="fi" id="v-dp1txr" style="background:var(--bg3);color:var(--text3);font-size:13px;padding:11px 12px;">R$ 0,00</div></div>
         </div>
       </div>
-      <div style="background:#1a1a1a;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:8px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">
         <div style="font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Pagamento 2</div>
         <div class="r2">
           <div class="fg"><label class="fl">Forma</label>
@@ -887,10 +887,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         </div>
         <div class="r2">
           <div><label class="fl">Taxa %</label><input class="fi" id="v-dp2tx" type="number" placeholder="0" step="0.01" oninput="calcRes()"></div>
-          <div><label class="fl">Taxa R$ (auto)</label><div class="fi" id="v-dp2txr" style="background:#0a0a0a;color:#666;font-size:13px;padding:11px 12px;">R$ 0,00</div></div>
+          <div><label class="fl">Taxa R$ (auto)</label><div class="fi" id="v-dp2txr" style="background:var(--bg3);color:var(--text3);font-size:13px;padding:11px 12px;">R$ 0,00</div></div>
         </div>
       </div>
-      <div style="background:#1a1a1a;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="background:var(--bg2);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:10px;color:#666;font-weight:600;">TOTAL PAGAMENTOS</span>
         <span id="duplo-total" style="font-size:14px;font-weight:700;color:#22c55e;">R$ 0,00</span>
       </div>
@@ -954,7 +954,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
   <div style="display:flex;gap:8px;margin-bottom:8px;">
     <input class="fi" id="srch-nome" type="text" placeholder="Buscar cliente ou produto..." oninput="renderHist()" style="flex:1;font-size:13px;padding:10px 12px;">
-    <button onclick="clearSearch()" style="padding:10px;border-radius:8px;border:1px solid #222;background:#1a1a1a;color:#666;font-size:13px;cursor:pointer;">✕</button>
+    <button onclick="clearSearch()" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text3);font-size:13px;cursor:pointer;">✕</button>
   </div>
   <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
     <div style="font-size:9px;color:var(--text3);white-space:nowrap;">DE</div>
@@ -998,7 +998,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <button class="btn" style="flex:1;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;" onclick="openEntrada()">+ Entrada</button>
     <button class="btn" style="flex:1;background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;" onclick="exportEstoquePDF()">Exportar PDF</button>
   </div>
-  <div style="background:#111;border:1px solid #1E90FF22;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+  <div style="background:var(--bg2);border:1px solid #1E90FF22;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
     <span style="font-size:14px;">&#128667;</span>
     <div style="font-size:10px;color:#666;">Use os botoes <strong style="color:#f59e0b;">+</strong> e <strong style="color:#f59e0b;">-</strong> dentro de cada conteiner para distribuir o estoque por unidade.</div>
   </div>
@@ -1009,7 +1009,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
 <!-- RESULTADO -->
 <div class="pg" id="pg-res">
-  <div id="res-anual" style="background:linear-gradient(135deg,#111,#0f1a2e);border:1px solid #1E90FF33;border-radius:12px;padding:14px;margin-bottom:14px;"></div>
+  <div id="res-anual" style="background:var(--card);border:1px solid #1E90FF33;border-radius:12px;padding:14px;margin-bottom:14px;"></div>
   <div class="stitle">Por Mes</div>
   <div id="res-meses"></div>
 </div>
@@ -1243,10 +1243,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <input class="fi" id="add-local-nome" type="text" placeholder="Ex: Sao Paulo, Curitiba...">
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-      <button onclick="setLocalSugestao('Sao Paulo')" style="padding:6px 12px;border-radius:20px;border:1px solid #2a2a2a;background:#1a1a1a;color:#888;font-size:11px;cursor:pointer;">Sao Paulo</button>
-      <button onclick="setLocalSugestao('Curitiba')" style="padding:6px 12px;border-radius:20px;border:1px solid #2a2a2a;background:#1a1a1a;color:#888;font-size:11px;cursor:pointer;">Curitiba</button>
-      <button onclick="setLocalSugestao('Rio de Janeiro')" style="padding:6px 12px;border-radius:20px;border:1px solid #2a2a2a;background:#1a1a1a;color:#888;font-size:11px;cursor:pointer;">Rio de Janeiro</button>
-      <button onclick="setLocalSugestao('Belo Horizonte')" style="padding:6px 12px;border-radius:20px;border:1px solid #2a2a2a;background:#1a1a1a;color:#888;font-size:11px;cursor:pointer;">Belo Horizonte</button>
+      <button onclick="setLocalSugestao('Sao Paulo')" style="padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;cursor:pointer;">Sao Paulo</button>
+      <button onclick="setLocalSugestao('Curitiba')" style="padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;cursor:pointer;">Curitiba</button>
+      <button onclick="setLocalSugestao('Rio de Janeiro')" style="padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;cursor:pointer;">Rio de Janeiro</button>
+      <button onclick="setLocalSugestao('Belo Horizonte')" style="padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:11px;cursor:pointer;">Belo Horizonte</button>
     </div>
     <button class="btn" onclick="confirmarAddLocal()">ADICIONAR UNIDADE</button>
     <button class="btn btn-s" onclick="closeModal('m-add-local')" style="margin-top:8px;">Cancelar</button>
@@ -1286,7 +1286,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- BLOCO 1: Fluxo de Pagamentos -->
-  <div style="background:linear-gradient(135deg,#111,#0a1628);border:1px solid #1E90FF44;border-radius:14px;padding:16px;margin-bottom:14px;">
+  <div style="background:var(--card);border:1px solid #1E90FF44;border-radius:14px;padding:16px;margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div>
         <div style="font-size:10px;color:#1E90FF;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Bloco 1</div>
@@ -1295,7 +1295,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <button onclick="addPagamento()" style="padding:7px 14px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">+ Pagamento</button>
     </div>
     <div id="pag-list" style="margin-bottom:10px;"></div>
-    <div style="background:#0a0a0a;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #1E90FF33;">
+    <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #1E90FF33;">
       <span style="font-size:11px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Total Pago</span>
       <div style="text-align:right;">
         <span id="pag-total-brl" style="font-size:22px;font-weight:900;color:#22c55e;">R$ 0,00</span>
@@ -1305,7 +1305,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- BLOCO 2: Planejamento de Compra -->
-  <div style="background:linear-gradient(135deg,#111,#0f1a0a);border:1px solid #22c55e44;border-radius:14px;padding:16px;margin-bottom:14px;">
+  <div style="background:var(--card);border:1px solid #22c55e44;border-radius:14px;padding:16px;margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div>
         <div style="font-size:10px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Bloco 2</div>
@@ -1320,27 +1320,27 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <div style="background:linear-gradient(135deg,#1a1a0a,#0a0a0a);border:1px solid #f59e0b44;border-radius:14px;padding:16px;margin-bottom:14px;">
     <div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">&#9733; Resumo Final do Conteiner</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Total Pago BRL</div>
         <div style="font-size:16px;font-weight:800;color:#22c55e;margin-top:3px;" id="res-brl">R$ 0,00</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">$ Planejado (SKUs)</div>
         <div style="font-size:16px;font-weight:800;color:#1E90FF;margin-top:3px;" id="res-usd">$ 0,00</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">$ Efetuado (Pgto)</div>
         <div style="font-size:16px;font-weight:800;color:#22c55e;margin-top:3px;" id="res-usd-efet">$ 0,00</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Cotacao Media</div>
         <div style="font-size:16px;font-weight:800;color:#f59e0b;margin-top:3px;" id="res-cotacao">R$ 0,00</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Total Rodas</div>
         <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-top:3px;" id="res-qtd">0</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;grid-column:span 2;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;grid-column:span 2;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Custo Medio por SKU</div>
         <div style="font-size:20px;font-weight:800;color:#f59e0b;margin-top:3px;" id="res-medio">R$ 0,00</div>
       </div>
@@ -1352,20 +1352,20 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="font-size:10px;color:#a855f7;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Bloco 4</div>
     <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-bottom:14px;">Resultado do Investimento</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;grid-column:span 2;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;grid-column:span 2;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Total Investido (BRL)</div>
         <div style="font-size:22px;font-weight:900;color:#ef4444;margin-top:3px;" id="roi-invest">R$ 0,00</div>
         <div style="font-size:10px;color:#444;margin-top:2px;" id="roi-invest-sub">custo total de todas as rodas</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Faturamento Esperado</div>
         <div style="font-size:16px;font-weight:800;color:#1E90FF;margin-top:3px;" id="roi-fat">R$ 0,00</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Lucro Esperado</div>
         <div style="font-size:16px;font-weight:800;color:#22c55e;margin-top:3px;" id="roi-lucro">R$ 0,00</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Margem Liquida</div>
         <div style="font-size:20px;font-weight:900;color:#22c55e;margin-top:3px;" id="roi-margem">0%</div>
       </div>
@@ -1376,7 +1376,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       </div>
     </div>
     <!-- Parametros editáveis -->
-    <div style="background:#111;border:1px solid #333;border-radius:10px;padding:12px;">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;">
       <div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Parametros por Roda (editaveis)</div>
       <div class="r2" style="margin-bottom:8px;">
         <div>
@@ -1410,33 +1410,33 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Bloco 5</div>
     <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-bottom:14px;">Break-even do Conteiner</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Unidades p/ Break-even</div>
         <div style="font-size:22px;font-weight:900;color:#f59e0b;margin-top:3px;" id="be-unidades">0 un</div>
         <div style="font-size:10px;color:#444;margin-top:2px;" id="be-unidades-sub">para cobrir o investimento</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Valor p/ Break-even</div>
         <div style="font-size:18px;font-weight:800;color:#f59e0b;margin-top:3px;" id="be-valor">R$ 0</div>
         <div style="font-size:10px;color:#444;margin-top:2px;">faturamento minimo</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">Lucro p/ Unidade</div>
         <div style="font-size:18px;font-weight:800;margin-top:3px;" id="be-lucro-unit">R$ 0</div>
       </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
         <div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;">% Vendido p/ BE</div>
         <div style="font-size:18px;font-weight:800;color:#f59e0b;margin-top:3px;" id="be-pct">0%</div>
         <div style="font-size:10px;color:#444;margin-top:2px;" id="be-pct-sub">do total planejado</div>
       </div>
     </div>
     <!-- Progress bar -->
-    <div style="background:#1a1a1a;border-radius:8px;padding:10px 12px;">
+    <div style="background:var(--bg2);border-radius:8px;padding:10px 12px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
         <span style="font-size:10px;color:#666;font-weight:600;">PROGRESSO ATÉ O BREAK-EVEN</span>
         <span style="font-size:10px;color:#f59e0b;font-weight:700;" id="be-prog-label">0 / 0 un vendidas</span>
       </div>
-      <div style="background:#111;border-radius:4px;height:8px;overflow:hidden;">
+      <div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;">
         <div id="be-bar" style="background:linear-gradient(90deg,#f59e0b,#22c55e);height:100%;border-radius:4px;width:0%;transition:width .4s;"></div>
       </div>
     </div>
@@ -1495,7 +1495,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   </div>
 
   <!-- Info sobre envio ao estoque -->
-  <div style="background:#111;border:1px solid #22c55e33;border-radius:8px;padding:10px;margin:12px 0;">
+  <div style="background:var(--bg2);border:1px solid #22c55e33;border-radius:8px;padding:10px;margin:12px 0;">
   </div>
 
 </div>
@@ -4287,7 +4287,7 @@ function renderEst(){
       var bd=document.createElement('div');bd.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;';
       for(j=0;j<locais.length;j++){
         var q=getQtyLocal(locais[j],s.id);
-        if(q>0){var sp=document.createElement('span');sp.style.cssText='font-size:9px;background:#1a1a1a;border:1px solid #222;border-radius:3px;padding:1px 5px;';sp.textContent=locais[j]+': '+q;bd.appendChild(sp);}
+        if(q>0){var sp=document.createElement('span');sp.style.cssText='font-size:9px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--text2);';sp.textContent=locais[j]+': '+q;bd.appendChild(sp);}
       }
       item.appendChild(hrow);if(bd.children.length) item.appendChild(bd);
       listEl.appendChild(item);
@@ -4316,7 +4316,7 @@ function renderEst(){
   }
   var cMg=cFat>0?(cLSI/cFat*100):0;
   var sumCard=document.createElement('div');
-  sumCard.style.cssText='background:linear-gradient(135deg,#111,#0f1a2e);border:1px solid #1E90FF33;border-radius:10px;padding:12px;margin-bottom:12px;';
+  sumCard.style.cssText='background:var(--card);border:1px solid #1E90FF33;border-radius:10px;padding:12px;margin-bottom:12px;';
   // Header with edit/delete buttons
   var sumHeader=document.createElement('div');
   sumHeader.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;';
@@ -4355,7 +4355,7 @@ function renderEst(){
   }
   if(totalAll>0){
     var locCard=document.createElement('div');
-    locCard.style.cssText='background:#0a0a0a;border:1px solid #222;border-radius:10px;padding:10px 12px;margin-bottom:12px;';
+    locCard.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;';
     var locTitle=document.createElement('div');
     locTitle.style.cssText='font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;';
     locTitle.textContent='Estoque por Unidade';
@@ -4366,13 +4366,13 @@ function renderEst(){
     for(var lk=0;lk<locKeys.length;lk++){
       var loc2=locKeys[lk];
       var chip=document.createElement('div');
-      chip.style.cssText='background:#111;border:1px solid #1E90FF33;border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;';
+      chip.style.cssText='background:var(--bg3);border:1px solid #1E90FF33;border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;';
       chip.innerHTML='<div style="font-size:18px;font-weight:800;color:#1E90FF;">'+locTotals[loc2]+'</div><div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;">'+loc2+'</div>';
       locGrid.appendChild(chip);
     }
     // Total chip
     var totalChip=document.createElement('div');
-    totalChip.style.cssText='background:#111;border:1px solid #22c55e33;border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;';
+    totalChip.style.cssText='background:var(--bg3);border:1px solid #22c55e33;border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:70px;';
     totalChip.innerHTML='<div style="font-size:18px;font-weight:800;color:#22c55e;">'+totalAll+'</div><div style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;">Total</div>';
     locGrid.appendChild(totalChip);
     locCard.appendChild(locGrid);
@@ -4402,7 +4402,7 @@ function renderEst(){
     hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(custoEl);item.appendChild(hrow);
     var crow=document.createElement('div');crow.style.cssText='display:flex;align-items:center;gap:6px;';
     var cLbl=document.createElement('span');cLbl.style.cssText='font-size:9px;color:#666;';cLbl.textContent='Custo:';
-    var cInp=document.createElement('input');cInp.type='number';cInp.value=sk.custo||2000;cInp.style.cssText='width:80px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;outline:none;';
+    var cInp=document.createElement('input');cInp.type='number';cInp.value=sk.custo||2000;cInp.style.cssText='width:80px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;outline:none;';
     var cBtn=document.createElement('button');cBtn.textContent='OK';cBtn.style.cssText='background:#1E90FF;border:none;border-radius:5px;color:#fff;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;';
     cBtn.onclick=(function(cid,sid,inp){return function(){var cs2=loadContainers();var ci2;for(ci2=0;ci2<cs2.length;ci2++){if(cs2[ci2].id===cid){if(!cs2[ci2].skus[sid])if(!cs2[ci2].skus[sid])cs2[ci2].skus[sid]={custo:0,un:{}};cs2[ci2].skus[sid].custo=parseFloat(inp.value)||0;saveContainers(cs2);toast('Custo salvo');renderEst();break;}};};})(cont.id,s.id,cInp);
     crow.appendChild(cLbl);crow.appendChild(cInp);crow.appendChild(cBtn);item.appendChild(crow);
@@ -4519,7 +4519,7 @@ function renderEst(){
     var lrow=document.createElement('div');lrow.style.cssText='display:flex;flex-wrap:wrap;gap:5px;';
     for(j=0;j<locais.length;j++){
       var l=locais[j],q=(sk.un&&sk.un[l])||0;
-      var cell=document.createElement('div');cell.style.cssText='display:flex;flex-direction:column;align-items:center;background:#1a1a1a;border:1px solid #222;border-radius:7px;padding:5px 7px;min-width:60px;';
+      var cell=document.createElement('div');cell.style.cssText='display:flex;flex-direction:column;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:5px 7px;min-width:60px;';
       var ln=document.createElement('div');ln.style.cssText='font-size:8px;color:#666;font-weight:700;text-transform:uppercase;margin-bottom:3px;';ln.textContent=l;
       var brow=document.createElement('div');brow.style.cssText='display:flex;gap:3px;align-items:center;';
       var bm=document.createElement('button');bm.className='sbtn';bm.textContent='-';
@@ -4578,7 +4578,7 @@ function renderEst(){
       brow.appendChild(bm);brow.appendChild(qEl);brow.appendChild(bp);
       cell.appendChild(ln);cell.appendChild(brow);lrow.appendChild(cell);
     }
-    var addCell=document.createElement('div');addCell.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;border:1px dashed #333;border-radius:7px;padding:5px 7px;min-width:50px;cursor:pointer;color:#1E90FF;font-size:10px;font-weight:700;';addCell.textContent='+Local';
+    var addCell=document.createElement('div');addCell.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg2);border:1px dashed var(--border2);border-radius:7px;padding:5px 7px;min-width:50px;cursor:pointer;color:#1E90FF;font-size:10px;font-weight:700;';addCell.textContent='+Local';
     addCell.onclick=(function(cid,sid){return function(){openAddLocal(cid,sid);};})(cont.id,s.id);
     lrow.appendChild(addCell);item.appendChild(lrow);listEl.appendChild(item);
   }
@@ -4734,7 +4734,10 @@ function exportEstoquePDF(){
     +'<table><thead><tr><th>Produto</th>'+locHeaders+'<th class="num">Total</th></tr></thead>'
     +'<tbody>'+geralRows+'</tbody></table>'
     +contSections
-    +'<button onclick="window.print()" style="position:fixed;bottom:20px;right:20px;background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);">Salvar como PDF</button>'
+    +'<div style="position:fixed;bottom:20px;right:20px;display:flex;gap:8px;">'
+    +'<button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);">Salvar como PDF</button>'
+    +'<button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);">Fechar</button>'
+    +'</div>'
     +'</body></html>';
 
   var win=window.open('','_blank');
@@ -5143,11 +5146,11 @@ function renderRes(){
     var res=ebitFinM-impM; // prolabore já deduzido em ebitdaM via totF
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
-    var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a1a1a;font-size:11px;"><span>'+v.cliente+' - '+(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
+    var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+v.cliente+' - '+(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
     var fixaRows=md.fixas.filter(function(f){return f.nome!=='DAS'&&f.nome!=='das';}).map(function(f,fi){
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a1a1a;gap:6px;">'+
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);gap:6px;">'+
         '<input type="text" value="'+f.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updFixaNome(\''+mk+'\','+fi+',this.value)">'+
-        '<input type="text" inputmode="decimal" value="'+(fmtN(f.valor||0))+'" placeholder="0,00" style="width:90px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFixa(\''+mk+'\','+fi+',this.value)">'+
+        '<input type="text" inputmode="decimal" value="'+(fmtN(f.valor||0))+'" placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFixa(\''+mk+'\','+fi+',this.value)">'+
         '<button onclick="delFixa(\''+mk+'\','+fi+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
       '</div>';
     }).join('')+
@@ -5171,9 +5174,9 @@ function renderRes(){
       '</select>'+
       '<button onclick="addFixa(\''+mk+'\')" style="background:#1E90FF22;border:1px solid #1E90FF44;color:#1E90FF;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;padding:5px 10px;flex-shrink:0;">+</button>'+
     '</div>';
-    var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #1a1a1a;">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
+    var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
     html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'+
-      '<div style="background:#1a1a1a;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleMes(\'mes'+i+'\')">'+
+      '<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleMes(\'mes'+i+'\')">'+
       '<span style="font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
       '<span style="font-size:16px;font-weight:800;color:'+rc+';">'+fmt(res)+'</span></div>'+
       '<div id="mes'+i+'" style="display:none;padding:12px 14px;">'+
@@ -5190,9 +5193,9 @@ function renderRes(){
       '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">± Resultado Financeiro</div>'+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
         var isPos=f.valor>=0;
-        return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #1a1a1a;">'+
+        return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);">'+
           '<input type="text" value="'+f.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updFinanceiroNome(\''+mk+'\','+fi+',this.value)">'+
-          '<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(f.valor)||0))+'" placeholder="0,00" style="width:90px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:'+(isPos?'#22c55e':'#ef4444')+';font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFinanceiroVal(\''+mk+'\','+fi+',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(f.valor)||0))+'" placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:'+(isPos?'#22c55e':'#ef4444')+';font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFinanceiroVal(\''+mk+'\','+fi+',this.value)">'+
           '<button onclick="delFinanceiro(\''+mk+'\','+fi+')" style="background:none;border:none;color:#444;font-size:13px;cursor:pointer;padding:0 4px;">x</button>'+
           '</div>';
       }).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhum lançamento</div>')+
@@ -5210,32 +5213,32 @@ function renderRes(){
         '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 10px;cursor:pointer;">+</button>'+
       '</div>'+
       (totFin!==0?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Saldo Financeiro</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>':'')+
-      '<div style="background:#1a1a1a;border-radius:8px;padding:12px;margin-top:12px;">'+
+      '<div style="background:var(--bg2);border-radius:8px;padding:12px;margin-top:12px;">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
       '<div><div style="font-size:9px;color:#666;font-weight:600;">EBITDA</div><div style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(ebitdaM)+'</div></div>'+
       '<div><div style="font-size:9px;color:#666;font-weight:600;">EBIT (c/ Financeiro)</div><div style="font-size:14px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';">'+fmt(ebitFinM)+'</div></div>'+
       '</div>'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #333;margin-bottom:8px;">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
           '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− DAS (Imposto Real)</div>'+
           '<div style="font-size:9px;color:#666;margin-top:1px;">'+(md.das>0?'Valor real':'Estimado: '+fmt(impEstimado))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
           '<input type="text" inputmode="decimal" value="'+(md.das?fmtN(md.das):'')+'" placeholder="'+impEstimado.toFixed(0)+'"'+
-          ' style="width:110px;background:#111;border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
+          ' style="width:110px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
           ' onchange="saveDAS(\''+mk+'\',this.value)">'+
         '</div>'+
       '</div>'+
-      '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #ffffff10;">'+
+      '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
         '<div><div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore</div>'+
         '<div style="font-size:9px;color:var(--text3);">Remuneração sócio</div></div>'+
-        '<input type="text" inputmode="decimal" value="'+(md.prolabore?fmtN(md.prolabore):'')+'" placeholder="0,00" style="width:110px;background:#111;border:1px solid #f59e0b44;border-radius:6px;padding:6px 8px;color:#f59e0b;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveProlabore(\''+mk+'\',this.value)">'+
+        '<input type="text" inputmode="decimal" value="'+(md.prolabore?fmtN(md.prolabore):'')+'" placeholder="0,00" style="width:110px;background:var(--bg3);border:1px solid #f59e0b44;border-radius:6px;padding:6px 8px;color:#f59e0b;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveProlabore(\''+mk+'\',this.value)">'+
         '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
         '<div><div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;">💸 Distribuição de Lucros</div>'+
         '<div style="font-size:9px;color:var(--text3);">Retirada após apuração</div></div>'+
-        '<input type="text" inputmode="decimal" value="'+(md.distribuicao?fmtN(md.distribuicao):'')+'" placeholder="0,00" style="width:110px;background:#111;border:1px solid #a78bfa44;border-radius:6px;padding:6px 8px;color:#a78bfa;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveDistribuicao(\''+mk+'\',this.value)">'+
+        '<input type="text" inputmode="decimal" value="'+(md.distribuicao?fmtN(md.distribuicao):'')+'" placeholder="0,00" style="width:110px;background:var(--bg3);border:1px solid #a78bfa44;border-radius:6px;padding:6px 8px;color:#a78bfa;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveDistribuicao(\''+mk+'\',this.value)">'+
         '</div>'+
     '</div>'+
 '<div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
@@ -6510,7 +6513,7 @@ function renderPagamentos(){
     var p=pagamentos[i];
     // Card wrapper
     var card=document.createElement('div');
-    card.style.cssText='background:#111;border:1px solid #222;border-radius:10px;padding:8px 10px;margin-bottom:8px;';
+    card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:8px;';
     // Top row: date + desc + delete
     var topRow=document.createElement('div');
     topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;';
@@ -6657,7 +6660,7 @@ function renderSkuRows(){
     var brl=cotacao*r.usd;
     skuRows[i].brl=brl;
     var card=document.createElement('div');
-    card.style.cssText='background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:8px 10px;margin-bottom:8px;';
+    card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:8px;';
     // Top row: SKU select + delete
     var topRow=document.createElement('div');
     topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px;';
@@ -9390,7 +9393,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">📅 Data</span>'
         +'<input type="date" value="'+(r.dataVal||'')+'" '
-        +'style="background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'style="background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" '
         +'onchange="salvarDataVenda(this.value)">'
         +'</div>';
       return;
@@ -9399,7 +9402,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">💰 Venda</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.vendaVal)+'" '
-        +'style="width:110px;background:#1a1a1a;border:1px solid #1E90FF44;border-radius:5px;padding:4px 8px;color:#1E90FF;font-size:13px;font-weight:700;text-align:right;outline:none;" '
+        +'style="width:110px;background:var(--input);border:1px solid #1E90FF44;border-radius:5px;padding:4px 8px;color:#1E90FF;font-size:13px;font-weight:700;text-align:right;outline:none;" '
         +'oninput="maskBRL(this)" onchange="salvarVendaVenda(this.value)">'
         +'</div>';
       return;
@@ -9408,7 +9411,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">📊 Taxa ML</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.taxaVal)+'" '
-        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
         +'oninput="maskBRL(this)" onchange="salvarTaxaVenda(this.value)">'
         +'</div>';
       return;
@@ -9417,7 +9420,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🧾 DAS/Imposto</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.dasVal)+'" '
-        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
         +'oninput="maskBRL(this)" onchange="salvarDasVenda(this.value)">'
         +'</div>';
       return;
@@ -9426,7 +9429,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">👤 Cliente</span>'
         +'<input type="text" value="'+((r.clienteVal||'').replace(/"/g,'&quot;'))+'" placeholder="Nome do cliente" '
-        +'style="width:140px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:140px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" '
         +'onchange="salvarClienteVenda(this.value)">'
         +'</div>';
       return;
@@ -9435,7 +9438,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🏭 Custo produto</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.custoVal)+'" '
-        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
         +'oninput="maskBRL(this)" onchange="salvarCustoVenda(this.value)">'
         +'</div>';
       return;
@@ -9444,7 +9447,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🚚 Frete</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.freteVal)+'" '
-        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:100px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" '
         +'oninput="maskBRL(this)" onchange="salvarFreteVenda(this.value)">'
         +'</div>';
       return;
@@ -9453,7 +9456,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">💼 Comissão</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.comVal)+'" '
-        +'style="width:100px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
         +'oninput="maskBRL(this)" onchange="salvarComVenda(this.value)">'
         +'</div>';
       return;
@@ -9462,7 +9465,7 @@ function buildVerVendaHTML(rows){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🧑‍💼 Vendedor</span>'
         +'<input type="text" value="'+((r.vendedorVal||'').replace(/"/g,'&quot;'))+'" placeholder="Nome do vendedor" '
-        +'style="width:140px;background:#1a1a1a;border:1px solid #222;border-radius:5px;padding:4px 8px;color:#f0f0f0;font-size:12px;text-align:right;outline:none;" '
+        +'style="width:140px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" '
         +'onchange="salvarVendedorVenda(this.value)">'
         +'</div>';
       return;
