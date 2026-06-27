@@ -10793,6 +10793,17 @@ function gerarRelatorio(){
 
   // Capturar imagens dos gráficos selecionados
   var chartImgs={};
+  // Compose canvas onto dark background so white labels stay visible in PDF
+  function _canvasToImg(canvas){
+    if(!canvas) return null;
+    var off=document.createElement('canvas');
+    off.width=canvas.width; off.height=canvas.height;
+    var ctx2=off.getContext('2d');
+    ctx2.fillStyle='#0e1223';
+    ctx2.fillRect(0,0,off.width,off.height);
+    ctx2.drawImage(canvas,0,0);
+    return off.toDataURL('image/png');
+  }
   function _capChart(type,canvasId){
     try{
       if(type==='fat'||type==='liq'||type==='qtd') drawChart();
@@ -10800,14 +10811,13 @@ function gerarRelatorio(){
       else if(type==='canal') drawCanalChart();
       else if(type==='sku-est') drawSkuEstoqueChart();
       else if(type==='sku-fat') drawSkuFatChart();
-      // show correct chart-main type
       if(type==='fat'||type==='fat-ano'){if(typeof showChart==='function') showChart(type);}
-      var c=document.getElementById(canvasId);
-      if(c) chartImgs[type]=c.toDataURL('image/png');
+      var img=_canvasToImg(document.getElementById(canvasId));
+      if(img) chartImgs[type]=img;
     }catch(e){console.warn('capChart',type,e);}
   }
   function _capDreChart(renderFn,canvasId,key){
-    try{if(typeof renderFn==='function') renderFn();var c=document.getElementById(canvasId);if(c) chartImgs[key]=c.toDataURL('image/png');}catch(e){console.warn('capDreChart',key,e);}
+    try{if(typeof renderFn==='function') renderFn();var img=_canvasToImg(document.getElementById(canvasId));if(img) chartImgs[key]=img;}catch(e){console.warn('capDreChart',key,e);}
   }
   // Force dashboard page visible so canvases have proper offsetWidth for capture
   var _pgDash=document.getElementById('pg-dashboard');
@@ -10837,13 +10847,13 @@ function gerarRelatorio(){
   _forceCanvasW('chart-main'); _forceCanvasW('chart-alt');
   _dashCharts.forEach(function(c){
     if(!opts[c.k]) return;
-    try{showChart(c.type);var el=document.getElementById(c.cvs);if(el) chartImgs[c.k]=el.toDataURL('image/png');}catch(e){console.warn('chart',c.k,e);}
+    try{showChart(c.type);var img=_canvasToImg(document.getElementById(c.cvs));if(img) chartImgs[c.k]=img;}catch(e){console.warn('chart',c.k,e);}
   });
   _restoreCanvasW('chart-main'); _restoreCanvasW('chart-alt');
 
   function _capDreChartWide(renderFn,canvasId,key){
     _forceCanvasW(canvasId);
-    try{if(typeof renderFn==='function') renderFn();var c=document.getElementById(canvasId);if(c) chartImgs[key]=c.toDataURL('image/png');}catch(e){console.warn('capDreChart',key,e);}
+    try{if(typeof renderFn==='function') renderFn();var img=_canvasToImg(document.getElementById(canvasId));if(img) chartImgs[key]=img;}catch(e){console.warn('capDreChart',key,e);}
     _restoreCanvasW(canvasId);
   }
   if(opts.g_taxa) _capDreChartWide(renderTaxaChart,'chart-taxa','g_taxa');
