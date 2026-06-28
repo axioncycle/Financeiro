@@ -8475,26 +8475,31 @@ function mlSyncDone(){
 function mlAutoSync(){
   if(!mlCredentials.accessToken||!mlCredentials.userId) return;
   var today=new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  var lastSync=localStorage.getItem('ml_last_auto_sync');
-  if(lastSync===today) return; // já sincronizou hoje
 
-  // Intervalo: do último sync até hoje (máx 7 dias para não sobrecarregar)
-  var fromDate=lastSync?new Date(lastSync):new Date();
-  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
-  if(fromDate<cutoff) fromDate=cutoff;
-  var dateFrom=fromDate.toISOString().split('T')[0];
-  var dateTo=today;
+  // Lê a data do último sync do Supabase (compartilhado entre dispositivos)
+  dbGet('configuracoes','chave=eq.ml_last_auto_sync').then(function(rows){
+    var lastSync=(rows&&rows[0]&&rows[0].valor)||null;
+    if(lastSync===today) return; // já sincronizou hoje em qualquer dispositivo
 
-  dbGet('configuracoes','chave=eq.ml_das_rate').then(function(r1){
-    var dasRate=parseFloat((r1&&r1[0]&&r1[0].valor)||8.5);
-    dbGet('configuracoes','chave=eq.ml_com_rate').then(function(r2){
-      var comRate=parseFloat((r2&&r2[0]&&r2[0].valor)||0);
-      toast('Sincronizando ML automaticamente...');
-      _mlSyncDoneCb=function(){
-        localStorage.setItem('ml_last_auto_sync',today);
-        toast('ML sincronizado!');
-      };
-      mlFetchOrders(dateFrom,dateTo,dasRate,comRate,0,[]);
+    // Intervalo: do último sync até hoje (máx 7 dias para não sobrecarregar)
+    var fromDate=lastSync?new Date(lastSync):new Date();
+    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+    if(fromDate<cutoff) fromDate=cutoff;
+    var dateFrom=fromDate.toISOString().split('T')[0];
+    var dateTo=today;
+
+    dbGet('configuracoes','chave=eq.ml_das_rate').then(function(r1){
+      var dasRate=parseFloat((r1&&r1[0]&&r1[0].valor)||8.5);
+      dbGet('configuracoes','chave=eq.ml_com_rate').then(function(r2){
+        var comRate=parseFloat((r2&&r2[0]&&r2[0].valor)||0);
+        toast('Sincronizando ML automaticamente...');
+        _mlSyncDoneCb=function(){
+          // Salva a data no Supabase para compartilhar entre dispositivos
+          dbUpsert('configuracoes',{chave:'ml_last_auto_sync',valor:today});
+          toast('ML sincronizado!');
+        };
+        mlFetchOrders(dateFrom,dateTo,dasRate,comRate,0,[]);
+      });
     });
   });
 }
