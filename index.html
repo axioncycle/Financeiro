@@ -7285,6 +7285,20 @@ pinInit();
 initDB(function(){
   renderDash();
   onPagChange();
+  // Auto-sync ML se conectado e não sincronizado hoje
+  setTimeout(function(){
+    dbGet('configuracoes','chave=eq.ml_credentials').then(function(rows){
+      if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+        try{
+          var creds=JSON.parse(rows[0].valor);
+          if(creds.accessToken&&creds.userId){
+            mlCredentials=creds;
+            mlAutoSync();
+          }
+        }catch(e){}
+      }
+    });
+  },2000); // aguarda 2s para o app estabilizar
   // Show swipe hint once on first load
   if(!localStorage.getItem('axion_swipe_hint')){
     localStorage.setItem('axion_swipe_hint','1');
@@ -8448,10 +8462,43 @@ function mlProcessOrders(orders,dasRate,comRate){
 }
 
 
+var _mlSyncDoneCb=null;
 function mlSyncDone(){
   var btn=document.getElementById('ml-sync-btn');
   if(btn) btn.disabled=false;
+  if(typeof _mlSyncDoneCb==='function'){var cb=_mlSyncDoneCb;_mlSyncDoneCb=null;cb();}
 }
+
+// ── AUTO-SYNC DIÁRIO ─────────────────────────────────────────────────────
+// Roda silenciosamente ao abrir o app se o ML estiver conectado
+// e o último sync não tiver sido feito hoje
+function mlAutoSync(){
+  if(!mlCredentials.accessToken||!mlCredentials.userId) return;
+  var today=new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  var lastSync=localStorage.getItem('ml_last_auto_sync');
+  if(lastSync===today) return; // já sincronizou hoje
+
+  // Intervalo: do último sync até hoje (máx 7 dias para não sobrecarregar)
+  var fromDate=lastSync?new Date(lastSync):new Date();
+  var cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
+  if(fromDate<cutoff) fromDate=cutoff;
+  var dateFrom=fromDate.toISOString().split('T')[0];
+  var dateTo=today;
+
+  dbGet('configuracoes','chave=eq.ml_das_rate').then(function(r1){
+    var dasRate=parseFloat((r1&&r1[0]&&r1[0].valor)||8.5);
+    dbGet('configuracoes','chave=eq.ml_com_rate').then(function(r2){
+      var comRate=parseFloat((r2&&r2[0]&&r2[0].valor)||0);
+      toast('Sincronizando ML automaticamente...');
+      _mlSyncDoneCb=function(){
+        localStorage.setItem('ml_last_auto_sync',today);
+        toast('ML sincronizado!');
+      };
+      mlFetchOrders(dateFrom,dateTo,dasRate,comRate,0,[]);
+    });
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────
 
 
 // ── ML VINCULAR ANÚNCIOS ─────────────────────────────────────────────────
