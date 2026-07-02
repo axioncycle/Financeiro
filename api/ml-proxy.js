@@ -1,8 +1,6 @@
 // Vercel Serverless Function — proxy para API Mercado Livre (evita CORS)
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  // Sem CORS aberto: só aceita chamadas da própria origem
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -15,7 +13,7 @@ export default async function handler(req, res) {
   try {
     const { url, method = 'GET', headers = {}, formBody } = req.body;
 
-    if (!url || !url.startsWith('https://api.mercadolibre.com')) {
+    if (!url || !url.startsWith('https://api.mercadolibre.com/')) {
       return res.status(400).json({ error: 'URL inválida' });
     }
 
