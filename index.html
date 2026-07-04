@@ -8293,13 +8293,11 @@ function mlProcessOrders(orders,dasRate,comRate){
         // coupon.amount = desconto de cupom pago pelo ML ao comprador
         //   → reduz o que o vendedor recebe (ML repassa o desconto)
         // paid_amount em payments = o que o vendedor realmente recebe
+        // Venda = total_amount (preço de tabela). O cupom do ML (coupon.amount, id:null)
+        // é bancado pela PLATAFORMA — reduz o que o comprador paga, mas NÃO a receita
+        // do vendedor (tarifas e repasse do ML são calculados sobre total_amount).
+        // Por isso NÃO descontamos o cupom aqui.
         totalPedido=o.total_amount||0;
-        // [DEBUG CUPOM] Investigando se coupon é bancado pelo ML (não deve descontar)
-        console.log('[CUPOM] pedido='+o.id+' total_amount='+o.total_amount+' coupon='+JSON.stringify(o.coupon||null)+' payments='+JSON.stringify((o.payments||[]).map(function(p){return{total_paid:p.total_paid_amount,transaction:p.transaction_amount,coupon:p.coupon_amount,mkt_fee:p.marketplace_fee};})));
-        // Aplicar desconto de cupom se existir (cupom reduz receita do vendedor)
-        if(totalPedido&&o.coupon&&o.coupon.amount>0){
-          totalPedido-=o.coupon.amount;
-        }
         // Se ainda sem valor, usar payments
         if(!totalPedido&&o.payments&&o.payments.length){
           totalPedido=o.payments[0].total_paid_amount||o.payments[0].transaction_amount||0;
