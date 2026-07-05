@@ -9494,6 +9494,9 @@ function refreshAfterVendaEdit(){
   if(_verVendaId){var _vid=_verVendaId;setTimeout(function(){verVendaBody(_vid);},50);}
 }
 
+// % do valor sobre a venda (para exibir ao lado dos campos no modal Ver Venda)
+function _pctVenda(val,venda){return venda>0?(Math.abs(val||0)/venda*100):0;}
+function _pctTag(r){return (r&&r.pct!=null)?'<span style="font-size:10px;color:var(--text3);margin-right:7px;">('+r.pct.toFixed(1)+'%)</span>':'';}
 function buildVerVendaHTML(rows){
   var h='';
   rows.forEach(function(r){
@@ -9519,18 +9522,20 @@ function buildVerVendaHTML(rows){
     if(r.taxa){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">📊 Taxa ML</span>'
+        +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.taxaVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarTaxaVenda(this.value)">'
+        +'oninput="maskBRL(this)" onchange="salvarTaxaVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
     if(r.das){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🧾 DAS/Imposto</span>'
+        +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.dasVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarDasVenda(this.value)">'
+        +'oninput="maskBRL(this)" onchange="salvarDasVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9546,27 +9551,30 @@ function buildVerVendaHTML(rows){
     if(r.custo){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🏭 Custo produto</span>'
+        +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.custoVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarCustoVenda(this.value)">'
+        +'oninput="maskBRL(this)" onchange="salvarCustoVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
     if(r.frete){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">🚚 Frete</span>'
+        +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.freteVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarFreteVenda(this.value)">'
+        +'oninput="maskBRL(this)" onchange="salvarFreteVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
     if(r.com){
       h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
         +'<span style="font-size:11px;color:var(--text2);">💼 Comissão</span>'
+        +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.comVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarComVenda(this.value)">'
+        +'oninput="maskBRL(this)" onchange="salvarComVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9602,12 +9610,12 @@ function _buildVerVendaRows(v){
     {label:'📍 Origem',val:v.origem||'—'},
     null,
     {label:'💰 Venda',venda:true,vendaVal:v.venda||0},
-    {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0},
-    {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0},
-    {label:'🚚 Frete',frete:true,freteVal:v.frete||0},
-    {label:'💼 Comissão',com:true,comVal:v.com||0},
+    {label:'🏭 Custo produto',custo:true,custoVal:v.custo||0,pct:_pctVenda(v.custo,v.venda)},
+    {label:'📊 Taxa ML',taxa:true,taxaVal:v.taxa||0,pct:_pctVenda(v.taxa,v.venda)},
+    {label:'🚚 Frete',frete:true,freteVal:v.frete||0,pct:_pctVenda(v.frete,v.venda)},
+    {label:'💼 Comissão',com:true,comVal:v.com||0,pct:_pctVenda(v.com,v.venda)},
     {label:'🧑‍💼 Vendedor',vendedor:true,vendedorVal:v.vendedor||''},
-    {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0},
+    {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0,pct:_pctVenda(v.imp,v.venda)},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
     {label:'✅ Lucro Líquido',val:fmt(v.lucroLL||0)+' ('+(v.venda>0?((v.lucroLL||0)/v.venda*100).toFixed(1):0)+'%)',color:(v.lucroLL||0)>=0?'#22c55e':'#ef4444',bold:true,big:true},
