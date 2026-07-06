@@ -9445,6 +9445,7 @@ function _recalcVenda(v){
 }
 
 function salvarVendaVenda(rawVal){
+  toast('▶ Evento disparou (Venda='+rawVal+')');
   if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
