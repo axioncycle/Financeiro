@@ -9432,7 +9432,7 @@ function salvarDataVenda(val){
   if(yr<1000||yr>2100) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.date=val;
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
@@ -9445,10 +9445,10 @@ function _recalcVenda(v){
 }
 
 function salvarVendaVenda(rawVal){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.venda=parseBRL(rawVal||'0')||0;
   _recalcVenda(v);
   saveVendas(vendas,v);
@@ -9457,10 +9457,10 @@ function salvarVendaVenda(rawVal){
 }
 
 function salvarTaxaVenda(rawVal){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.taxa=parseBRL(rawVal||'0')||0;
   v.taxaPct=v.venda>0?Math.round(v.taxa/v.venda*10000)/100:0;
   _recalcVenda(v);
@@ -9470,10 +9470,10 @@ function salvarTaxaVenda(rawVal){
 }
 
 function salvarDasVenda(rawVal){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.imp=parseBRL(rawVal||'0')||0;
   v.impPct=v.venda>0?Math.round(v.imp/v.venda*10000)/100:0;
   _recalcVenda(v);
@@ -9645,10 +9645,10 @@ function verVendaBody(id){
 }
 
 function salvarClienteVenda(val){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.cliente=val||'';
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
@@ -9656,11 +9656,11 @@ function salvarClienteVenda(val){
 }
 
 function salvarCustoVenda(rawVal){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var novoCusto=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.custo=novoCusto;
   _recalcVenda(v);
   saveVendas(vendas,v);
@@ -9669,11 +9669,11 @@ function salvarCustoVenda(rawVal){
 }
 
 function salvarFreteVenda(rawVal){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var novoFrete=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.frete=novoFrete;
   _recalcVenda(v);
   saveVendas(vendas,v);
@@ -9682,10 +9682,10 @@ function salvarFreteVenda(rawVal){
 }
 
 function salvarVendedorVenda(val){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.vendedor=val||'';
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
@@ -9693,11 +9693,11 @@ function salvarVendedorVenda(val){
 }
 
 function salvarComVenda(rawVal){
-  if(!_verVendaId) return;
+  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
   var novaCom=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v) return;
+  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
   v.com=novaCom;
   v.comPct=v.venda>0?Math.round(novaCom/v.venda*10000)/100:0;
   _recalcVenda(v);
