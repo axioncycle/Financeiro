@@ -5045,7 +5045,7 @@ function renderRes(){
     }
     var mdF2=getMDesp(mkF2),kF2;
     for(kF2=0;kF2<mdF2.fixas.length;kF2++) anoFixasF+=parseFloat(mdF2.fixas[kF2].valor)||0;
-    anoFixasF+=(mdF2.prolabore||0); // Pró-labore nos custos fixos
+    // Pró-labore NÃO entra nos custos fixos — apenas para constar, não debita
 
     for(kF2=0;kF2<mdF2.extras.length;kF2++) anoExtrasF+=parseFloat(mdF2.extras[kF2].valor)||0;
     if(mdF2.financeiro) for(kF2=0;kF2<mdF2.financeiro.length;kF2++) anoFinF+=parseFloat(mdF2.financeiro[kF2].valor)||0;
@@ -5055,7 +5055,7 @@ function renderRes(){
     anoDistribuicaoF+=(mdF2.distribuicao||0);
   }
   var anoMargContribF=anoLSIF-anoExtrasF;
-  var anoEbitdaF=anoMargContribF-anoFixasF; // prolabore já em anoFixasF
+  var anoEbitdaF=anoMargContribF-anoFixasF; // pró-labore NÃO incluído (apenas para constar)
   var anoEbitFinF=anoEbitdaF+anoFinF;
   var anoLiqF=anoEbitFinF-anoDasF;
   var anoLiqDistF=anoLiqF-anoDistribuicaoF;
@@ -5175,7 +5175,7 @@ function renderRes(){
     for(j=0;j<mv.length;j++){fat+=mv[j].venda;lsi+=mv[j].lucroSI;}
     var md=getMDesp(mk);var totF=0,totE=0,totFin=0,k;
     for(k=0;k<md.fixas.length;k++) totF+=parseFloat(md.fixas[k].valor)||0;
-    totF+=(md.prolabore||0); // Pró-labore entra em custos fixos
+    // Pró-labore e distribuição de lucros NÃO debitam o resultado — são apenas para constar
     for(k=0;k<md.extras.length;k++) totE+=parseFloat(md.extras[k].valor)||0;
 
     if(md.financeiro) for(k=0;k<md.financeiro.length;k++) totFin+=parseFloat(md.financeiro[k].valor)||0;
@@ -5186,7 +5186,7 @@ function renderRes(){
     // DAS real (from Resultado) takes priority over estimated (from vendas)
     var impEstimado=0;for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
     var impM=md.das>0?md.das:impEstimado;
-    var res=ebitFinM-impM; // prolabore já deduzido em ebitdaM via totF
+    var res=ebitFinM-impM; // pró-labore e distribuição NÃO entram (apenas para constar)
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
@@ -5275,27 +5275,17 @@ function renderRes(){
       '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
         '<div><div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore</div>'+
-        '<div style="font-size:9px;color:var(--text3);">Remuneração sócio</div></div>'+
+        '<div style="font-size:9px;color:var(--text3);">Remuneração sócio · para constar, não debita</div></div>'+
         '<input type="text" inputmode="decimal" value="'+(md.prolabore?fmtN(md.prolabore):'')+'" placeholder="0,00" style="width:110px;background:var(--bg3);border:1px solid #f59e0b44;border-radius:6px;padding:6px 8px;color:#f59e0b;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveProlabore(\''+mk+'\',this.value)">'+
         '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
         '<div><div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;">💸 Distribuição de Lucros</div>'+
-        '<div style="font-size:9px;color:var(--text3);">Retirada após apuração</div></div>'+
+        '<div style="font-size:9px;color:var(--text3);">Retirada após apuração · para constar, não debita</div></div>'+
         '<input type="text" inputmode="decimal" value="'+(md.distribuicao?fmtN(md.distribuicao):'')+'" placeholder="0,00" style="width:110px;background:var(--bg3);border:1px solid #a78bfa44;border-radius:6px;padding:6px 8px;color:#a78bfa;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveDistribuicao(\''+mk+'\',this.value)">'+
         '</div>'+
     '</div>'+
 '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
       '<div style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
-      +(md.distribuicao>0?
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 4px 0;border-top:1px dashed #a78bfa44;margin-top:8px;">'+
-          '<div style="font-size:11px;color:#a78bfa;font-weight:600;">💸 Distribuição de Lucros</div>'+
-          '<div style="font-size:13px;font-weight:700;color:#a78bfa;">− '+fmt(md.distribuicao||0)+'</div>'+
-        '</div>'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 8px 0;">'+
-          '<div style="font-size:11px;color:var(--text2);font-weight:700;">Resultado após distribuição</div>'+
-          '<div style="font-size:16px;font-weight:800;color:'+(res-(md.distribuicao||0)>=0?'#22c55e':'#ef4444')+';">'+(fmt(res-(md.distribuicao||0)))+'</div>'+
-        '</div>'
-      :'')+
       '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
         '<div style="font-size:11px;color:var(--text3);">Margem: <strong style="color:'+rc+';">'+mg.toFixed(1)+'%</strong></div>'+
         '<span style="font-size:14px;">'+(mg>=META_MARG_LIQ?'🟢':mg>=META_MARG_LIQ*0.6?'🟡':'🔴')+'</span>'+
@@ -7441,7 +7431,10 @@ function calcDRE(vendas){
     else{vendas.forEach(function(v){if(mkey2(v.date)===mk2__) dasReal2+=v.imp||0;});}
   }
   var lucroLiq=ebitda+totFin2-dasReal2;
-  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:dasReal2,lucroLiq:lucroLiq,qtd:qtd};
+  // Pró-labore e distribuição de lucros — apenas para constar, NÃO entram no lucro líquido
+  var proLab2=0,distr2=0;
+  for(var mkP in months2){var dfp=DB_DESP[mkP];if(dfp){proLab2+=dfp.prolabore||0;distr2+=dfp.distribuicao||0;}}
+  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:dasReal2,lucroLiq:lucroLiq,qtd:qtd,prolabore:proLab2,distribuicao:distr2};
 }
 
 function fmtPct(num,den){
@@ -7480,6 +7473,14 @@ function renderD2DRE(dre){
     h+='<span style="font-size:'+fs+';font-weight:'+fw+';color:'+r.color+';min-width:110px;text-align:right;">'+fmt(r.val)+'</span>';
     h+='</div></div>';
   });
+  // Retiradas dos sócios — para constar, NÃO debitam o lucro líquido
+  if((dre.prolabore||0)>0||(dre.distribuicao||0)>0){
+    h+='<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">';
+    h+='<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Retiradas dos sócios · para constar (não debita)</div>';
+    if((dre.prolabore||0)>0) h+='<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:11px;color:#f59e0b;">💼 Pró-labore</span><span style="font-size:12px;font-weight:700;color:#f59e0b;">'+fmt(dre.prolabore)+'</span></div>';
+    if((dre.distribuicao||0)>0) h+='<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:11px;color:#a78bfa;">💸 Distribuição de lucros</span><span style="font-size:12px;font-weight:700;color:#a78bfa;">'+fmt(dre.distribuicao)+'</span></div>';
+    h+='</div>';
+  }
   // Lucro por unidade
   if(dre.qtd>0){
     h+='<div style="margin-top:10px;padding:8px;background:#ffffff08;border-radius:8px;display:flex;justify-content:space-between;">';
