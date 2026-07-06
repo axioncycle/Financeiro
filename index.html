@@ -1631,7 +1631,7 @@ function saveVendaDB(v){
     var idStr=String(v.id);
     console.log('PATCH vendas id='+idStr);
     return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+idStr,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(r)}).then(function(resp){
-      if(!resp.ok) resp.clone().text().then(function(t){console.error('PATCH failed',resp.status,t);alert('Erro ao editar: '+resp.status+' '+t);});
+      if(!resp.ok) resp.clone().text().then(function(t){console.error('PATCH failed',resp.status,t);toast('Falha ao salvar: HTTP '+resp.status+(resp.status===401||resp.status===403?' (permissão/RLS)':''),true);});
       else console.log('PATCH ok id='+v.id+' status='+resp.status);
       return resp;
     });
@@ -1669,7 +1669,7 @@ function saveVendaDB(v){
           var r2=Object.assign({},patchBody);delete r2.vendedor;
           return fetch(SUPA_URL+'/rest/v1/vendas?id=eq.'+idStr,{method:'PATCH',headers:_hdrs(),body:JSON.stringify(r2)})
             .then(function(resp2){
-              if(!resp2.ok) return resp2.text().then(function(t2){console.error('PATCH failed',resp2.status,t2);alert('Erro ao salvar: '+resp2.status);return[];});
+              if(!resp2.ok) return resp2.text().then(function(t2){console.error('PATCH failed',resp2.status,t2);toast('Falha ao salvar: HTTP '+resp2.status+(resp2.status===401||resp2.status===403?' (permissão/RLS)':''),true);return[];});
               return resp2.json().catch(function(){return[];});
             });
         });
@@ -1677,6 +1677,7 @@ function saveVendaDB(v){
           if(!rows||!rows.length){
             // Row not found by ID — this venda may not be in Supabase yet, INSERT it
             console.warn('PATCH matched 0 rows for id='+idStr+', inserting...');
+            toast('Aviso: venda id='+idStr+' não localizada no banco (0 linhas) — verifique RLS/conexão',true);
             return _insert(patchBody,false).then(function(ri){
               if(!ri.ok) return ri.text().then(function(t){console.error('INSERT fallback '+ri.status+':',t.slice(0,200));return[];});
               return ri.json().then(_applyNewId).catch(function(){return[];});
