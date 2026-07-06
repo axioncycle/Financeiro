@@ -9432,7 +9432,7 @@ function salvarDataVenda(val){
   if(yr<1000||yr>2100) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.date=val;
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
@@ -9445,11 +9445,10 @@ function _recalcVenda(v){
 }
 
 function salvarVendaVenda(rawVal){
-  toast('▶ Evento disparou (Venda='+rawVal+')');
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.venda=parseBRL(rawVal||'0')||0;
   _recalcVenda(v);
   saveVendas(vendas,v);
@@ -9458,10 +9457,10 @@ function salvarVendaVenda(rawVal){
 }
 
 function salvarTaxaVenda(rawVal){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.taxa=parseBRL(rawVal||'0')||0;
   v.taxaPct=v.venda>0?Math.round(v.taxa/v.venda*10000)/100:0;
   _recalcVenda(v);
@@ -9471,10 +9470,10 @@ function salvarTaxaVenda(rawVal){
 }
 
 function salvarDasVenda(rawVal){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.imp=parseBRL(rawVal||'0')||0;
   v.impPct=v.venda>0?Math.round(v.imp/v.venda*10000)/100:0;
   _recalcVenda(v);
@@ -9517,7 +9516,7 @@ function buildVerVendaHTML(rows){
         +'<span style="font-size:11px;color:var(--text2);">💰 Venda</span>'
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.vendaVal)+'" '
         +'style="width:110px;background:var(--input);border:1px solid #1E90FF44;border-radius:5px;padding:4px 8px;color:#1E90FF;font-size:13px;font-weight:700;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarVendaVenda(this.value)">'
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarVendaVenda(this.value)">'
         +'</div>';
       return;
     }
@@ -9527,7 +9526,7 @@ function buildVerVendaHTML(rows){
         +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.taxaVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarTaxaVenda(this.value)">'+'</span>'
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarTaxaVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9537,7 +9536,7 @@ function buildVerVendaHTML(rows){
         +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.dasVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarDasVenda(this.value)">'+'</span>'
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarDasVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9556,7 +9555,7 @@ function buildVerVendaHTML(rows){
         +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.custoVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarCustoVenda(this.value)">'+'</span>'
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarCustoVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9566,7 +9565,7 @@ function buildVerVendaHTML(rows){
         +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.freteVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarFreteVenda(this.value)">'+'</span>'
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarFreteVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9576,7 +9575,7 @@ function buildVerVendaHTML(rows){
         +'<span style="display:flex;align-items:center;">'+_pctTag(r)
         +'<input type="text" inputmode="decimal" value="'+fmtN(r.comVal)+'" '
         +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
-        +'oninput="maskBRL(this)" onchange="salvarComVenda(this.value)">'+'</span>'
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarComVenda(this.value)">'+'</span>'
         +'</div>';
       return;
     }
@@ -9646,10 +9645,10 @@ function verVendaBody(id){
 }
 
 function salvarClienteVenda(val){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.cliente=val||'';
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
@@ -9657,11 +9656,11 @@ function salvarClienteVenda(val){
 }
 
 function salvarCustoVenda(rawVal){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var novoCusto=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.custo=novoCusto;
   _recalcVenda(v);
   saveVendas(vendas,v);
@@ -9670,11 +9669,11 @@ function salvarCustoVenda(rawVal){
 }
 
 function salvarFreteVenda(rawVal){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var novoFrete=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.frete=novoFrete;
   _recalcVenda(v);
   saveVendas(vendas,v);
@@ -9683,10 +9682,10 @@ function salvarFreteVenda(rawVal){
 }
 
 function salvarVendedorVenda(val){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.vendedor=val||'';
   saveVendas(vendas,v);
   refreshAfterVendaEdit();
@@ -9694,11 +9693,11 @@ function salvarVendedorVenda(val){
 }
 
 function salvarComVenda(rawVal){
-  if(!_verVendaId){toast("Erro: nenhuma venda selecionada (_verVendaId vazio)",true);return;}
+  if(!_verVendaId) return;
   var novaCom=parseBRL(rawVal||'0')||0;
   var vendas=loadVendas();
   var v=vendas.find(function(vv){return vv.id===_verVendaId;});
-  if(!v){toast("Erro: venda id="+_verVendaId+" nao encontrada em DB_VENDAS ("+vendas.length+" vendas)",true);return;}
+  if(!v) return;
   v.com=novaCom;
   v.comPct=v.venda>0?Math.round(novaCom/v.venda*10000)/100:0;
   _recalcVenda(v);
