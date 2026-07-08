@@ -825,7 +825,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div id="pag-simples">
       <div class="r2">
         <div class="fg"><label class="fl">Forma de Pagamento</label>
-          <select class="fs" id="v-p1t" onchange="calcRes()">
+          <select class="fs" id="v-p1t" onchange="onPagSimplesChange()">
             <option value="PIX">PIX (0,79%)</option>
             <option value="Transferencia">Transferencia (0%)</option>
             <option value="Credito 1x">Credito 1x (3,56%)</option>
@@ -1514,14 +1514,16 @@ function setMlTaxaMode(mode){
   var tog=document.getElementById('taxa-ml-mode-toggle');
   var inp=document.getElementById('v-tx1-ml');
   var hint=document.getElementById('tx-hint');
+  var canalEl=document.getElementById('v-canal');var c=canalEl?canalEl.value:'';
+  var isSiteWa=(c==='Site'||c==='WhatsApp');
   if(mode==='brl'){
     if(tog) tog.textContent='R$';
     if(inp){inp.step='0.01';inp.value='';}
     if(hint) hint.textContent='Valor absoluto da taxa em reais';
   } else {
     if(tog) tog.textContent='%';
-    if(inp){inp.step='0.01';inp.value='16.5';}
-    if(hint) hint.textContent='Mercado Livre: editável';
+    if(inp){inp.step='0.01';inp.value=isSiteWa?_pagPct():'16.5';}
+    if(hint) hint.textContent=isSiteWa?'Pré-preenchida pela forma de pagamento — editável':'Mercado Livre: editável';
   }
   calcRes();
 }
@@ -3483,10 +3485,12 @@ function fillProdSelect(){
   }
 }
 
+function _pagPct(){var sel=document.getElementById('v-p1t');if(!sel)return 0;var p=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].value:'';return PAG_TAXA[p]!==undefined?PAG_TAXA[p]:0;}
 function getTaxaVal(){
   var canal=document.getElementById('v-canal');
   var c=canal?canal.value:'';
-  if(c==='Mercado Livre'){
+  // ML, Site e WhatsApp usam o campo de Taxa editável (% ou R$)
+  if(c==='Mercado Livre'||c==='Site'||c==='WhatsApp'){
     var mlInp=document.getElementById('v-tx1-ml');
     var mlVal=mlInp?parseFloat(mlInp.value)||0:0;
     if(mlTaxaMode==='brl'){
@@ -3494,7 +3498,7 @@ function getTaxaVal(){
       var vv=vEl?parseBRL(vEl.value||'0')||0:0;
       return vv>0?parseFloat((mlVal/vv*100).toFixed(4)):0;
     }
-    return mlVal||16.5;
+    return c==='Mercado Livre'?(mlVal||16.5):mlVal;
   }
   var sel=document.getElementById('v-p1t');
   if(!sel) return 0;
@@ -3508,12 +3512,28 @@ function onCanalChange(){
   var ps=document.getElementById('pag-simples');
   var dl=document.getElementById('duplo-label');
   var dc=document.getElementById('v-duplo');
+  var lbl=document.getElementById('taxa-ml-label');
+  var hint=document.getElementById('tx-hint');
+  var duplo=dc&&dc.checked;
   if(c==='Mercado Livre'){
     if(mlWrap) mlWrap.style.display='block';
     if(ps) ps.style.display='none';
     if(dc&&dc.checked){dc.checked=false;toggleDuplo();}
     if(dl) dl.style.opacity='0.35';
     if(dc) dc.disabled=true;
+    if(lbl) lbl.textContent='Taxa ML';
+    if(hint){hint.style.display='block';hint.textContent=mlTaxaMode==='brl'?'Valor absoluto da taxa em reais':'Mercado Livre: editável';}
+    var mlInpC=document.getElementById('v-tx1-ml');
+    if(mlInpC&&mlTaxaMode==='pct'&&(!mlInpC.value||mlInpC.value==='0')) mlInpC.value='16.5';
+  } else if(c==='Site'||c==='WhatsApp'){
+    // Site/WhatsApp: mesmo campo de Taxa editável (% ou R$), pré-preenchido pela forma de pagamento
+    if(mlWrap) mlWrap.style.display=duplo?'none':'block';
+    if(ps) ps.style.display=duplo?'none':'block';
+    if(dl) dl.style.opacity='1';
+    if(dc) dc.disabled=false;
+    if(lbl) lbl.textContent='Taxa';
+    if(hint){hint.style.display='block';hint.textContent=mlTaxaMode==='brl'?'Valor absoluto da taxa em reais':'Pré-preenchida pela forma de pagamento — editável';}
+    if(mlTaxaMode==='pct'){var mlInpS=document.getElementById('v-tx1-ml');if(mlInpS) mlInpS.value=_pagPct();}
   } else {
     if(mlWrap) mlWrap.style.display='none';
     if(ps) ps.style.display='block';
@@ -3522,6 +3542,14 @@ function onCanalChange(){
     if(mlTaxaMode!=='pct') setMlTaxaMode('pct');
     onPagChange();
     return;
+  }
+  calcRes();
+}
+// Chamado quando a forma de pagamento muda (Site/WhatsApp): sincroniza o % da taxa
+function onPagSimplesChange(){
+  var c=document.getElementById('v-canal')?document.getElementById('v-canal').value:'';
+  if((c==='Site'||c==='WhatsApp')&&mlTaxaMode==='pct'){
+    var inp=document.getElementById('v-tx1-ml');if(inp) inp.value=_pagPct();
   }
   calcRes();
 }
@@ -3553,6 +3581,10 @@ function toggleDuplo(){
   var on=document.getElementById('v-duplo').checked;
   document.getElementById('pag-simples').style.display=on?'none':'block';
   document.getElementById('pag-duplo').style.display=on?'block':'none';
+  // Site/WhatsApp: no modo 2 pagamentos a taxa vem dos pagamentos — esconde o campo Taxa
+  var c=document.getElementById('v-canal')?document.getElementById('v-canal').value:'';
+  var mlWrap=document.getElementById('taxa-ml-wrap');
+  if(mlWrap&&(c==='Site'||c==='WhatsApp')) mlWrap.style.display=on?'none':'block';
   calcRes();
 }
 
@@ -3616,7 +3648,8 @@ function calcRes(){
     var r1=document.getElementById('v-dp1txr');if(r1) r1.textContent=fmt(tx1r);
     var r2=document.getElementById('v-dp2txr');if(r2) r2.textContent=fmt(tx2r);
   } else {
-    if(mlTaxaMode==='brl'&&document.getElementById('v-canal')&&document.getElementById('v-canal').value==='Mercado Livre'){
+    var _cNow=document.getElementById('v-canal')?document.getElementById('v-canal').value:'';
+    if(mlTaxaMode==='brl'&&(_cNow==='Mercado Livre'||_cNow==='Site'||_cNow==='WhatsApp')){
       var mlInpV=document.getElementById('v-tx1-ml');
       taxa=mlInpV?parseFloat(mlInpV.value)||0:0;
     } else {
@@ -3749,6 +3782,9 @@ function cancelarEdicao(){
   var dl=document.getElementById('duplo-label');if(dl) dl.style.opacity='1';
   document.getElementById('pag-simples').style.display='block';
   document.getElementById('pag-duplo').style.display='none';
+  // Esconde o campo de Taxa e volta o modo para % ao limpar o formulário
+  var _mlw=document.getElementById('taxa-ml-wrap');if(_mlw) _mlw.style.display='none';
+  mlTaxaMode='pct';var _mtog=document.getElementById('taxa-ml-mode-toggle');if(_mtog) _mtog.textContent='%';
   var th=document.getElementById('tx-hint');if(th) th.style.display='none';
   document.getElementById('btn-salvar').textContent='REGISTRAR VENDA';
   document.getElementById('btn-cancel').style.display='none';
@@ -3789,6 +3825,13 @@ function editarVenda(id){
     document.getElementById('v-dp2tx').value=v.pag2taxa||'';
     document.getElementById('pag-simples').style.display='none';
     document.getElementById('pag-duplo').style.display='block';
+  }
+  // Ajusta o campo de Taxa conforme o canal e restaura a taxa salva (modo %)
+  onCanalChange();
+  if(!v.duplo&&(v.canal==='Mercado Livre'||v.canal==='Site'||v.canal==='WhatsApp')){
+    if(mlTaxaMode!=='pct') setMlTaxaMode('pct');
+    var _txInp=document.getElementById('v-tx1-ml');
+    if(_txInp) _txInp.value=v.taxaPct||0;
   }
   document.getElementById('btn-salvar').textContent='SALVAR ALTERACOES';
   document.getElementById('btn-cancel').style.display='block';
