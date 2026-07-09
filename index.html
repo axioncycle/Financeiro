@@ -774,11 +774,18 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <!-- Margem por Produto -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;">
     <div style="font-size:10px;color:#a855f7;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">MARGEM POR PRODUTO</div>
-    <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">Ranking de margem de contribuição por SKU (todos os períodos)</div>
-    <div style="display:flex;gap:6px;margin-bottom:10px;">
+    <div style="font-size:9px;color:var(--text3);margin-bottom:10px;">Ranking por SKU · ordenado do maior para o menor</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+      <button id="btn-marg-prod-per-mes" onclick="setMargProdPeriod('mes')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">Mês vigente</button>
+      <button id="btn-marg-prod-per-3m" onclick="setMargProdPeriod('3m')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">3M</button>
+      <button id="btn-marg-prod-per-6m" onclick="setMargProdPeriod('6m')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">6M</button>
+      <button id="btn-marg-prod-per-ano" onclick="setMargProdPeriod('ano')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:#a855f7;color:#fff;">Ano corrente</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
       <button id="btn-marg-prod-mc" onclick="setMargProdMode('mc')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:#a855f7;color:#fff;">Marg. Contrib.</button>
       <button id="btn-marg-prod-ll" onclick="setMargProdMode('ll')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">Lucro Líq.</button>
       <button id="btn-marg-prod-pct" onclick="setMargProdMode('pct')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">% Margem</button>
+      <button id="btn-marg-prod-qtd" onclick="setMargProdMode('qtd')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">Qtd Vendas</button>
     </div>
     <div id="marg-prod-list"></div>
   </div>
@@ -10734,8 +10741,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
 
 function setMargProdMode(mode){
   _margProdMode=mode;
-  var modes=['mc','ll','pct'];
-  var labels={mc:'Marg. Contrib.',ll:'Lucro Líq.',pct:'% Margem'};
+  var modes=['mc','ll','pct','qtd'];
   modes.forEach(function(m){
     var btn=document.getElementById('btn-marg-prod-'+m);
     if(btn){
@@ -10745,14 +10751,47 @@ function setMargProdMode(mode){
   });
   renderMargProd();
 }
+var _margProdPeriod='ano'; // 'mes','3m','6m','ano'
+function setMargProdPeriod(per){
+  _margProdPeriod=per;
+  ['mes','3m','6m','ano'].forEach(function(p){
+    var btn=document.getElementById('btn-marg-prod-per-'+p);
+    if(btn){
+      btn.style.background=p===per?'#a855f7':'var(--sbtn-bg)';
+      btn.style.color=p===per?'#fff':'var(--text2)';
+    }
+  });
+  renderMargProd();
+}
+// Conjunto das últimas n chaves de mês (YYYY-MM), base local, incluindo o mês atual
+function _lastNMonthKeys(n){
+  var set={},base=new Date(),i;
+  for(i=0;i<n;i++){
+    var d=new Date(base.getFullYear(),base.getMonth()-i,1);
+    set[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')]=1;
+  }
+  return set;
+}
 
 function renderMargProd(){
   var el=document.getElementById('marg-prod-list');
   if(!el) return;
 
   var vendas=loadVendas();
+  // Filtro de período: mês vigente / 3M / 6M / ano corrente
+  var now=new Date();
+  var curY=String(now.getFullYear());
+  var curMk=curY+'-'+String(now.getMonth()+1).padStart(2,'0');
+  var set3=_lastNMonthKeys(3),set6=_lastNMonthKeys(6);
+  vendas=vendas.filter(function(v){
+    var mk=mkey(v.date);if(!mk) return false;
+    if(_margProdPeriod==='mes') return mk===curMk;
+    if(_margProdPeriod==='3m') return !!set3[mk];
+    if(_margProdPeriod==='6m') return !!set6[mk];
+    return (v.date||'').slice(0,4)===curY; // ano corrente
+  });
   if(!vendas.length){
-    el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px;">Sem dados</div>';
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px;">Sem vendas no período</div>';
     return;
   }
 
@@ -10778,12 +10817,14 @@ function renderMargProd(){
       return pb-pa;
     }
     if(_margProdMode==='ll') return b.ll-a.ll;
+    if(_margProdMode==='qtd') return b.qtd-a.qtd;
     return b.mc-a.mc;
   });
 
   var maxVal=Math.max.apply(null,prods.map(function(p){
     if(_margProdMode==='pct') return p.fat>0?(p.mc/p.fat*100):0;
     if(_margProdMode==='ll') return Math.abs(p.ll);
+    if(_margProdMode==='qtd') return p.qtd;
     return Math.abs(p.mc);
   }))||1;
 
@@ -10798,6 +10839,10 @@ function renderMargProd(){
       val=p.ll;
       valStr=fmt(val);
       pct=Math.abs(val)/maxVal*100;
+    } else if(_margProdMode==='qtd'){
+      val=p.qtd;
+      valStr=p.qtd+(p.qtd===1?' venda':' vendas');
+      pct=p.qtd/maxVal*100;
     } else {
       val=p.mc;
       valStr=fmt(val);
