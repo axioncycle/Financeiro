@@ -63,6 +63,9 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 </head>
 <body>
 <div id="toast" class="toast"></div>
+<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;overflow-y:auto;padding:16px;">
+  <div style="max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;" id="ov-body"></div>
+</div>
 <div class="hdr">
   <div class="logo">AXION CYCLE<small>PESSOAL</small></div>
   <button class="icbtn" onclick="toggleTheme()" title="Tema">◐</button>
@@ -230,7 +233,7 @@ function viewLista(tipo,titulo,col,hasCat){
   var items=byTipo(tipo);var total=items.reduce(function(s,i){return s+(+i.valor||0);},0);
   var h='<div class="card"><div class="ttl">'+titulo+'</div><div style="font-size:20px;font-weight:800;color:'+col+';margin-bottom:10px;">'+fmt(total)+'</div>';
   if(!items.length)h+='<div class="empty">Nenhum item</div>';
-  items.forEach(function(it){h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(it.nome||'—')+'</div>'+(it.categoria?'<div class="sb">'+esc(it.categoria)+'</div>':'')+'</div><div class="vl" style="color:'+col+';">'+fmt(it.valor)+'</div><button class="del" onclick="rmItem('+it.id+')">×</button></div>';});
+  items.forEach(function(it){if(editingId===it.id){h+=editorBox(it);return;}h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(it.nome||'—')+'</div>'+(it.categoria?'<div class="sb">'+esc(it.categoria)+'</div>':'')+'</div><div class="vl" style="color:'+col+';">'+fmt(it.valor)+'</div>'+itemActions(it)+'</div>';});
   h+='<div class="add-box"><label class="fl">Nome</label><input class="fi" id="add-nome" placeholder="Descrição">'+
      (hasCat?'<label class="fl" style="margin-top:8px;">Local / Categoria</label><input class="fi" id="add-cat" placeholder="Opcional">':'')+
      '<label class="fl" style="margin-top:8px;">Valor (R$)</label><input class="fi" id="add-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
@@ -255,8 +258,8 @@ function viewAcoes(tipo,titulo,col,moeda){
     '<div style="font-size:20px;font-weight:800;color:'+col+';">'+fmt(totBrl)+'</div>'+
     (moeda==='US$'?'<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+fmtUSD(totUsd)+' × '+fmtN(getDolar())+'</div>':'<div style="margin-bottom:8px;"></div>');
   if(!items.length)h+='<div class="empty">Nenhuma ação</div>';
-  items.forEach(function(a){var t=(+a.qtd||0)*(+a.valor||0);
-    h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(a.nome||'—')+'</div><div class="sb">'+(+a.qtd||0)+' × '+moeda+' '+fmtN(a.valor)+'</div></div><div class="vl" style="color:'+col+';">'+(moeda==='US$'?fmtUSD(t):fmt(t))+'</div><button class="del" onclick="rmItem('+a.id+')">×</button></div>';});
+  items.forEach(function(a){if(editingId===a.id){h+=editorBox(a);return;}var t=(+a.qtd||0)*(+a.valor||0);
+    h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(a.nome||'—')+'</div><div class="sb">'+(+a.qtd||0)+' × '+moeda+' '+fmtN(a.valor)+'</div></div><div class="vl" style="color:'+col+';">'+(moeda==='US$'?fmtUSD(t):fmt(t))+'</div>'+itemActions(a)+'</div>';});
   h+='<div class="add-box"><label class="fl">Ativo / Ticker</label><input class="fi" id="ac-nome" placeholder="Ex: '+(moeda==='US$'?'AAPL':'PETR4')+'">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Quantidade</label><input class="fi" id="ac-qtd" inputmode="decimal" placeholder="0"></div>'+
      '<div><label class="fl">Preço ('+moeda+')</label><input class="fi" id="ac-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
@@ -278,7 +281,7 @@ function viewDolar(){
     '<div style="font-size:20px;font-weight:800;color:#a3e635;">'+fmt(totUsd*getDolar())+'</div>'+
     '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+fmtUSD(totUsd)+' × '+fmtN(getDolar())+'</div>';
   if(!items.length)h+='<div class="empty">Nenhuma reserva</div>';
-  items.forEach(function(d){h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div><div class="sb">'+fmt((+d.valor||0)*getDolar())+'</div></div><div class="vl" style="color:#a3e635;">'+fmtUSD(d.valor)+'</div><button class="del" onclick="rmItem('+d.id+')">×</button></div>';});
+  items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div><div class="sb">'+fmt((+d.valor||0)*getDolar())+'</div></div><div class="vl" style="color:#a3e635;">'+fmtUSD(d.valor)+'</div>'+itemActions(d)+'</div>';});
   h+='<div class="add-box"><label class="fl">Descrição</label><input class="fi" id="dl-nome" placeholder="Ex: Conta Wise, Corretora...">'+
      '<label class="fl" style="margin-top:8px;">Valor (US$)</label><input class="fi" id="dl-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addDolar()">+ Adicionar</button></div>';
@@ -296,8 +299,8 @@ function viewCofrinhos(){
   var items=byTipo('cofrinho');var tot=totCofrinhos();
   var h='<div class="card"><div class="ttl">🐷 Cofrinhos & Metas</div><div style="font-size:20px;font-weight:800;color:#60a5fa;margin-bottom:10px;">'+fmt(tot)+'</div>';
   if(!items.length)h+='<div class="empty">Nenhum cofrinho</div>';
-  items.forEach(function(c){var meta=+c.meta||0,saldo=+c.valor||0;var pct=meta>0?Math.min(100,saldo/meta*100):0;
-    h+='<div class="li" style="display:block;border-left-color:#60a5fa;"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(saldo)+'</div><button class="del" onclick="rmItem('+c.id+')">×</button></div></div>'+
+  items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}var meta=+c.meta||0,saldo=+c.valor||0;var pct=meta>0?Math.min(100,saldo/meta*100):0;
+    h+='<div class="li" style="display:block;border-left-color:#60a5fa;"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(saldo)+'</div>'+itemActions(c)+'</div></div>'+
     (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+'</div>';});
   h+='<div class="add-box"><label class="fl">Nome do cofrinho</label><input class="fi" id="cf-nome" placeholder="Ex: Reserva, Viagem...">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Saldo atual</label><input class="fi" id="cf-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
@@ -325,14 +328,35 @@ function renderGastos(tipo,pg,titulo){
     '<div class="mrow">'+MONTHS.map(function(m,i){return '<button class="mb'+(selMonth===i+1?' on':'')+'" onclick="setMonth('+(i+1)+')">'+m+'</button>';}).join('')+'</div>'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><span style="font-size:11px;color:var(--text3);">Total '+MONTHS[selMonth-1]+'/'+selYear+'</span><span style="font-size:20px;font-weight:800;color:#ef4444;">'+fmt(total)+'</span></div>';
   if(!items.length)h+='<div class="empty">Nenhum gasto neste mês</div>';
-  items.forEach(function(g){
-    h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(g.nome||'—')+'</div><div class="sb">'+(isExtra?fmtData(g.data):'Mensal')+(g.categoria?' · '+esc(g.categoria):'')+'</div></div><div class="vl rd">'+fmt(g.valor)+'</div><button class="del" onclick="rmItem('+g.id+')">×</button></div>';
+  items.forEach(function(g){if(editingId===g.id){h+=editorBox(g);return;}
+    h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(g.nome||'—')+'</div><div class="sb">'+(isExtra?fmtData(g.data):'Mensal')+(g.categoria?' · '+esc(g.categoria):'')+'</div></div><div class="vl rd">'+fmt(g.valor)+'</div>'+itemActions(g)+'</div>';
   });
   h+='<div class="add-box"><label class="fl">Descrição</label><input class="fi" id="g-nome" placeholder="Ex: '+(isExtra?'Restaurante':'Aluguel')+'">';
   if(isExtra) h+='<div class="row" style="margin-top:8px;"><div><label class="fl">Dia</label><input class="fi" id="g-data" type="date" value="'+selMk()+'-'+String(Math.min(_n.getDate(),28)).padStart(2,'0')+'"></div><div><label class="fl">Valor</label><input class="fi" id="g-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div><label class="fl" style="margin-top:8px;">Categoria (opcional)</label><input class="fi" id="g-cat" placeholder="Ex: Alimentação">';
   else h+='<label class="fl" style="margin-top:8px;">Valor mensal</label><input class="fi" id="g-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">';
   h+='<button class="btn-add" style="margin-top:10px;" onclick="addGasto(\''+tipo+'\','+(isExtra?1:0)+')">+ Adicionar em '+MONTHS[selMonth-1]+'/'+selYear+'</button></div>';
-  el.innerHTML=h+'</div>';
+  h+='</div>';
+  if(!isExtra) h+=faturaSection(selMk());
+  el.innerHTML=h;
+}
+// Botão de importar fatura + detalhamento das compras do cartão do mês
+function faturaSection(mk){
+  var itens=cartaoItensMes(mk);
+  var h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:'+(itens.length?'10px':'0')+';">'+
+    '<div class="ttl" style="margin:0;">💳 Fatura do Cartão</div>'+
+    '<button class="btn-add" style="width:auto;padding:8px 12px;font-size:12px;" onclick="openFaturaImport()">📄 Importar fatura</button>'+
+  '</div>';
+  if(itens.length){
+    var tot=itens.reduce(function(s,x){return s+(+x.valor||0);},0);
+    var cats={};itens.forEach(function(x){var c=x.categoria||'Outros';cats[c]=(cats[c]||0)+(+x.valor||0);});
+    h+='<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">'+itens.length+' compras · total '+fmt(tot)+' (lançado como fixo "Cartão de Crédito")</div>';
+    h+='<div style="margin-bottom:8px;">'+Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];}).map(function(c){return '<span style="display:inline-block;background:var(--bg3);border-radius:12px;padding:3px 9px;font-size:10px;margin:0 5px 5px 0;">'+esc(c)+': '+fmt(cats[c])+'</span>';}).join('')+'</div>';
+    itens.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(x){
+      if(editingId===x.id){h+=editorBox(x);return;}
+      h+='<div class="li" style="border-left-color:#a855f7;padding:7px 10px;"><div style="flex:1;min-width:0;"><div class="nm" style="font-size:12px;">'+esc(x.nome||'—')+'</div><div class="sb">'+fmtData(x.data)+(x.categoria?' · '+esc(x.categoria):'')+'</div></div><div class="vl ac" style="font-size:13px;">'+fmt(x.valor)+'</div>'+itemActions(x)+'</div>';
+    });
+  }
+  return h+'</div>';
 }
 function addGasto(tipo,isExtra){
   var nome=(document.getElementById('g-nome').value||'').trim();
@@ -346,7 +370,109 @@ function addGasto(tipo,isExtra){
 }
 
 // ── Remover ────────────────────────────────────────────
-function rmItem(id){delItem(id,function(){render();toast('Removido');});}
+function rmItem(id){if(!confirm('Apagar este item?'))return;delItem(id,function(){render();toast('Removido');});}
+
+// ── Editar (inline, qualquer item) ─────────────────────
+var editingId=null;
+function editItem(id){editingId=id;render();}
+function cancelEdit(){editingId=null;render();}
+function itemActions(it){return '<button class="del" style="color:var(--accent);font-size:15px;" onclick="editItem('+it.id+')" title="Editar">✎</button><button class="del" onclick="rmItem('+it.id+')" title="Apagar">×</button>';}
+function editorBox(it){
+  var t=it.tipo;
+  var h='<div class="li" style="display:block;border-left-color:var(--accent);">';
+  h+='<label class="fl">Nome</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">';
+  if(t==='terreno'){h+='<label class="fl" style="margin-top:6px;">Local / Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'">';}
+  if(t==='gasto_extra'||t==='cartao_item'){h+='<label class="fl" style="margin-top:6px;">Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
+  if(t==='acao_br'||t==='acao_eua'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
+  var moeda=(t==='acao_eua'||t==='dolar')?'US$':'R$';
+  var vlbl=(t==='acao_br'||t==='acao_eua')?'Preço unitário ('+moeda+')':'Valor ('+moeda+')';
+  h+='<label class="fl" style="margin-top:6px;">'+vlbl+'</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)">';
+  if(t==='cofrinho'){h+='<label class="fl" style="margin-top:6px;">Meta</label><input class="fi" id="ed-meta" inputmode="decimal" value="'+(it.meta?fmtN(it.meta):'')+'" oninput="maskBRL(this)">';}
+  h+='<div class="row" style="margin-top:10px;"><button class="btn-add" onclick="saveEditItem('+it.id+')">✓ Salvar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelEdit()">Cancelar</button></div>';
+  return h+'</div>';
+}
+function saveEditItem(id){
+  var it=ITEMS.find(function(x){return x.id===id;});if(!it)return;
+  var obj={nome:(document.getElementById('ed-nome').value||'').trim(),valor:parseBRL(document.getElementById('ed-val').value)};
+  var q=document.getElementById('ed-qtd');if(q)obj.qtd=parseNum(q.value);
+  var m=document.getElementById('ed-meta');if(m)obj.meta=parseBRL(m.value);
+  var c=document.getElementById('ed-cat');if(c)obj.categoria=(c.value||'').trim();
+  var d=document.getElementById('ed-data');if(d&&d.value)obj.data=d.value;
+  editingId=null;
+  updItem(id,obj,function(){render();toast('Atualizado!');});
+}
+
+// ── Importar fatura do cartão ──────────────────────────
+function addItemsBatch(arr,cb){
+  if(!arr.length){cb&&cb();return;}
+  fetch(SUPA_URL+'/rest/v1/pf_items',{method:'POST',headers:Object.assign({},HDRS,{'Prefer':'return=representation'}),body:JSON.stringify(arr)})
+    .then(function(r){return r.json();})
+    .then(function(rows){if(Array.isArray(rows))rows.forEach(function(x){ITEMS.push(x);});cb&&cb();})
+    .catch(function(){toast('Erro ao importar',true);cb&&cb();});
+}
+function setCardTotal(mk,total,cb){
+  var f=ITEMS.find(function(x){return x.tipo==='gasto_fixo'&&(x.data||'').slice(0,7)===mk&&/cart[aã]o/i.test(x.nome||'');});
+  if(f) updItem(f.id,{valor:total},cb);
+  else addItem({tipo:'gasto_fixo',nome:'Cartão de Crédito',valor:total,data:mk+'-01'},cb);
+}
+function closeOv(){document.getElementById('ov').style.display='none';}
+function openFaturaImport(){
+  var b=document.getElementById('ov-body');
+  b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div class="ttl" style="margin:0;">📄 Importar Fatura — '+MONTHS[selMonth-1]+'/'+selYear+'</div><button class="del" onclick="closeOv()">×</button></div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Cole o texto da fatura (uma compra por linha). O app separa os gastos por categoria e coloca o total no "Cartão de Crédito".</div>'+
+    '<textarea id="fat-txt" class="fi" style="height:200px;font-size:12px;resize:vertical;" placeholder="Ex:\n15/03 UBER *TRIP 24,90\n16/03 SUPERMERCADO XYZ 340,15\n18/03 NETFLIX 55,90"></textarea>'+
+    '<button class="btn-add" style="margin-top:10px;background:var(--accent);color:#fff;border:none;" onclick="analisarFatura()">Analisar</button>';
+  document.getElementById('ov').style.display='block';
+}
+var _fat=[];
+function analisarFatura(){
+  _fat=parseFatura(document.getElementById('fat-txt').value||'');
+  if(!_fat.length){toast('Nenhuma compra reconhecida',true);return;}
+  previewFatura();
+}
+function parseFatura(txt){
+  var out=[],lines=txt.split(/\n/);
+  var skip=/(^total|fatura|vencimento|limite|pagamento|saldo|anterior|encargos|juros|pontos|d[eé]bito autom|valor total)/i;
+  lines.forEach(function(ln){
+    ln=ln.trim();if(!ln||skip.test(ln))return;
+    var m=ln.match(/(-?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2}|-?\s*R?\$?\s*\d+\.\d{2})\s*$/);
+    if(!m)return;
+    var valor=parseBRL(m[1]);if(!valor)return;
+    var desc=ln.slice(0,m.index).trim().replace(/^\d{1,2}[\/.]\d{1,2}([\/.]\d{2,4})?\s*/,'').trim();
+    var dm=ln.match(/^(\d{1,2})[\/.](\d{1,2})/);
+    var dia=String(Math.min(28,Math.max(1,dm?parseInt(dm[1],10):1))).padStart(2,'0');
+    out.push({desc:desc||'Compra',valor:valor,dia:dia,cat:autoCat(desc)});
+  });
+  return out;
+}
+function autoCat(d){d=(d||'').toLowerCase();
+  if(/(mercado|super|atacad|padaria|acougue|hortifruti|ifood|restaurante|lanch|food|pizzar)/.test(d))return 'Alimentação';
+  if(/(uber|99|posto|combust|gasolina|estacion|pedagio|latam|gol|azul)/.test(d))return 'Transporte';
+  if(/(farmac|drogaria|unimed|hospital|clinic|laborat)/.test(d))return 'Saúde';
+  if(/(netflix|spotify|amazon prime|assinatura|prime|hbo|disney|youtube|apple.com)/.test(d))return 'Assinaturas';
+  if(/(shopping|loja|magaz|renner|zara|roupa|americanas|shopee|mercadolivre|aliexpress)/.test(d))return 'Compras';
+  return '';
+}
+function previewFatura(){
+  var tot=_fat.reduce(function(s,x){return s+x.valor;},0);
+  var cats={};_fat.forEach(function(x){cats[x.cat||'Outros']=(cats[x.cat||'Outros']||0)+x.valor;});
+  var b=document.getElementById('ov-body');
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">'+_fat.length+' compras · '+fmt(tot)+'</div><button class="del" onclick="closeOv()">×</button></div>';
+  h+='<div style="margin-bottom:10px;">'+Object.keys(cats).map(function(c){return '<span style="display:inline-block;background:var(--bg3);border-radius:12px;padding:3px 9px;font-size:10px;margin:0 5px 5px 0;">'+esc(c)+': '+fmt(cats[c])+'</span>';}).join('')+'</div>';
+  h+='<div style="max-height:320px;overflow-y:auto;">';
+  _fat.forEach(function(x,i){h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm" style="font-size:12px;">'+esc(x.desc)+'</div><div class="sb">dia '+x.dia+(x.cat?' · '+esc(x.cat):'')+'</div></div><div class="vl rd" style="font-size:13px;">'+fmt(x.valor)+'</div><button class="del" onclick="rmFat('+i+')">×</button></div>';});
+  h+='</div>';
+  h+='<button class="btn-add" style="margin-top:10px;background:var(--accent);color:#fff;border:none;" onclick="importFatura()">✓ Importar e lançar total no Cartão</button>';
+  b.innerHTML=h;
+}
+function rmFat(i){_fat.splice(i,1);if(!_fat.length){closeOv();return;}previewFatura();}
+function importFatura(){
+  var mk=selMk();
+  var arr=_fat.map(function(x){return {tipo:'cartao_item',nome:x.desc,valor:x.valor,data:mk+'-'+x.dia,categoria:x.cat};});
+  var tot=_fat.reduce(function(s,x){return s+x.valor;},0);
+  addItemsBatch(arr,function(){setCardTotal(mk,tot,function(){closeOv();render();toast('Fatura importada! Total '+fmt(tot));});});
+}
+function cartaoItensMes(mk){return ITEMS.filter(function(x){return x.tipo==='cartao_item'&&(x.data||'').slice(0,7)===mk;});}
 
 // ── Init ───────────────────────────────────────────────
 try{if(localStorage.getItem('pf_theme')==='light')document.body.classList.add('light');}catch(e){}
