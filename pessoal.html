@@ -134,6 +134,23 @@ function byTipo(t){return ITEMS.filter(function(x){return x.tipo===t;});}
 
 // ── Cotação do dólar (config) ──────────────────────────
 function getDolar(){var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='dolar_rate';});return c&&+c.valor?+c.valor:5.40;}
+// ── Cotações de ações ao vivo (Yahoo via proxy) ────────
+var QUOTE_URL='https://financeiro-ten-kappa.vercel.app/api/quote';
+var _prices={};
+function tickerOf(a){return ((a.nome||'').split('·')[0].trim().split(/\s+/)[0]||'').toUpperCase();}
+function yahooSym(a){var t=tickerOf(a);return a.tipo==='acao_br'?(t+'.SA'):t;}
+function precoAtual(a){var q=_prices[yahooSym(a)];return q&&q.price?q.price:0;}
+function curVal(a){var p=precoAtual(a);return p>0?(+a.qtd||0)*p:(+a.valor||0);} // moeda nativa; sem preço → usa custo
+function ganhoInfo(a){var custo=+a.valor||0,cv=curVal(a),g=cv-custo;return{cv:cv,custo:custo,g:g,pct:custo>0?g/custo*100:0,live:precoAtual(a)>0};}
+function fmtCur(v,moeda){return moeda==='US$'?fmtUSD(v):fmt(v);}
+function fetchPrices(cb){
+  var acoes=byTipo('acao_br').concat(byTipo('acao_eua'));
+  var syms=acoes.map(yahooSym).filter(function(s){return s&&s.length>1;});
+  syms=syms.filter(function(s,i){return syms.indexOf(s)===i;});
+  if(!syms.length){cb&&cb();return;}
+  fetch(QUOTE_URL+'?symbols='+encodeURIComponent(syms.join(','))).then(function(r){return r.json();}).then(function(j){_prices=j||{};cb&&cb();}).catch(function(){cb&&cb();});
+}
+function atualizarCotacoes(){toast('Atualizando cotações...');fetchPrices(function(){render();fetchDolar();});}
 // Busca a cotação USD/BRL ao vivo e salva
 function fetchDolar(){
   toast('Buscando cotação do dólar...');
@@ -163,8 +180,8 @@ function goTo(pg){
 function sumTipo(t){return byTipo(t).reduce(function(s,i){return s+(+i.valor||0);},0);}
 function totCofrinhos(){return sumTipo('cofrinho');}
 function totTerrenos(){return sumTipo('terreno');}
-function totAcoesBR(){return byTipo('acao_br').reduce(function(s,a){return s+(+a.valor||0);},0);}
-function totAcoesEUAusd(){return byTipo('acao_eua').reduce(function(s,a){return s+(+a.valor||0);},0);}
+function totAcoesBR(){return byTipo('acao_br').reduce(function(s,a){return s+curVal(a);},0);}
+function totAcoesEUAusd(){return byTipo('acao_eua').reduce(function(s,a){return s+curVal(a);},0);}
 function totDolarUsd(){return sumTipo('dolar');}
 function totAcoesEUAbrl(){return totAcoesEUAusd()*getDolar();}
 function totDolarBrl(){return totDolarUsd()*getDolar();}
@@ -258,29 +275,34 @@ function addSimple(tipo,hasCat){
   addItem(obj,function(){render();toast('Adicionado!');});
 }
 
-// Ações (BR em R$, EUA em US$): nome + qtd + VALOR TOTAL da posição
+// Ações (BR em R$, EUA em US$): ticker + qtd + VALOR PAGO. Preço ao vivo → valor atual + % ganho
 function viewAcoes(tipo,titulo,col,moeda){
   var items=byTipo(tipo);
   var isUSD=(moeda==='US$');
-  var totMoeda=items.reduce(function(s,a){return s+(+a.valor||0);},0);
-  var totBrl=isUSD?totMoeda*getDolar():totMoeda;
+  var totCur=items.reduce(function(s,a){return s+curVal(a);},0);        // valor atual (moeda nativa)
+  var totCusto=items.reduce(function(s,a){return s+(+a.valor||0);},0);  // valor pago
+  var totG=totCur-totCusto, totPct=totCusto>0?totG/totCusto*100:0;
+  var gcol=totG>=0?'#22c55e':'#ef4444';
   var h='<div class="card"><div class="ttl">'+titulo+'</div>';
   if(isUSD){
-    h+='<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">'+
-       '<div style="font-size:20px;font-weight:800;color:'+col+';">'+fmtUSD(totMoeda)+'</div>'+
-       '<div style="font-size:20px;font-weight:800;color:var(--accent);">'+fmt(totBrl)+'</div></div>'+
-       '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Cotação US$ '+fmtN(getDolar())+' <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchDolar()">🔄 atualizar</span></div>';
+    h+='<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;"><div style="font-size:20px;font-weight:800;color:'+col+';">'+fmtUSD(totCur)+'</div><div style="font-size:20px;font-weight:800;color:var(--accent);">'+fmt(totCur*getDolar())+'</div></div>';
   } else {
-    h+='<div style="font-size:20px;font-weight:800;color:'+col+';margin-bottom:8px;">'+fmt(totMoeda)+'</div>';
+    h+='<div style="font-size:20px;font-weight:800;color:'+col+';">'+fmt(totCur)+'</div>';
   }
+  h+='<div style="font-size:11px;margin-bottom:8px;"><span style="color:'+gcol+';font-weight:700;">'+(totG>=0?'▲ +':'▼ ')+fmtCur(totG,moeda)+' ('+totPct.toFixed(1)+'%)</span> <span style="color:var(--text3);">· pago '+fmtCur(totCusto,moeda)+(isUSD?' · US$ '+fmtN(getDolar()):'')+'</span> <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="atualizarCotacoes()">🔄 atualizar</span></div>';
   if(!items.length)h+='<div class="empty">Nenhuma ação</div>';
   items.forEach(function(a){if(editingId===a.id){h+=editorBox(a);return;}
-    var vBrl=isUSD?(+a.valor||0)*getDolar():(+a.valor||0);
-    h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(a.nome||'—')+'</div><div class="sb">'+(+a.qtd||0)+' cotas'+(isUSD?' · '+fmt(vBrl):'')+'</div></div><div class="vl" style="color:'+col+';">'+(isUSD?fmtUSD(a.valor):fmt(a.valor))+'</div>'+itemActions(a)+'</div>';});
-  h+='<div class="add-box"><label class="fl">Ativo / Ticker</label><input class="fi" id="ac-nome" placeholder="Ex: '+(isUSD?'AAPL':'PETR4')+'">'+
+    var info=ganhoInfo(a),igc=info.g>=0?'#22c55e':'#ef4444';
+    h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;">'+
+       '<div class="nm">'+esc(a.nome||'—')+'</div>'+
+       '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(1)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+'</div></div>'+
+       '<div style="text-align:right;"><div class="vl" style="color:'+col+';">'+fmtCur(info.cv,moeda)+'</div>'+(isUSD?'<div style="font-size:10px;color:var(--accent);">'+fmt(info.cv*getDolar())+'</div>':'')+'</div>'+
+       itemActions(a)+'</div>';});
+  h+='<div class="add-box"><label class="fl">Ticker (ex: '+(isUSD?'AAPL, VOO':'PETR4, ITUB4')+')</label><input class="fi" id="ac-nome" placeholder="'+(isUSD?'AAPL':'PETR4')+'">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Quantidade</label><input class="fi" id="ac-qtd" inputmode="decimal" placeholder="0"></div>'+
-     '<div><label class="fl">Valor total ('+moeda+')</label><input class="fi" id="ac-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
-     '<button class="btn-add" style="margin-top:10px;" onclick="addAcao(\''+tipo+'\')">+ Adicionar</button></div>';
+     '<div><label class="fl">Valor pago ('+moeda+')</label><input class="fi" id="ac-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
+     '<div style="font-size:10px;color:var(--text3);margin-top:5px;">O preço atual é buscado ao vivo pelo ticker. Use o código exato da ação.</div>'+
+     '<button class="btn-add" style="margin-top:8px;" onclick="addAcao(\''+tipo+'\')">+ Adicionar</button></div>';
   return h+'</div>';
 }
 function addAcao(tipo){
@@ -402,7 +424,7 @@ function editorBox(it){
   if(t==='gasto_extra'||t==='cartao_item'){h+='<label class="fl" style="margin-top:6px;">Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
   if(t==='acao_br'||t==='acao_eua'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
   var moeda=(t==='acao_eua'||t==='dolar')?'US$':'R$';
-  var vlbl=(t==='acao_br'||t==='acao_eua')?'Valor total ('+moeda+')':'Valor ('+moeda+')';
+  var vlbl=(t==='acao_br'||t==='acao_eua')?'Valor pago ('+moeda+')':'Valor ('+moeda+')';
   h+='<label class="fl" style="margin-top:6px;">'+vlbl+'</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)">';
   if(t==='cofrinho'){h+='<label class="fl" style="margin-top:6px;">Meta</label><input class="fi" id="ed-meta" inputmode="decimal" value="'+(it.meta?fmtN(it.meta):'')+'" oninput="maskBRL(this)">';}
   h+='<div class="row" style="margin-top:10px;"><button class="btn-add" onclick="saveEditItem('+it.id+')">✓ Salvar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelEdit()">Cancelar</button></div>';
@@ -581,6 +603,7 @@ function lerPdfFatura(input){
 try{if(localStorage.getItem('pf_theme')==='light')document.body.classList.add('light');}catch(e){}
 loadItems(function(){
   render();
+  fetchPrices(function(){render();}); // preços das ações ao vivo
   // Atualiza a cotação do dólar ao vivo uma vez por dia
   var hoje=today();
   var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='dolar_rate';});
