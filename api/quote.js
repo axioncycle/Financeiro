@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       const j = await r.json();
       const meta = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
       const price = meta && (meta.regularMarketPrice || meta.previousClose);
-      if (price) out[sym] = { price: price, currency: meta.currency || '' };
+      if (price) out[sym] = { price: price, currency: meta.currency || '', name: (meta.shortName || meta.longName || '') };
     } catch (e) { /* ignora símbolo com erro */ }
   }));
 
