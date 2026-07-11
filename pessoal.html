@@ -440,11 +440,11 @@ function parseFatura(txt){
   var reDate=/^(\d{1,2})[\/.](\d{1,2})(?:[\/.]\d{2,4})?$/;
   var reValOnly=/^-?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2}$/;
   var reValEnd=/(-?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/;
-  var noise=/(cota[cç][aã]o do d[oó]lar|d[oó]lar americano|^\*\*\*|^[a-z]{2}$|p[aá]gina|www\.|\.com\.br|central de|ouvidoria|^sac\b|^br$|^gb$)/i;
-  var skip=/(limite|saldo fatura|pagamentos?\/?cr|resumo|op[cç][oõ]es de pagament|pagamento m[ií]nimo|encargos|juros|multa|CET|mensalidade|pontos smiles|tarifa|informa[cç][oõ]es|compras nacionais|compras internacionais|i[o0]f nesta|valor total|vencimento)/i;
+  var noise=/(cota[cç][aã]o do d[oó]lar|d[oó]lar americano|^\*\*\*|^[a-z]{2}$|p[aá]gina|www\.|\.com\.br|central de|ouvidoria|^sac\b|^br$|^gb$|\*{4,}|^data\b|descri[cç][aã]o)/i;
+  var skip=/(limite|saldo fatura|pagamentos?\/?cr|resumo|op[cç][oõ]es de pagament|pagamento m[ií]nimo|encargos|juros de mora|multa contratual|CET|mensalidade|pontos smiles|tarifa|informa[cç][oõ]es|compras nacionais|compras internacionais|i[o0]f\b|valor total|subtotal|despesas at[eé]|vencimento)/i;
   for(var i=0;i<lines.length;i++){
     var ln=lines[i];
-    if(/total da fatura/i.test(ln)){var mv=ln.match(reValEnd);if(mv)total=parseBRL(mv[1]);else if(lines[i+1]&&reValOnly.test(lines[i+1]))total=parseBRL(lines[i+1]);continue;}
+    if(/total da fatura|valor total devido/i.test(ln)){var mv=ln.match(reValEnd);if(mv)total=parseBRL(mv[1]);else if(lines[i+1]&&reValOnly.test(lines[i+1]))total=parseBRL(lines[i+1]);continue;}
     if(!total&&/^total$/i.test(ln)&&lines[i+1]&&reValOnly.test(lines[i+1])){total=parseBRL(lines[i+1]);continue;}
     if(noise.test(ln))continue;
     if(reDate.test(ln)){var dm=ln.match(reDate);curDia=dm[1];desc=[];haveDate=true;continue;}
@@ -453,11 +453,14 @@ function parseFatura(txt){
       if(haveDate&&v>0&&desc.length){out.push(mkItem(desc.join(' '),v,curDia));}
       desc=[];haveDate=false;continue;
     }
+    // XP: linha com DOIS valores no fim (R$ e US$) — pega o R$ (primeiro)
+    var m2=ln.match(/(-?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s+(-?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/);
     var me=ln.match(reValEnd);
-    if(me){
+    if(m2||me){
+      var idx=m2?m2.index:me.index, valTok=m2?m2[1]:me[1];
       var ld=ln.match(/^(\d{1,2})[\/.](\d{1,2})/);
-      var body=ln.slice(0,me.index).replace(/^\d{1,2}[\/.]\d{1,2}([\/.]\d{2,4})?\s*/,'').trim();
-      var vv=parseBRL(me[1]);
+      var body=ln.slice(0,idx).replace(/^\d{1,2}[\/.]\d{1,2}([\/.]\d{2,4})?\s*/,'').trim();
+      var vv=parseBRL(valTok);
       if(vv>0&&(ld||haveDate)&&!skip.test(body)&&(body||desc.length)){out.push(mkItem((desc.join(' ')+' '+body).trim(),vv,ld?ld[1]:curDia));}
       desc=[];haveDate=ld?false:haveDate;continue;
     }
