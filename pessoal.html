@@ -419,9 +419,12 @@ function closeOv(){document.getElementById('ov').style.display='none';}
 function openFaturaImport(){
   var b=document.getElementById('ov-body');
   b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div class="ttl" style="margin:0;">📄 Importar Fatura — '+MONTHS[selMonth-1]+'/'+selYear+'</div><button class="del" onclick="closeOv()">×</button></div>'+
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Cole o texto da fatura (uma compra por linha). O app separa os gastos por categoria e coloca o total no "Cartão de Crédito".</div>'+
-    '<textarea id="fat-txt" class="fi" style="height:200px;font-size:12px;resize:vertical;" placeholder="Ex:\n15/03 UBER *TRIP 24,90\n16/03 SUPERMERCADO XYZ 340,15\n18/03 NETFLIX 55,90"></textarea>'+
-    '<button class="btn-add" style="margin-top:10px;background:var(--accent);color:#fff;border:none;" onclick="analisarFatura()">Analisar</button>';
+    '<label class="fl">1) Enviar PDF da fatura (BB, XP, etc.)</label>'+
+    '<input id="fat-pwd" class="fi" placeholder="Senha do PDF (deixe vazio se não tiver)" style="margin-bottom:8px;">'+
+    '<input type="file" accept="application/pdf" id="fat-file" onchange="lerPdfFatura(this)" style="font-size:12px;width:100%;">'+
+    '<div style="font-size:11px;color:var(--text3);margin:12px 0 6px;">— ou cole o texto da fatura —</div>'+
+    '<textarea id="fat-txt" class="fi" style="height:150px;font-size:12px;resize:vertical;" placeholder="Cole aqui o texto copiado do PDF..."></textarea>'+
+    '<button class="btn-add" style="margin-top:10px;background:var(--accent);color:#fff;border:none;" onclick="analisarFatura()">Analisar texto colado</button>';
   document.getElementById('ov').style.display='block';
 }
 var _fat=[],_fatTotal=0;
@@ -508,6 +511,54 @@ function importFatura(){
   addItemsBatch(arr,function(){setCardTotal(mk,tot,function(){closeOv();render();toast('Fatura importada! Total '+fmt(tot));});});
 }
 function cartaoItensMes(mk){return ITEMS.filter(function(x){return x.tipo==='cartao_item'&&(x.data||'').slice(0,7)===mk;});}
+
+// ── Ler PDF da fatura (pdf.js sob demanda) ─────────────
+function ensurePdfJs(cb){
+  if(window.pdfjsLib){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  s.onload=function(){try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){}cb();};
+  s.onerror=function(){toast('Falha ao carregar leitor de PDF',true);};
+  document.head.appendChild(s);
+}
+function pdfToText(buf,pwd){
+  return pdfjsLib.getDocument({data:buf,password:pwd||''}).promise.then(function(pdf){
+    var texto='';
+    function pagina(p){
+      if(p>pdf.numPages)return Promise.resolve(texto);
+      return pdf.getPage(p).then(function(pg){return pg.getTextContent();}).then(function(tc){
+        var linhas={};
+        tc.items.forEach(function(it){if(!it.str)return;var y=Math.round(it.transform[5]);(linhas[y]=linhas[y]||[]).push({x:it.transform[4],s:it.str});});
+        Object.keys(linhas).map(Number).sort(function(a,b){return b-a;}).forEach(function(y){
+          texto+=linhas[y].sort(function(a,b){return a.x-b.x;}).map(function(o){return o.s;}).join(' ')+'\n';
+        });
+        return pagina(p+1);
+      });
+    }
+    return pagina(1);
+  });
+}
+function lerPdfFatura(input){
+  var f=input.files&&input.files[0];if(!f){return;}
+  var pwd=(document.getElementById('fat-pwd')||{value:''}).value||'';
+  toast('Lendo PDF...');
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var buf=new Uint8Array(e.target.result);
+    ensurePdfJs(function(){
+      pdfToText(buf,pwd).then(function(txt){
+        var ta=document.getElementById('fat-txt');if(ta)ta.value=txt;
+        analisarFatura();
+      }).catch(function(err){
+        var m=(err&&(err.name||err.message)||'')+'';
+        if(/password/i.test(m)) toast('PDF protegido — digite a senha e envie de novo',true);
+        else toast('Não consegui ler o PDF — cole o texto manualmente',true);
+      });
+    });
+    input.value='';
+  };
+  rd.readAsArrayBuffer(f);
+}
 
 // ── Init ───────────────────────────────────────────────
 try{if(localStorage.getItem('pf_theme')==='light')document.body.classList.add('light');}catch(e){}
