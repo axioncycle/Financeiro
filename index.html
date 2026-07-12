@@ -5208,11 +5208,20 @@ function renderRes(){
   document.getElementById('res-anual').innerHTML=
     '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#1E90FF;margin-bottom:8px;">RESUMO</div>'+
     yrBtns+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+
-      '<div><div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;">Faturamento</div><div style="display:flex;align-items:baseline;gap:4px;"><div style="font-size:18px;font-weight:800;color:#1E90FF;">'+fmt(anoFatF)+'</div>'+momBadge(curFat,prevFat)+'</div></div>'+
-      '<div><div style="font-size:9px;color:#22c55e;font-weight:600;text-transform:uppercase;">Margem Contribuição</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-size:18px;font-weight:800;color:#22c55e;">'+fmt(anoMargContribF)+'</div><div style="font-size:9px;color:#22c55e;opacity:.7;">'+(anoFatF?(anoMargContribF/anoFatF*100):0).toFixed(1)+'%</div></div><div style="font-size:9px;color:var(--text3);">Após taxas, CMV, frete e extras</div></div>'+
-      '<div><div style="font-size:9px;color:#f59e0b;font-weight:600;text-transform:uppercase;">EBITDA</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-size:18px;font-weight:800;color:#f59e0b;">'+fmt(anoEbitdaF)+'</div><div style="font-size:9px;color:#f59e0b;opacity:.7;">'+(anoFatF?(anoEbitdaF/anoFatF*100):0).toFixed(1)+'%</div></div><div style="font-size:9px;color:var(--text3);">Margem contrib. − custos fixos</div></div>'+
-      '<div><div style="font-size:9px;color:'+acF+';font-weight:600;text-transform:uppercase;">Lucro Líquido</div><div style="display:flex;align-items:baseline;gap:4px;"><div style="font-size:18px;font-weight:800;color:'+acF+';">'+fmt(anoLiqF)+'</div>'+momBadge(curLiq,prevLiq)+'<div style="font-size:9px;color:'+acF+';opacity:.7;">'+(anoFatF?(anoLiqF/anoFatF*100):0).toFixed(1)+'%</div></div><div style="font-size:9px;color:var(--text3);">EBITDA ± financeiro − DAS</div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 10px;">'+
+      '<div><div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Faturamento</div>'+
+        '<div class="num" style="font-size:17px;font-weight:800;color:#1E90FF;white-space:nowrap;margin-top:2px;">'+fmt(anoFatF)+'</div>'+
+        '<div style="min-height:14px;margin-top:2px;">'+momBadge(curFat,prevFat)+'</div></div>'+
+      '<div><div style="font-size:9px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Margem Contribuição</div>'+
+        '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;flex-wrap:wrap;"><div class="num" style="font-size:17px;font-weight:800;color:#22c55e;white-space:nowrap;">'+fmt(anoMargContribF)+'</div><div style="font-size:10px;color:#22c55e;opacity:.8;">'+(anoFatF?(anoMargContribF/anoFatF*100):0).toFixed(1)+'%</div></div>'+
+        '<div style="font-size:9px;color:var(--text3);margin-top:2px;">Após taxas, CMV, frete e extras</div></div>'+
+      '<div><div style="font-size:9px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:.4px;">EBITDA</div>'+
+        '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;flex-wrap:wrap;"><div class="num" style="font-size:17px;font-weight:800;color:#f59e0b;white-space:nowrap;">'+fmt(anoEbitdaF)+'</div><div style="font-size:10px;color:#f59e0b;opacity:.8;">'+(anoFatF?(anoEbitdaF/anoFatF*100):0).toFixed(1)+'%</div></div>'+
+        '<div style="font-size:9px;color:var(--text3);margin-top:2px;">Margem contrib. − custos fixos</div></div>'+
+      '<div><div style="font-size:9px;color:'+acF+';font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Lucro Líquido</div>'+
+        '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;flex-wrap:wrap;"><div class="num" style="font-size:17px;font-weight:800;color:'+acF+';white-space:nowrap;">'+fmt(anoLiqF)+'</div><div style="font-size:10px;color:'+acF+';opacity:.8;">'+(anoFatF?(anoLiqF/anoFatF*100):0).toFixed(1)+'%</div></div>'+
+        '<div style="min-height:14px;margin-top:2px;">'+momBadge(curLiq,prevLiq)+'</div>'+
+        '<div style="font-size:9px;color:var(--text3);margin-top:2px;">EBITDA ± financeiro − DAS</div></div>'+
     '</div>'+
     // ── WATERFALL ──────────────────────────────────────
     (function(){
