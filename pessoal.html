@@ -333,7 +333,7 @@ function viewAcoes(tipo,titulo,col,moeda){
   } else {
     h+='<div style="font-size:20px;font-weight:800;color:'+col+';">'+fmt(totCur)+'</div>';
   }
-  h+='<div style="font-size:11px;margin-bottom:8px;"><span style="color:'+gcol+';font-weight:700;">'+(totG>=0?'▲ +':'▼ ')+fmtCur(totG,moeda)+' ('+totPct.toFixed(1)+'%)</span> <span style="color:var(--text3);">· pago '+fmtCur(totCusto,moeda)+(isUSD?' · US$ '+fmtN(getDolar()):'')+'</span> <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="atualizarCotacoes()">🔄 atualizar</span></div>';
+  h+='<div style="font-size:11px;margin-bottom:8px;"><span style="color:'+gcol+';font-weight:700;">'+(totG>=0?'▲ +':'▼ ')+fmtCur(totG,moeda)+' ('+totPct.toFixed(2)+'%)</span> <span style="color:var(--text3);">· pago '+fmtCur(totCusto,moeda)+(isUSD?' · US$ '+fmtN(getDolar()):'')+'</span> <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="atualizarCotacoes()">🔄 atualizar</span></div>';
   if(items.length>=2) h+=pieSection(items,moeda);
   if(!items.length)h+='<div class="empty">Nenhuma ação</div>';
   items.slice().sort(function(x,y){return curVal(y)-curVal(x);}).forEach(function(a){
@@ -342,7 +342,7 @@ function viewAcoes(tipo,titulo,col,moeda){
     var info=ganhoInfo(a),igc=info.g>=0?'#22c55e':'#ef4444';
     h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;">'+
        '<div class="nm">'+esc(a.nome||'—')+(nomeAtivo(a)?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(nomeAtivo(a))+'</span>':'')+'</div>'+
-       '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(1)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+'</div></div>'+
+       '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+'</div></div>'+
        '<div style="text-align:right;"><div class="vl" style="color:'+col+';">'+fmtCur(info.cv,moeda)+'</div>'+(isUSD?'<div style="font-size:10px;color:var(--accent);">'+fmt(info.cv*getDolar())+'</div>':'')+'</div>'+
        '<button class="del" style="color:#22c55e;font-size:17px;" onclick="novaCompra('+a.id+')" title="Nova compra">＋</button>'+itemActions(a)+'</div>';});
   h+='<div class="add-box"><label class="fl">Ticker (ex: '+(isUSD?'AAPL, VOO':'PETR4, ITUB4')+')</label><input class="fi" id="ac-nome" placeholder="'+(isUSD?'AAPL':'PETR4')+'">'+
