@@ -6,31 +6,41 @@
 <title>Axion — Pessoal</title>
 <style>
 :root{
-  --bg:#050505;--bg2:#0e0e0e;--bg3:#161616;--card:#111;--border:#222;--border2:#2a2a2a;
-  --input:#1a1a1a;--input-border:#2a2a2a;--text:#f0f0f0;--text2:#aaa;--text3:#666;--accent:#a855f7;--sbtn-bg:#1c1c1c;
+  --bg:#080b16;--bg2:rgba(255,255,255,.045);--bg3:rgba(255,255,255,.07);--card:rgba(255,255,255,.055);--border:rgba(255,255,255,.10);--border2:rgba(255,255,255,.16);
+  --input:rgba(255,255,255,.06);--input-border:rgba(255,255,255,.14);--text:#eef2fb;--text2:#a3b1d1;--text3:#5f6d92;--accent:#8b93ff;--sbtn-bg:rgba(255,255,255,.06);
+  --glass:blur(16px) saturate(150%);--shadow:0 10px 34px rgba(0,0,0,.42);--shadow-sm:0 3px 14px rgba(0,0,0,.30);
 }
 body.light{
-  --bg:#f4ede0;--bg2:#efe6d6;--bg3:#e7dcc8;--card:#fbf6ec;--border:#d8cbb3;--border2:#cebfa2;
-  --input:#fbf6ec;--input-border:#d8cbb3;--text:#2a241a;--text2:#6b5f48;--text3:#9a8c70;--accent:#8b3fd4;--sbtn-bg:#e7dcc8;
+  --bg:#eef1f8;--bg2:rgba(20,30,70,.04);--bg3:rgba(20,30,70,.07);--card:rgba(255,255,255,.72);--border:rgba(20,30,70,.10);--border2:rgba(20,30,70,.16);
+  --input:rgba(255,255,255,.85);--input-border:rgba(20,30,70,.14);--text:#141a2e;--text2:#4a5578;--text3:#8b96b5;--accent:#6d5cf0;--sbtn-bg:rgba(20,30,70,.05);
+  --glass:blur(16px) saturate(140%);--shadow:0 10px 30px rgba(60,70,120,.14);--shadow-sm:0 3px 12px rgba(60,70,120,.10);
 }
-:root{--shadow:0 2px 10px rgba(0,0,0,.28);--shadow-sm:0 1px 4px rgba(0,0,0,.22);}
-body.light{--shadow:0 2px 10px rgba(120,90,40,.10);--shadow-sm:0 1px 4px rgba(120,90,40,.08);}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 button{font-family:inherit;}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.4;padding-bottom:88px;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.4;padding-bottom:88px;-webkit-font-smoothing:antialiased;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(60% 40% at 12% 18%, rgba(56,189,248,.16), transparent 60%),
+  radial-gradient(55% 45% at 88% 42%, rgba(168,85,247,.18), transparent 60%),
+  radial-gradient(70% 50% at 50% 108%, rgba(120,140,255,.14), transparent 60%);}
+body.light::before{background:
+  radial-gradient(60% 40% at 12% 15%, rgba(56,150,248,.16), transparent 60%),
+  radial-gradient(55% 45% at 90% 40%, rgba(150,90,247,.14), transparent 60%),
+  radial-gradient(70% 50% at 50% 108%, rgba(120,140,255,.12), transparent 60%);}
 .num,.kpi .vl,.li .vl,.yr span{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;box-shadow:var(--shadow-sm);}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);-webkit-backdrop-filter:var(--glass);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;box-shadow:var(--shadow-sm);}
 .logo{font-size:15px;font-weight:900;color:var(--accent);letter-spacing:1.5px;line-height:1.05;}
 .logo small{display:block;font-size:8px;color:var(--text3);letter-spacing:2px;margin-top:2px;}
 .icbtn{background:var(--sbtn-bg);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;color:var(--text2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .08s,background .15s;}
 .icbtn:active{transform:scale(.9);background:var(--bg3);}
-.nav{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:64px;z-index:40;}
+.nav{display:flex;background:var(--bg2);-webkit-backdrop-filter:var(--glass);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);position:sticky;top:64px;z-index:40;}
 .nb{flex:1;padding:13px 6px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:color .15s;}
 .nb.on{color:var(--accent);border-bottom-color:var(--accent);}
 .page{display:none;padding:14px;max-width:640px;margin:0 auto;}
 .page.on{display:block;animation:fade .22s ease;}
 @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow);}
+.card{background:var(--card);-webkit-backdrop-filter:var(--glass);backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow);}
+.hero{position:relative;overflow:hidden;border:1px solid rgba(139,147,255,.35);background:linear-gradient(135deg,rgba(139,147,255,.28),rgba(168,85,247,.16) 55%,rgba(56,189,248,.14));}
+.hero::after{content:'';position:absolute;right:-30px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(139,147,255,.35),transparent 70%);pointer-events:none;}
 .ttl{font-size:10px;color:var(--accent);font-weight:800;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;}
 .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 13px;}
@@ -265,10 +275,15 @@ function renderDash(){
   var pt=patrimonioTotal(),mk=curMk();
   var el=document.getElementById('pg-dash');
   el.innerHTML=
-    '<div class="card" style="border-color:var(--accent);">'+
-      '<div class="ttl">Patrimônio Total</div>'+
-      '<div style="font-size:30px;font-weight:900;color:var(--accent);">'+fmt(pt)+'</div>'+
-      '<div style="font-size:10px;color:var(--text3);margin-top:4px;">Dólar: R$ '+fmtN(getDolar())+'</div>'+
+    '<div class="card hero">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
+        '<div style="min-width:0;">'+
+          '<div style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.5px;">Patrimônio Total</div>'+
+          '<div class="num" style="font-size:33px;font-weight:900;color:#fff;letter-spacing:-.5px;margin-top:2px;line-height:1.05;">'+fmt(pt)+'</div>'+
+          '<div style="font-size:11px;color:var(--text2);margin-top:4px;">Dólar R$ '+fmtN(getDolar())+'</div>'+
+        '</div>'+
+        sparkHero()+
+      '</div>'+
     '</div>'+
     '<div class="kpi-grid">'+
       kpi('Cofrinhos',totCofrinhos(),'#60a5fa')+
@@ -288,7 +303,15 @@ function renderDash(){
       '</div></div>';})();
 }
 function fmtN(v){return (+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function kpi(lb,vl,col){return '<div class="kpi"><div class="lb">'+lb+'</div><div class="vl" style="color:'+col+';">'+fmt(vl)+'</div></div>';}
+function kpi(lb,vl,col){return '<div class="kpi"><div style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+col+';flex-shrink:0;box-shadow:0 0 8px '+col+';"></span><div class="lb">'+lb+'</div></div><div class="vl" style="color:'+col+';margin-top:5px;">'+fmt(vl)+'</div></div>';}
+function sparkHero(){
+  var d='M0,25 L14,21 L28,23 L42,15 L56,18 L70,9 L84,12 L100,3';
+  return '<svg width="112" height="40" viewBox="0 0 100 30" preserveAspectRatio="none" style="flex-shrink:0;">'+
+    '<defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#38bdf8"/><stop offset=".5" stop-color="#8b93ff"/><stop offset="1" stop-color="#c084fc"/></linearGradient>'+
+    '<linearGradient id="sgf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b93ff" stop-opacity=".35"/><stop offset="1" stop-color="#8b93ff" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+d+' L100,30 L0,30 Z" fill="url(#sgf)"/>'+
+    '<path d="'+d+'" fill="none" stroke="url(#sg)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
 function distribuicao(){
   var pt=patrimonioTotal();if(pt<=0)return '';
   var parts=[['Cofrinhos',totCofrinhos(),'#60a5fa'],['Terrenos',totTerrenos(),'#f59e0b'],['Ações BR',totAcoesBR(),'#22c55e'],['Ações EUA',totAcoesEUAbrl(),'#16a34a'],['Dólar',totDolarBrl(),'#a3e635']];
