@@ -68,7 +68,10 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 </div>
 <div class="hdr">
   <div class="logo">AXION CYCLE<small>PESSOAL</small></div>
-  <button class="icbtn" onclick="toggleTheme()" title="Tema">◐</button>
+  <div style="display:flex;gap:8px;">
+    <button class="icbtn" onclick="recarregar()" title="Atualizar">⟳</button>
+    <button class="icbtn" onclick="toggleTheme()" title="Tema">◐</button>
+  </div>
 </div>
 <div class="nav" id="nav">
   <button class="nb on" data-pg="dash" onclick="goTo('dash')">Dashboard</button>
@@ -131,6 +134,11 @@ function delItem(id,cb){
     .catch(function(){toast('Erro ao remover',true);cb&&cb();});
 }
 function byTipo(t){return ITEMS.filter(function(x){return x.tipo===t;});}
+// Recarrega dados do banco + cotações
+function recarregar(){
+  toast('Atualizando...');
+  loadItems(function(){render();fetchPrices(function(){render();});fetchDolar();});
+}
 
 // ── Cotação do dólar (config) ──────────────────────────
 function getDolar(){var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='dolar_rate';});return c&&+c.valor?+c.valor:5.40;}
