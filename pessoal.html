@@ -275,10 +275,14 @@ function cofrinhoRend(c){
   var iAnual=getCdi()/100*pctCdi;
   return pv*Math.pow(1+iAnual,du/252)-pv;
 }
-// IR regressivo (sobre o rendimento, por dias corridos)
+// IOF regressivo — só nos primeiros 30 dias corridos (% sobre o rendimento)
+var IOF_TAB=[0,96,93,90,86,83,80,76,73,70,66,63,60,56,53,50,46,43,40,36,33,30,26,23,20,16,13,10,6,3,0];
+function iofPct(dc){if(dc>=30)return 0;return (IOF_TAB[dc]||0)/100;}
+function cofrinhoIOF(c){return cofrinhoRend(c)*iofPct(diasDesde(c.data));}
+// IR regressivo (sobre o rendimento após IOF, por dias corridos)
 function irAliquota(dc){if(dc<=180)return .225;if(dc<=360)return .20;if(dc<=720)return .175;return .15;}
-function cofrinhoIR(c){return cofrinhoRend(c)*irAliquota(diasDesde(c.data));}
-function cofrinhoRendLiq(c){return cofrinhoRend(c)-cofrinhoIR(c);}
+function cofrinhoIR(c){return (cofrinhoRend(c)-cofrinhoIOF(c))*irAliquota(diasDesde(c.data));}
+function cofrinhoRendLiq(c){return cofrinhoRend(c)-cofrinhoIOF(c)-cofrinhoIR(c);}
 function cofrinhoAtual(c){return (+c.valor||0)+cofrinhoRendLiq(c);}
 
 // ── Navegação ──────────────────────────────────────────
@@ -479,7 +483,7 @@ function viewCofrinhos(){
     h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div>'+itemActions(c)+'</div></div>'+
       '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(rLiq)+' líq</span> · '+pctCdi+'% CDI'+(c.data?' · '+du+' dias úteis':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
-      (c.data&&rBruto>0?'<div class="sb" style="color:var(--text3);">bruto +'+fmt(rBruto)+' − IR '+irPct.toFixed(1)+'% ('+fmt(ir)+') · desde '+fmtData(c.data)+'</div>':'')+
+      (c.data&&rBruto>0?'<div class="sb" style="color:var(--text3);">bruto +'+fmt(rBruto)+(cofrinhoIOF(c)>0?' − IOF '+fmt(cofrinhoIOF(c)):'')+' − IR '+irPct.toFixed(1)+'% ('+fmt(ir)+') · desde '+fmtData(c.data)+'</div>':'')+
       (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
     '</div>';});
   h+='<div class="add-box"><label class="fl">Nome do cofrinho</label><input class="fi" id="cf-nome" placeholder="Ex: Reserva, Viagem...">'+
