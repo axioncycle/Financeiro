@@ -159,7 +159,7 @@ function byTipo(t){return ITEMS.filter(function(x){return x.tipo===t;});}
 // Recarrega dados do banco + cotações
 function recarregar(){
   toast('Atualizando...');
-  loadItems(function(){render();fetchPrices(function(){render();});fetchDolar();});
+  loadItems(function(){render();fetchPrices(function(){render();});fetchDolar();fetchCdi();});
 }
 
 // ── Cotação do dólar (config) ──────────────────────────
@@ -239,6 +239,23 @@ function setDolar(v){
   if(c) updItem(c.id,{valor:v},function(){render();});
   else addItem({tipo:'config',nome:'dolar_rate',valor:v},function(){render();});
 }
+// ── CDI (rendimento dos cofrinhos) ─────────────────────
+var CDI_URL='https://financeiro-ten-kappa.vercel.app/api/cdi';
+function getCdi(){var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='cdi_rate';});return c&&+c.valor?+c.valor:14.65;}
+function setCdi(v){var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='cdi_rate';});if(c)updItem(c.id,{valor:v},function(){render();});else addItem({tipo:'config',nome:'cdi_rate',valor:v},function(){render();});}
+function fetchCdi(){
+  fetch(CDI_URL).then(function(r){return r.json();}).then(function(j){if(j&&j.cdi){setCdi(Math.round(j.cdi*100)/100);toast('CDI atualizado: '+fmtN(j.cdi)+'% a.a.');}}).catch(function(){});
+}
+function diasDesde(d){if(!d)return 0;var a=new Date((d.slice(0,10))+'T00:00:00'),b=new Date(today()+'T00:00:00');var ms=b-a;return ms>0?Math.floor(ms/86400000):0;}
+// Rendimento do cofrinho: X% do CDI (qtd = % do CDI, padrão 105) desde a data de aplicação
+function cofrinhoRend(c){
+  var pv=+c.valor||0;if(pv<=0)return 0;
+  var dias=diasDesde(c.data);if(!dias)return 0;
+  var pctCdi=(+c.qtd||105)/100;
+  var iAnual=getCdi()/100*pctCdi;
+  return pv*Math.pow(1+iAnual,dias/365)-pv;
+}
+function cofrinhoAtual(c){return (+c.valor||0)+cofrinhoRend(c);}
 
 // ── Navegação ──────────────────────────────────────────
 var CUR='dash';
@@ -252,7 +269,7 @@ function goTo(pg){
 
 // ── Totais ─────────────────────────────────────────────
 function sumTipo(t){return byTipo(t).reduce(function(s,i){return s+(+i.valor||0);},0);}
-function totCofrinhos(){return sumTipo('cofrinho');}
+function totCofrinhos(){return byTipo('cofrinho').reduce(function(s,c){return s+cofrinhoAtual(c);},0);}
 function totTerrenos(){return sumTipo('terreno');}
 function totAcoesBR(){return byTipo('acao_br').reduce(function(s,a){return s+curVal(a);},0);}
 function totAcoesEUAusd(){return byTipo('acao_eua').reduce(function(s,a){return s+curVal(a);},0);}
@@ -423,16 +440,27 @@ function addDolar(){
   addItem({tipo:'dolar',nome:nome,valor:val},function(){render();toast('Reserva adicionada!');});
 }
 
-// Cofrinhos (saldo + meta)
+// Cofrinhos (valor aplicado + rendimento % do CDI + meta)
 function viewCofrinhos(){
   var items=byTipo('cofrinho');var tot=totCofrinhos();
-  var h='<div class="card"><div class="ttl">🐷 Cofrinhos & Metas</div><div style="font-size:20px;font-weight:800;color:#60a5fa;margin-bottom:10px;">'+fmt(tot)+'</div>';
+  var aplicado=items.reduce(function(s,c){return s+(+c.valor||0);},0);
+  var rend=tot-aplicado;
+  var h='<div class="card"><div class="ttl">🐷 Cofrinhos & Rendimento</div>'+
+    '<div style="font-size:20px;font-weight:800;color:#60a5fa;">'+fmt(tot)+'</div>'+
+    '<div style="font-size:11px;margin-bottom:8px;"><span style="color:#22c55e;font-weight:700;">+ '+fmt(rend)+' rendimento</span> <span style="color:var(--text3);">· aplicado '+fmt(aplicado)+' · CDI '+fmtN(getCdi())+'% a.a. <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchCdi()">🔄</span></span></div>';
   if(!items.length)h+='<div class="empty">Nenhum cofrinho</div>';
-  items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}var meta=+c.meta||0,saldo=+c.valor||0;var pct=meta>0?Math.min(100,saldo/meta*100):0;
-    h+='<div class="li" style="display:block;border-left-color:#60a5fa;"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(saldo)+'</div>'+itemActions(c)+'</div></div>'+
-    (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+'</div>';});
+  items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}
+    var atual=cofrinhoAtual(c),r=cofrinhoRend(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),dias=diasDesde(c.data);
+    var pct=meta>0?Math.min(100,atual/meta*100):0;
+    h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div>'+itemActions(c)+'</div></div>'+
+      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(r)+'</span> · '+pctCdi+'% CDI'+(c.data?' · desde '+fmtData(c.data)+' ('+dias+'d)':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
+      (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
+    '</div>';});
   h+='<div class="add-box"><label class="fl">Nome do cofrinho</label><input class="fi" id="cf-nome" placeholder="Ex: Reserva, Viagem...">'+
-     '<div class="row" style="margin-top:8px;"><div><label class="fl">Saldo atual</label><input class="fi" id="cf-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
+     '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor aplicado</label><input class="fi" id="cf-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
+     '<div><label class="fl">Data da aplicação</label><input class="fi" id="cf-data" type="date" value="'+today()+'"></div></div>'+
+     '<div class="row" style="margin-top:8px;"><div><label class="fl">% do CDI</label><input class="fi" id="cf-cdi" inputmode="decimal" value="105"></div>'+
      '<div><label class="fl">Meta (opcional)</label><input class="fi" id="cf-meta" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addCofrinho()">+ Adicionar</button></div>';
   return h+'</div>';
@@ -440,7 +468,7 @@ function viewCofrinhos(){
 function addCofrinho(){
   var nome=(document.getElementById('cf-nome').value||'').trim();
   if(!nome){toast('Informe o nome',true);return;}
-  addItem({tipo:'cofrinho',nome:nome,valor:parseBRL(document.getElementById('cf-val').value),meta:parseBRL(document.getElementById('cf-meta').value)},function(){render();toast('Cofrinho adicionado!');});
+  addItem({tipo:'cofrinho',nome:nome,valor:parseBRL(document.getElementById('cf-val').value),meta:parseBRL(document.getElementById('cf-meta').value),data:document.getElementById('cf-data').value||today(),qtd:parseQtd(document.getElementById('cf-cdi').value)||105},function(){render();toast('Cofrinho adicionado!');});
 }
 
 // ── Meu Bolso: ganhos + gastos fixos/extras + saldo ────
@@ -545,9 +573,10 @@ function editorBox(it){
   if(t==='gasto_extra'||t==='cartao_item'){h+='<label class="fl" style="margin-top:6px;">Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
   if(t==='acao_br'||t==='acao_eua'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
   var moeda=(t==='acao_eua'||t==='dolar')?'US$':'R$';
-  var vlbl=(t==='acao_br'||t==='acao_eua')?'Valor pago ('+moeda+')':'Valor ('+moeda+')';
+  var vlbl=(t==='acao_br'||t==='acao_eua')?'Valor pago ('+moeda+')':(t==='cofrinho'?'Valor aplicado (R$)':'Valor ('+moeda+')');
   h+='<label class="fl" style="margin-top:6px;">'+vlbl+'</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)">';
-  if(t==='cofrinho'){h+='<label class="fl" style="margin-top:6px;">Meta</label><input class="fi" id="ed-meta" inputmode="decimal" value="'+(it.meta?fmtN(it.meta):'')+'" oninput="maskBRL(this)">';}
+  if(t==='cofrinho'){h+='<div class="row" style="margin-top:6px;"><div><label class="fl">Data da aplicação</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'"></div><div><label class="fl">% do CDI</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||105)+'"></div></div>'+
+    '<label class="fl" style="margin-top:6px;">Meta</label><input class="fi" id="ed-meta" inputmode="decimal" value="'+(it.meta?fmtN(it.meta):'')+'" oninput="maskBRL(this)">';}
   h+='<div class="row" style="margin-top:10px;"><button class="btn-add" onclick="saveEditItem('+it.id+')">✓ Salvar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelEdit()">Cancelar</button></div>';
   return h+'</div>';
 }
@@ -730,6 +759,10 @@ loadItems(function(){
   var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='dolar_rate';});
   var last=null;try{last=localStorage.getItem('pf_dolar_day');}catch(e){}
   if(!c||last!==hoje){try{localStorage.setItem('pf_dolar_day',hoje);}catch(e){}fetchDolar();}
+  // Atualiza CDI uma vez por dia
+  var cc=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='cdi_rate';});
+  var lc=null;try{lc=localStorage.getItem('pf_cdi_day');}catch(e){}
+  if(!cc||lc!==hoje){try{localStorage.setItem('pf_cdi_day',hoje);}catch(e){}fetchCdi();}
 });
 </script>
 </body>
