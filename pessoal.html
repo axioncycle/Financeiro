@@ -247,13 +247,33 @@ function fetchCdi(){
   fetch(CDI_URL).then(function(r){return r.json();}).then(function(j){if(j&&j.cdi){setCdi(Math.round(j.cdi*100)/100);toast('CDI atualizado: '+fmtN(j.cdi)+'% a.a.');}}).catch(function(){});
 }
 function diasDesde(d){if(!d)return 0;var a=new Date((d.slice(0,10))+'T00:00:00'),b=new Date(today()+'T00:00:00');var ms=b-a;return ms>0?Math.floor(ms/86400000):0;}
-// Rendimento do cofrinho: X% do CDI (qtd = % do CDI, padrão 105) desde a data de aplicação
+// Feriados B3/bancários (nacionais + móveis via Páscoa) para contar dias úteis (base 252)
+function _easter(y){var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da);}
+var _holCache={};
+function _holidays(y){
+  var e=_easter(y),H={};
+  function add(dt){H[dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')]=1;}
+  function off(n){var x=new Date(e);x.setDate(x.getDate()+n);return x;}
+  [[0,1],[3,21],[4,1],[8,7],[9,12],[10,2],[10,15],[10,20],[11,25]].forEach(function(md){add(new Date(y,md[0],md[1]));});
+  add(off(-48));add(off(-47));add(off(-2));add(off(60)); // carnaval seg/ter, sexta santa, corpus christi
+  return H;
+}
+function _isHol(dt){var y=dt.getFullYear();if(!_holCache[y])_holCache[y]=_holidays(y);return !!_holCache[y][y+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')];}
+function diasUteis(dataStr){
+  if(!dataStr)return 0;
+  var a=new Date(dataStr.slice(0,10)+'T00:00:00'),b=new Date(today()+'T00:00:00');
+  if(b<=a)return 0;
+  var n=0,cur=new Date(a);cur.setDate(cur.getDate()+1);
+  while(cur<=b){var wd=cur.getDay();if(wd!==0&&wd!==6&&!_isHol(cur))n++;cur.setDate(cur.getDate()+1);}
+  return n;
+}
+// Rendimento do cofrinho: X% do CDI (qtd = % do CDI, padrão 105) por DIAS ÚTEIS (base 252)
 function cofrinhoRend(c){
   var pv=+c.valor||0;if(pv<=0)return 0;
-  var dias=diasDesde(c.data);if(!dias)return 0;
+  var du=diasUteis(c.data);if(!du)return 0;
   var pctCdi=(+c.qtd||105)/100;
   var iAnual=getCdi()/100*pctCdi;
-  return pv*Math.pow(1+iAnual,dias/365)-pv;
+  return pv*Math.pow(1+iAnual,du/252)-pv;
 }
 function cofrinhoAtual(c){return (+c.valor||0)+cofrinhoRend(c);}
 
@@ -450,11 +470,11 @@ function viewCofrinhos(){
     '<div style="font-size:11px;margin-bottom:8px;"><span style="color:#22c55e;font-weight:700;">+ '+fmt(rend)+' rendimento</span> <span style="color:var(--text3);">· aplicado '+fmt(aplicado)+' · CDI '+fmtN(getCdi())+'% a.a. <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchCdi()">🔄</span></span></div>';
   if(!items.length)h+='<div class="empty">Nenhum cofrinho</div>';
   items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}
-    var atual=cofrinhoAtual(c),r=cofrinhoRend(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),dias=diasDesde(c.data);
+    var atual=cofrinhoAtual(c),r=cofrinhoRend(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),du=diasUteis(c.data);
     var pct=meta>0?Math.min(100,atual/meta*100):0;
     h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div>'+itemActions(c)+'</div></div>'+
-      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(r)+'</span> · '+pctCdi+'% CDI'+(c.data?' · desde '+fmtData(c.data)+' ('+dias+'d)':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
+      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(r)+'</span> · '+pctCdi+'% CDI'+(c.data?' · desde '+fmtData(c.data)+' ('+du+' dias úteis)':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
       (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
     '</div>';});
   h+='<div class="add-box"><label class="fl">Nome do cofrinho</label><input class="fi" id="cf-nome" placeholder="Ex: Reserva, Viagem...">'+
