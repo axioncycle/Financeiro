@@ -275,7 +275,11 @@ function cofrinhoRend(c){
   var iAnual=getCdi()/100*pctCdi;
   return pv*Math.pow(1+iAnual,du/252)-pv;
 }
-function cofrinhoAtual(c){return (+c.valor||0)+cofrinhoRend(c);}
+// IR regressivo (sobre o rendimento, por dias corridos)
+function irAliquota(dc){if(dc<=180)return .225;if(dc<=360)return .20;if(dc<=720)return .175;return .15;}
+function cofrinhoIR(c){return cofrinhoRend(c)*irAliquota(diasDesde(c.data));}
+function cofrinhoRendLiq(c){return cofrinhoRend(c)-cofrinhoIR(c);}
+function cofrinhoAtual(c){return (+c.valor||0)+cofrinhoRendLiq(c);}
 
 // ── Navegação ──────────────────────────────────────────
 var CUR='dash';
@@ -464,17 +468,18 @@ function addDolar(){
 function viewCofrinhos(){
   var items=byTipo('cofrinho');var tot=totCofrinhos();
   var aplicado=items.reduce(function(s,c){return s+(+c.valor||0);},0);
-  var rend=tot-aplicado;
+  var rendLiq=tot-aplicado;
   var h='<div class="card"><div class="ttl">🐷 Cofrinhos & Rendimento</div>'+
     '<div style="font-size:20px;font-weight:800;color:#60a5fa;">'+fmt(tot)+'</div>'+
-    '<div style="font-size:11px;margin-bottom:8px;"><span style="color:#22c55e;font-weight:700;">+ '+fmt(rend)+' rendimento</span> <span style="color:var(--text3);">· aplicado '+fmt(aplicado)+' · CDI '+fmtN(getCdi())+'% a.a. <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchCdi()">🔄</span></span></div>';
+    '<div style="font-size:11px;margin-bottom:8px;"><span style="color:#22c55e;font-weight:700;">+ '+fmt(rendLiq)+' líquido</span> <span style="color:var(--text3);">· aplicado '+fmt(aplicado)+' · já com IR descontado · CDI '+fmtN(getCdi())+'% a.a. <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchCdi()">🔄</span></span></div>';
   if(!items.length)h+='<div class="empty">Nenhum cofrinho</div>';
   items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}
-    var atual=cofrinhoAtual(c),r=cofrinhoRend(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),du=diasUteis(c.data);
+    var atual=cofrinhoAtual(c),rLiq=cofrinhoRendLiq(c),rBruto=cofrinhoRend(c),ir=cofrinhoIR(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),du=diasUteis(c.data), irPct=(irAliquota(diasDesde(c.data))*100);
     var pct=meta>0?Math.min(100,atual/meta*100):0;
     h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div>'+itemActions(c)+'</div></div>'+
-      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(r)+'</span> · '+pctCdi+'% CDI'+(c.data?' · desde '+fmtData(c.data)+' ('+du+' dias úteis)':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
+      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(rLiq)+' líq</span> · '+pctCdi+'% CDI'+(c.data?' · '+du+' dias úteis':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
+      (c.data&&rBruto>0?'<div class="sb" style="color:var(--text3);">bruto +'+fmt(rBruto)+' − IR '+irPct.toFixed(1)+'% ('+fmt(ir)+') · desde '+fmtData(c.data)+'</div>':'')+
       (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
     '</div>';});
   h+='<div class="add-box"><label class="fl">Nome do cofrinho</label><input class="fi" id="cf-nome" placeholder="Ex: Reserva, Viagem...">'+
