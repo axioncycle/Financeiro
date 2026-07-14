@@ -270,7 +270,21 @@ function diasUteis(dataStr){
   return n;
 }
 // Rendimento do cofrinho: X% do CDI (qtd = % do CDI, padrão 105) por DIAS ÚTEIS (base 252)
+// Meses completos (aniversários) desde a aplicação — para a poupança
+function mesesCompletos(dataStr){
+  if(!dataStr)return 0;
+  var a=new Date(dataStr.slice(0,10)+'T00:00:00'),b=new Date(today()+'T00:00:00');
+  if(b<=a)return 0;
+  var m=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+  if(b.getDate()<a.getDate())m--;
+  return m<0?0:m;
+}
+// Regra da poupança: 0,5%/mês se Selic>8,5% a.a.; senão 70% da Selic (TR≈0)
+function selicAnual(){return getCdi()+0.10;} // Selic ≈ CDI + 0,1
+function poupancaRateMes(){var s=selicAnual();if(s>8.5)return 0.005;var sm=Math.pow(1+s/100,1/12)-1;return 0.70*sm;}
+function poupancaRend(c){var pv=+c.valor||0;if(pv<=0)return 0;var m=mesesCompletos(c.data);if(!m)return 0;return pv*Math.pow(1+poupancaRateMes(),m)-pv;}
 function cofrinhoRend(c){
+  if(rfProduto(c)==='Poupança')return poupancaRend(c);
   var pv=+c.valor||0;if(pv<=0)return 0;
   var du=diasUteis(c.data);if(!du)return 0;
   var pctCdi=(+c.qtd||105)/100;
@@ -554,7 +568,7 @@ function viewCofrinhos(){
     var pct=meta>0?Math.min(100,atual/meta*100):0;
     h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+' <span style="font-size:9px;color:#60a5fa;font-weight:700;background:rgba(96,165,250,.15);border-radius:8px;padding:1px 6px;">'+esc(prod)+'</span></div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div>'+itemActions(c)+'</div></div>'+
-      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(rLiq)+' líq</span> · '+pctCdi+'% CDI'+(c.data?' · '+du+' dias úteis':' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
+      '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(rLiq)+' líq</span> · '+(prod==='Poupança'?'poupança':pctCdi+'% CDI')+(c.data?' · '+(prod==='Poupança'?mesesCompletos(c.data)+' meses':du+' dias úteis'):' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
       (c.data&&rBruto>0?'<div class="sb" style="color:var(--text3);">bruto +'+fmt(rBruto)+(isento?' · isento de IR/IOF':(iof>0?' − IOF '+fmt(iof):'')+' − IR '+irPct.toFixed(1)+'% ('+fmt(ir)+')')+' · desde '+fmtData(c.data)+'</div>':'')+
       (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
     '</div>';});
