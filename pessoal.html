@@ -466,10 +466,12 @@ function viewDolar(){
   items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}
     if(retiradaId===d.id){h+=retiradaBox(d);return;}
     var usd=+d.valor||0, custo=+d.meta||0, atual=usd*cot, g=atual-custo, pg=custo>0?g/custo*100:0, mr=usd>0?custo/usd:0, igc=g>=0?'#22c55e':'#ef4444';
-    h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+
+    h+='<div class="li" style="display:block;border-left-color:#a3e635;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+
       '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+'</div></div>'+
-      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+
-      '<button class="del" style="color:#f59e0b;font-size:18px;" onclick="retirar('+d.id+')" title="Retirada">↓</button>'+itemActions(d)+'</div>';});
+      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>'+
+      '<button onclick="retirar('+d.id+')" style="width:100%;margin-top:8px;background:rgba(245,158,11,.12);border:1px solid #f59e0b55;color:#f59e0b;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">↓ Registrar retirada</button>'+
+    '</div>';});
   h+='<div class="add-box"><label class="fl">Descrição</label><input class="fi" id="dl-nome" placeholder="Ex: Conta Wise, Corretora...">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor em US$</label><input class="fi" id="dl-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
      '<div><label class="fl">Valor pago (R$)</label><input class="fi" id="dl-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
