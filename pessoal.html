@@ -459,22 +459,11 @@ function viewDolar(){
   var ganho=totAtual-totCusto, pctG=totCusto>0?ganho/totCusto*100:0;
   var media=totUsd>0?totCusto/totUsd:0;
   var gcol=ganho>=0?'#22c55e':'#ef4444';
+  // ── Card 1: resumo + cadastro + retirada ──
   var h='<div class="card"><div class="ttl">💵 Reserva em Dólar</div>'+
     '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;"><div style="font-size:20px;font-weight:800;color:#a3e635;">'+fmt(totAtual)+'</div>'+
       '<div style="font-size:13px;font-weight:800;color:'+gcol+';">'+(ganho>=0?'▲ +':'▼ ')+fmt(ganho)+' ('+pctG.toFixed(2)+'%)</div></div>'+
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+fmtUSD(totUsd)+' · pago '+fmt(totCusto)+(media>0?' · média R$ '+fmtN(media):'')+' · hoje R$ '+fmtN(cot)+' <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchDolar()">🔄</span></div>';
-  if(!items.length)h+='<div class="empty">Nenhuma reserva</div>';
-  items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}
-    var usd=+d.valor||0, custo=+d.meta||0, atual=usd*cot, g=atual-custo, pg=custo>0?g/custo*100:0, mr=usd>0?custo/usd:0, igc=g>=0?'#22c55e':'#ef4444';
-    h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+(d.categoria?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(d.categoria)+'</span>':'')+'</div>'+
-      '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+'</div></div>'+
-      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>';});
-  // Retiradas registradas (histórico)
-  var saidas=byTipo('dolar_saida').slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
-  if(saidas.length){
-    h+='<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px;">Retiradas</div>';
-    saidas.forEach(function(s){h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">↓ '+esc(s.nome||'—')+'</div><div class="sb">'+fmtData(s.data)+'</div></div><div class="vl rd">− '+fmtUSD(s.valor)+'</div><button class="del" onclick="rmItem('+s.id+')" title="Apagar">×</button></div>';});
-  }
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">'+fmtUSD(totUsd)+' · pago '+fmt(totCusto)+(media>0?' · média R$ '+fmtN(media):'')+' · hoje R$ '+fmtN(cot)+' <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchDolar()">🔄</span></div>';
   var bancoOpts=BANCOS.map(function(b){return '<option value="'+b+'">'+b+'</option>';}).join('');
   h+='<div class="add-box"><label class="fl">Banco</label><select class="fi" id="dl-banco">'+bancoOpts+'</select>'+
      '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="dl-desc" placeholder="Ex: reserva viagem">'+
@@ -491,6 +480,19 @@ function viewDolar(){
        '<button class="btn-add" style="margin-top:8px;border-color:#f59e0b;color:#f59e0b;" onclick="registrarRetirada()">↓ Registrar retirada</button></div>';
   }
   h+='</div>';
+  // ── Card 2: lista de reservas + retiradas ──
+  h+='<div class="card"><div class="ttl">Minhas reservas</div>';
+  if(!items.length)h+='<div class="empty">Nenhuma reserva cadastrada</div>';
+  items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}
+    var usd=+d.valor||0, custo=+d.meta||0, atual=usd*cot, g=atual-custo, pg=custo>0?g/custo*100:0, mr=usd>0?custo/usd:0, igc=g>=0?'#22c55e':'#ef4444';
+    h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+(d.categoria?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(d.categoria)+'</span>':'')+'</div>'+
+      '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+'</div></div>'+
+      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>';});
+  var saidas=byTipo('dolar_saida').slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  if(saidas.length){
+    h+='<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px;">Retiradas</div>';
+    saidas.forEach(function(s){h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">↓ '+esc(s.nome||'—')+'</div><div class="sb">'+fmtData(s.data)+'</div></div><div class="vl rd">− '+fmtUSD(s.valor)+'</div><button class="del" onclick="rmItem('+s.id+')" title="Apagar">×</button></div>';});
+  }
   return h+'</div>';
 }
 function addDolar(){
