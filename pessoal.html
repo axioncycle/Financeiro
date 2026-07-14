@@ -476,6 +476,7 @@ function viewDolar(){
     var rtOpts=Object.keys(byBank).map(function(b){return '<option value="'+esc(b)+'">'+esc(b)+' · '+fmtUSD(byBank[b])+' disp.</option>';}).join('');
     h+='<div style="border-top:1px dashed var(--border2);margin-top:12px;padding-top:12px;"><label class="fl">Registrar retirada</label>'+
        '<select class="fi" id="dl-rt-item">'+rtOpts+'</select>'+
+       '<input class="fi" id="dl-rt-desc" placeholder="Descrição (opcional)" style="margin-top:8px;">'+
        '<input class="fi" id="dl-rt-val" inputmode="decimal" placeholder="Valor retirado (US$)" oninput="maskBRL(this)" style="margin-top:8px;">'+
        '<button class="btn-add" style="margin-top:8px;border-color:#f59e0b;color:#f59e0b;" onclick="registrarRetirada()">↓ Registrar retirada</button></div>';
   }
@@ -491,7 +492,7 @@ function viewDolar(){
   var saidas=byTipo('dolar_saida').slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   if(saidas.length){
     h+='<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 5px;">Retiradas</div>';
-    saidas.forEach(function(s){h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">↓ '+esc(s.nome||'—')+'</div><div class="sb">'+fmtData(s.data)+'</div></div><div class="vl rd">− '+fmtUSD(s.valor)+'</div><button class="del" onclick="rmItem('+s.id+')" title="Apagar">×</button></div>';});
+    saidas.forEach(function(s){h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">↓ '+esc(s.nome||'—')+(s.categoria?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(s.categoria)+'</span>':'')+'</div><div class="sb">'+fmtData(s.data)+'</div></div><div class="vl rd">− '+fmtUSD(s.valor)+'</div><button class="del" onclick="rmItem('+s.id+')" title="Apagar">×</button></div>';});
   }
   return h+'</div>';
 }
@@ -514,7 +515,8 @@ function registrarRetirada(){
   var totUsd=reservas.reduce(function(s,d){return s+(+d.valor||0);},0);
   if(!totUsd){toast('Banco sem saldo',true);return;}
   var sacado=Math.min(out,totUsd);
-  function logSaida(cb){addItem({tipo:'dolar_saida',nome:banco,valor:sacado,data:today()},cb);}
+  var desc=((document.getElementById('dl-rt-desc')||{value:''}).value||'').trim();
+  function logSaida(cb){addItem({tipo:'dolar_saida',nome:banco,categoria:desc,valor:sacado,data:today()},cb);}
   if(out>=totUsd){
     if(!confirm('Retirar todo o saldo de '+banco+' e remover as reservas?'))return;
     var pd=reservas.length;
