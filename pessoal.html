@@ -446,6 +446,12 @@ function addAcao(tipo){
   var qtd=parseQtd(document.getElementById('ac-qtd').value);
   var val=parseBRL(document.getElementById('ac-val').value);
   if(!nome){toast('Informe o ativo',true);return;}
+  // Se o ticker já existe, soma à posição (atualiza qtd, custo e média)
+  var existente=byTipo(tipo).find(function(a){return tickerOf(a)===nome;});
+  if(existente){
+    updItem(existente.id,{qtd:(+existente.qtd||0)+qtd,valor:(+existente.valor||0)+val},function(){fetchPrices(function(){render();});toast(nome+' atualizado (posição somada)!');});
+    return;
+  }
   addItem({tipo:tipo,nome:nome,qtd:qtd,valor:val},function(){fetchPrices(function(){render();});toast('Ação adicionada!');});
 }
 
