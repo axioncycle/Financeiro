@@ -477,7 +477,8 @@ function viewDolar(){
      '<div style="font-size:10px;color:var(--text3);margin-top:5px;">A taxa média de compra é calculada automaticamente (R$ pago ÷ US$).</div>'+
      '<button class="btn-add" style="margin-top:8px;" onclick="addDolar()">+ Adicionar</button>';
   if(items.length){
-    var rtOpts=items.map(function(d){return '<option value="'+d.id+'">'+esc(d.nome||'—')+(d.categoria?' ('+esc(d.categoria)+')':'')+' · '+fmtUSD(d.valor)+' disp.</option>';}).join('');
+    var byBank={};items.forEach(function(d){var b=d.nome||'—';byBank[b]=(byBank[b]||0)+(+d.valor||0);});
+    var rtOpts=Object.keys(byBank).map(function(b){return '<option value="'+esc(b)+'">'+esc(b)+' · '+fmtUSD(byBank[b])+' disp.</option>';}).join('');
     h+='<div style="border-top:1px dashed var(--border2);margin-top:12px;padding-top:12px;"><label class="fl">Registrar retirada</label>'+
        '<select class="fi" id="dl-rt-item">'+rtOpts+'</select>'+
        '<input class="fi" id="dl-rt-val" inputmode="decimal" placeholder="Valor retirado (US$)" oninput="maskBRL(this)" style="margin-top:8px;">'+
@@ -497,14 +498,23 @@ function addDolar(){
 // Retirada — reduz US$ e custo proporcionalmente (mantém a taxa média)
 function registrarRetirada(){
   var sel=document.getElementById('dl-rt-item');
-  var id=sel?parseInt(sel.value,10):0;
-  var d=ITEMS.find(function(x){return x.id===id;});if(!d){toast('Selecione a reserva',true);return;}
+  var banco=sel?sel.value:'';
+  if(!banco){toast('Selecione o banco',true);return;}
   var out=parseBRL(document.getElementById('dl-rt-val').value);
-  var usd=+d.valor||0, custo=+d.meta||0;
   if(!out){toast('Informe o valor retirado',true);return;}
-  if(out>=usd){ if(confirm('Retirar todo o valor e remover esta reserva?')) delItem(id,function(){render();toast('Reserva encerrada');}); return; }
-  var media=usd>0?custo/usd:0;
-  updItem(id,{valor:usd-out,meta:custo-out*media},function(){render();toast('Retirada registrada!');});
+  var reservas=byTipo('dolar').filter(function(d){return (d.nome||'')===banco;});
+  var totUsd=reservas.reduce(function(s,d){return s+(+d.valor||0);},0);
+  if(!totUsd){toast('Banco sem saldo',true);return;}
+  if(out>=totUsd){
+    if(!confirm('Retirar todo o saldo de '+banco+' e remover as reservas?'))return;
+    var pd=reservas.length;
+    reservas.forEach(function(d){delItem(d.id,function(){pd--;if(pd<=0){render();toast('Reservas encerradas');}});});
+    return;
+  }
+  var factor=out/totUsd, pend=reservas.length;
+  reservas.forEach(function(d){
+    updItem(d.id,{valor:(+d.valor||0)*(1-factor),meta:(+d.meta||0)*(1-factor)},function(){pend--;if(pend<=0){render();toast('Retirada de '+banco+' registrada!');}});
+  });
 }
 
 // Cofrinhos (valor aplicado + rendimento % do CDI + meta)
