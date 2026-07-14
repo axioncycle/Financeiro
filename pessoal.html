@@ -111,6 +111,7 @@ var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 var HDRS={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
 var ITEMS=[];
 var MONTHS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var BANCOS=['DollarApp','Inter','Revolut','Wise','Nomad'];
 var patrSub='cofr';
 var _n=new Date();
 var selYear=_n.getFullYear();
@@ -464,48 +465,43 @@ function viewDolar(){
     '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+fmtUSD(totUsd)+' · pago '+fmt(totCusto)+(media>0?' · média R$ '+fmtN(media):'')+' · hoje R$ '+fmtN(cot)+' <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchDolar()">🔄</span></div>';
   if(!items.length)h+='<div class="empty">Nenhuma reserva</div>';
   items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}
-    if(retiradaId===d.id){h+=retiradaBox(d);return;}
     var usd=+d.valor||0, custo=+d.meta||0, atual=usd*cot, g=atual-custo, pg=custo>0?g/custo*100:0, mr=usd>0?custo/usd:0, igc=g>=0?'#22c55e':'#ef4444';
-    h+='<div class="li" style="display:block;border-left-color:#a3e635;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+
+    h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+
       '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+'</div></div>'+
-      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>'+
-      '<button onclick="retirar('+d.id+')" style="width:100%;margin-top:8px;background:rgba(245,158,11,.12);border:1px solid #f59e0b55;color:#f59e0b;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">↓ Registrar retirada</button>'+
-    '</div>';});
-  h+='<div class="add-box"><label class="fl">Descrição</label><input class="fi" id="dl-nome" placeholder="Ex: Conta Wise, Corretora...">'+
+      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>';});
+  var bancoOpts=BANCOS.map(function(b){return '<option value="'+b+'">'+b+'</option>';}).join('');
+  h+='<div class="add-box"><label class="fl">Banco</label><select class="fi" id="dl-banco">'+bancoOpts+'</select>'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor em US$</label><input class="fi" id="dl-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
      '<div><label class="fl">Valor pago (R$)</label><input class="fi" id="dl-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
      '<div style="font-size:10px;color:var(--text3);margin-top:5px;">A taxa média de compra é calculada automaticamente (R$ pago ÷ US$).</div>'+
-     '<button class="btn-add" style="margin-top:8px;" onclick="addDolar()">+ Adicionar</button></div>';
+     '<button class="btn-add" style="margin-top:8px;" onclick="addDolar()">+ Adicionar</button>';
+  if(items.length){
+    var rtOpts=items.map(function(d){return '<option value="'+d.id+'">'+esc(d.nome||'—')+' · '+fmtUSD(d.valor)+' disp.</option>';}).join('');
+    h+='<div style="border-top:1px dashed var(--border2);margin-top:12px;padding-top:12px;"><label class="fl">Registrar retirada</label>'+
+       '<select class="fi" id="dl-rt-item">'+rtOpts+'</select>'+
+       '<input class="fi" id="dl-rt-val" inputmode="decimal" placeholder="Valor retirado (US$)" oninput="maskBRL(this)" style="margin-top:8px;">'+
+       '<button class="btn-add" style="margin-top:8px;border-color:#f59e0b;color:#f59e0b;" onclick="registrarRetirada()">↓ Registrar retirada</button></div>';
+  }
+  h+='</div>';
   return h+'</div>';
 }
 function addDolar(){
-  var nome=(document.getElementById('dl-nome').value||'').trim()||'Dólar';
+  var nome=(document.getElementById('dl-banco')||{value:''}).value||'Dólar';
   var val=parseBRL(document.getElementById('dl-val').value);
   var custo=parseBRL(document.getElementById('dl-custo').value);
   if(!val){toast('Informe o valor em US$',true);return;}
   addItem({tipo:'dolar',nome:nome,valor:val,meta:custo},function(){render();toast('Reserva adicionada!');});
 }
-// Retirada de dólar — reduz US$ e custo proporcionalmente (mantém a taxa média)
-var retiradaId=null;
-function retirar(id){retiradaId=id;editingId=null;render();}
-function cancelRetirada(){retiradaId=null;render();}
-function retiradaBox(d){
-  return '<div class="li" style="display:block;border-left-color:#f59e0b;">'+
-    '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">↓ Retirada — '+esc(d.nome||'')+'</div>'+
-    '<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Disponível: '+fmtUSD(d.valor)+' (R$ '+fmtN((+d.valor||0)*getDolar())+' hoje)</div>'+
-    '<label class="fl">Valor retirado (US$)</label><input class="fi" id="rt-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
-    '<div class="row" style="margin-top:10px;"><button class="btn-add" style="border-color:#f59e0b;color:#f59e0b;" onclick="saveRetirada('+d.id+')">✓ Retirar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelRetirada()">Cancelar</button></div>'+
-  '</div>';
-}
-function saveRetirada(id){
-  var d=ITEMS.find(function(x){return x.id===id;});if(!d)return;
-  var out=parseBRL(document.getElementById('rt-val').value);
+// Retirada — reduz US$ e custo proporcionalmente (mantém a taxa média)
+function registrarRetirada(){
+  var sel=document.getElementById('dl-rt-item');
+  var id=sel?parseInt(sel.value,10):0;
+  var d=ITEMS.find(function(x){return x.id===id;});if(!d){toast('Selecione a reserva',true);return;}
+  var out=parseBRL(document.getElementById('dl-rt-val').value);
   var usd=+d.valor||0, custo=+d.meta||0;
-  if(!out){toast('Informe o valor',true);return;}
-  if(out>=usd){ retiradaId=null; if(confirm('Retirar todo o valor e remover esta reserva?')) delItem(id,function(){render();toast('Reserva encerrada');}); else render(); return; }
+  if(!out){toast('Informe o valor retirado',true);return;}
+  if(out>=usd){ if(confirm('Retirar todo o valor e remover esta reserva?')) delItem(id,function(){render();toast('Reserva encerrada');}); return; }
   var media=usd>0?custo/usd:0;
-  retiradaId=null;
   updItem(id,{valor:usd-out,meta:custo-out*media},function(){render();toast('Retirada registrada!');});
 }
 
@@ -638,7 +634,8 @@ function itemActions(it){return '<button class="del" style="color:var(--accent);
 function editorBox(it){
   var t=it.tipo;
   var h='<div class="li" style="display:block;border-left-color:var(--accent);">';
-  h+='<label class="fl">Nome</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">';
+  if(t==='dolar'){h+='<label class="fl">Banco</label><select class="fi" id="ed-nome">'+BANCOS.map(function(b){return '<option value="'+b+'"'+(it.nome===b?' selected':'')+'>'+b+'</option>';}).join('')+(BANCOS.indexOf(it.nome)<0&&it.nome?'<option value="'+esc(it.nome)+'" selected>'+esc(it.nome)+'</option>':'')+'</select>';}
+  else h+='<label class="fl">Nome</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">';
   if(t==='terreno'){h+='<label class="fl" style="margin-top:6px;">Local / Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'">';}
   if(t==='gasto_extra'||t==='cartao_item'){h+='<label class="fl" style="margin-top:6px;">Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
   if(t==='acao_br'||t==='acao_eua'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
