@@ -464,10 +464,12 @@ function viewDolar(){
     '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+fmtUSD(totUsd)+' · pago '+fmt(totCusto)+(media>0?' · média R$ '+fmtN(media):'')+' · hoje R$ '+fmtN(cot)+' <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchDolar()">🔄</span></div>';
   if(!items.length)h+='<div class="empty">Nenhuma reserva</div>';
   items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}
+    if(retiradaId===d.id){h+=retiradaBox(d);return;}
     var usd=+d.valor||0, custo=+d.meta||0, atual=usd*cot, g=atual-custo, pg=custo>0?g/custo*100:0, mr=usd>0?custo/usd:0, igc=g>=0?'#22c55e':'#ef4444';
     h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+
       '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+'</div></div>'+
-      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>';});
+      '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+
+      '<button class="del" style="color:#f59e0b;font-size:18px;" onclick="retirar('+d.id+')" title="Retirada">↓</button>'+itemActions(d)+'</div>';});
   h+='<div class="add-box"><label class="fl">Descrição</label><input class="fi" id="dl-nome" placeholder="Ex: Conta Wise, Corretora...">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor em US$</label><input class="fi" id="dl-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
      '<div><label class="fl">Valor pago (R$)</label><input class="fi" id="dl-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
@@ -481,6 +483,28 @@ function addDolar(){
   var custo=parseBRL(document.getElementById('dl-custo').value);
   if(!val){toast('Informe o valor em US$',true);return;}
   addItem({tipo:'dolar',nome:nome,valor:val,meta:custo},function(){render();toast('Reserva adicionada!');});
+}
+// Retirada de dólar — reduz US$ e custo proporcionalmente (mantém a taxa média)
+var retiradaId=null;
+function retirar(id){retiradaId=id;editingId=null;render();}
+function cancelRetirada(){retiradaId=null;render();}
+function retiradaBox(d){
+  return '<div class="li" style="display:block;border-left-color:#f59e0b;">'+
+    '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">↓ Retirada — '+esc(d.nome||'')+'</div>'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Disponível: '+fmtUSD(d.valor)+' (R$ '+fmtN((+d.valor||0)*getDolar())+' hoje)</div>'+
+    '<label class="fl">Valor retirado (US$)</label><input class="fi" id="rt-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
+    '<div class="row" style="margin-top:10px;"><button class="btn-add" style="border-color:#f59e0b;color:#f59e0b;" onclick="saveRetirada('+d.id+')">✓ Retirar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelRetirada()">Cancelar</button></div>'+
+  '</div>';
+}
+function saveRetirada(id){
+  var d=ITEMS.find(function(x){return x.id===id;});if(!d)return;
+  var out=parseBRL(document.getElementById('rt-val').value);
+  var usd=+d.valor||0, custo=+d.meta||0;
+  if(!out){toast('Informe o valor',true);return;}
+  if(out>=usd){ retiradaId=null; if(confirm('Retirar todo o valor e remover esta reserva?')) delItem(id,function(){render();toast('Reserva encerrada');}); else render(); return; }
+  var media=usd>0?custo/usd:0;
+  retiradaId=null;
+  updItem(id,{valor:usd-out,meta:custo-out*media},function(){render();toast('Retirada registrada!');});
 }
 
 // Cofrinhos (valor aplicado + rendimento % do CDI + meta)
