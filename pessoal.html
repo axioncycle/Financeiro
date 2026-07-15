@@ -362,15 +362,7 @@ function renderDash(){
       kpi('Cripto',totCriptoBrl(),'#f59e0b')+
       kpi('Dólar (reserva)',totDolarBrl(),'#a3e635')+
     '</div>'+
-    distribuicao()+
-    (function(){var g=ganhosMes(mk),f=totGastosFixosMes(mk),e=totGastosExtrasMes(mk),sal=g-f-e;
-     return '<div class="card"><div class="ttl">Meu Bolso ('+MONTHS[_n.getMonth()]+'/'+_n.getFullYear()+')</div>'+
-      '<div class="kpi-grid">'+
-        kpi('Ganhos',g,'#22c55e')+
-        kpi('Fixos',f,'#ef4444')+
-        kpi('Extras',e,'#ef4444')+
-        kpi('Saldo do mês',sal,sal>=0?'#22c55e':'#ef4444')+
-      '</div></div>';})();
+    distribuicao();
 }
 function fmtN(v){return (+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function kpi(lb,vl,col){return '<div class="kpi"><div style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:'+col+';flex-shrink:0;box-shadow:0 0 8px '+col+';"></span><div class="lb">'+lb+'</div></div><div class="vl" style="color:'+col+';margin-top:5px;">'+fmt(vl)+'</div></div>';}
@@ -385,10 +377,10 @@ function sparkHero(){
 function distribuicao(){
   var pt=patrimonioTotal();if(pt<=0)return '';
   var parts=[['Renda Fixa',totCofrinhos(),'#60a5fa'],['Terrenos',totTerrenos(),'#f59e0b'],['Ações BR',totAcoesBR(),'#22c55e'],['Ações EUA',totAcoesEUAbrl(),'#16a34a'],['Cripto',totCriptoBrl(),'#eab308'],['Dólar',totDolarBrl(),'#a3e635']];
-  var h='<div class="card"><div class="ttl">Distribuição do Patrimônio</div>';
-  parts.forEach(function(p){if(p[1]<=0)return;var pct=p[1]/pt*100;
-    h+='<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>'+p[0]+'</span><span style="font-weight:700;">'+pct.toFixed(1)+'% · '+fmt(p[1])+'</span></div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:'+p[2]+';"></div></div></div>';});
-  return h+'</div>';
+  var slices=parts.filter(function(p){return p[1]>0;}).map(function(p){return {label:p[0],value:p[1],color:p[2]};}).sort(function(a,b){return b.value-a.value;});
+  if(!slices.length)return '';
+  var leg=slices.map(function(x){return '<div style="display:flex;align-items:center;gap:7px;font-size:11px;margin-bottom:6px;"><span style="width:11px;height:11px;border-radius:3px;background:'+x.color+';flex-shrink:0;"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+x.label+'</span><span style="color:var(--text3);font-weight:600;">'+(x.value/pt*100).toFixed(1)+'%</span><span class="num" style="min-width:82px;text-align:right;font-weight:700;">'+fmt(x.value)+'</span></div>';}).join('');
+  return '<div class="card"><div class="ttl">Distribuição do Patrimônio</div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;">'+svgPie(slices,140)+'<div style="flex:1;min-width:180px;">'+leg+'</div></div></div>';
 }
 
 // ── Patrimônio (sub-abas) ──────────────────────────────
