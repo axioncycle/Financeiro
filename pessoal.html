@@ -170,7 +170,7 @@ function getDolar(){var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nom
 var QUOTE_URL='https://financeiro-ten-kappa.vercel.app/api/quote';
 var _prices={};
 function tickerOf(a){return ((a.nome||'').split('·')[0].trim().split(/\s+/)[0]||'').toUpperCase();}
-function yahooSym(a){var t=tickerOf(a);return a.tipo==='acao_br'?(t+'.SA'):t;}
+function yahooSym(a){var t=tickerOf(a);return a.tipo==='acao_br'?(t+'.SA'):(a.tipo==='cripto'?(t+'-USD'):t);}
 function precoAtual(a){var q=_prices[yahooSym(a)];return q&&q.price?q.price:0;}
 function curVal(a){var p=precoAtual(a);return p>0?(+a.qtd||0)*p:(+a.valor||0);} // moeda nativa; sem preço → usa custo
 function ganhoInfo(a){var custo=+a.valor||0,cv=curVal(a),g=cv-custo;return{cv:cv,custo:custo,g:g,pct:custo>0?g/custo*100:0,live:precoAtual(a)>0};}
@@ -220,7 +220,7 @@ function pieSection(items,moeda){
   return '<div style="display:flex;gap:12px;align-items:center;margin:6px 0 12px;">'+svgPie(arr,110)+'<div style="flex:1;min-width:0;">'+leg+'</div></div>';
 }
 function fetchPrices(cb){
-  var acoes=byTipo('acao_br').concat(byTipo('acao_eua'));
+  var acoes=byTipo('acao_br').concat(byTipo('acao_eua')).concat(byTipo('cripto'));
   var syms=acoes.map(yahooSym).filter(function(s){return s&&s.length>1;});
   syms=syms.filter(function(s,i){return syms.indexOf(s)===i;});
   if(!syms.length){cb&&cb();return;}
@@ -321,10 +321,12 @@ function totCofrinhos(){return byTipo('cofrinho').reduce(function(s,c){return s+
 function totTerrenos(){return sumTipo('terreno');}
 function totAcoesBR(){return byTipo('acao_br').reduce(function(s,a){return s+curVal(a);},0);}
 function totAcoesEUAusd(){return byTipo('acao_eua').reduce(function(s,a){return s+curVal(a);},0);}
+function totCriptoUsd(){return byTipo('cripto').reduce(function(s,a){return s+curVal(a);},0);}
+function totCriptoBrl(){return totCriptoUsd()*getDolar();}
 function totDolarUsd(){return sumTipo('dolar');}
 function totAcoesEUAbrl(){return totAcoesEUAusd()*getDolar();}
 function totDolarBrl(){return totDolarUsd()*getDolar();}
-function patrimonioTotal(){return totCofrinhos()+totTerrenos()+totAcoesBR()+totAcoesEUAbrl()+totDolarBrl();}
+function patrimonioTotal(){return totCofrinhos()+totTerrenos()+totAcoesBR()+totAcoesEUAbrl()+totCriptoBrl()+totDolarBrl();}
 function totGastosFixosMes(mk){return byTipo('gasto_fixo').filter(function(g){return (g.data||'').slice(0,7)===mk;}).reduce(function(s,g){return s+(+g.valor||0);},0);}
 function totGastosExtrasMes(mk){return byTipo('gasto_extra').filter(function(g){return (g.data||'').slice(0,7)===mk;}).reduce(function(s,g){return s+(+g.valor||0);},0);}
 
@@ -356,7 +358,10 @@ function renderDash(){
       kpi('Ações BR',totAcoesBR(),'#22c55e')+
       kpi('Ações EUA',totAcoesEUAbrl(),'#22c55e')+
     '</div>'+
-    '<div style="margin-top:10px;">'+kpi('Dólar (reserva)',totDolarBrl(),'#a3e635')+'</div>'+
+    '<div class="kpi-grid" style="margin-top:10px;">'+
+      kpi('Cripto',totCriptoBrl(),'#f59e0b')+
+      kpi('Dólar (reserva)',totDolarBrl(),'#a3e635')+
+    '</div>'+
     distribuicao()+
     (function(){var g=ganhosMes(mk),f=totGastosFixosMes(mk),e=totGastosExtrasMes(mk),sal=g-f-e;
      return '<div class="card"><div class="ttl">Meu Bolso ('+MONTHS[_n.getMonth()]+'/'+_n.getFullYear()+')</div>'+
@@ -379,7 +384,7 @@ function sparkHero(){
 }
 function distribuicao(){
   var pt=patrimonioTotal();if(pt<=0)return '';
-  var parts=[['Renda Fixa',totCofrinhos(),'#60a5fa'],['Terrenos',totTerrenos(),'#f59e0b'],['Ações BR',totAcoesBR(),'#22c55e'],['Ações EUA',totAcoesEUAbrl(),'#16a34a'],['Dólar',totDolarBrl(),'#a3e635']];
+  var parts=[['Renda Fixa',totCofrinhos(),'#60a5fa'],['Terrenos',totTerrenos(),'#f59e0b'],['Ações BR',totAcoesBR(),'#22c55e'],['Ações EUA',totAcoesEUAbrl(),'#16a34a'],['Cripto',totCriptoBrl(),'#eab308'],['Dólar',totDolarBrl(),'#a3e635']];
   var h='<div class="card"><div class="ttl">Distribuição do Patrimônio</div>';
   parts.forEach(function(p){if(p[1]<=0)return;var pct=p[1]/pt*100;
     h+='<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>'+p[0]+'</span><span style="font-weight:700;">'+pct.toFixed(1)+'% · '+fmt(p[1])+'</span></div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:'+p[2]+';"></div></div></div>';});
@@ -390,7 +395,7 @@ function distribuicao(){
 function setPatrSub(s){patrSub=s;renderPatr();}
 function renderPatr(){
   var el=document.getElementById('pg-patr');
-  var subs=[['cofr','Renda Fixa'],['terr','Terrenos'],['abr','Ações BR'],['aeua','Ações EUA'],['dol','Dólar']];
+  var subs=[['cofr','Renda Fixa'],['terr','Terrenos'],['abr','Ações BR'],['aeua','Ações EUA'],['cripto','Cripto'],['dol','Dólar']];
   var h='<div class="card" style="border-color:var(--accent);"><div style="display:flex;justify-content:space-between;align-items:center;">'+
     '<div><div class="ttl" style="margin:0;">Patrimônio Total</div><div style="font-size:24px;font-weight:900;color:var(--accent);">'+fmt(patrimonioTotal())+'</div></div>'+
     '<div style="text-align:right;"><div class="fl">Cotação Dólar <span style="color:var(--accent);cursor:pointer;" onclick="fetchDolar()">🔄</span></div><input class="fi" style="width:100px;text-align:right;" inputmode="decimal" value="'+fmtN(getDolar())+'" oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)setDolar(parseBRL(this.value))"></div>'+
@@ -403,6 +408,7 @@ function renderPatr(){
   else if(patrSub==='terr')b.innerHTML=viewLista('terreno','🌄 Terrenos','#f59e0b',true);
   else if(patrSub==='abr')b.innerHTML=viewAcoes('acao_br','🇧🇷 Ações Brasil','#22c55e','R$');
   else if(patrSub==='aeua')b.innerHTML=viewAcoes('acao_eua','🇺🇸 Ações EUA','#16a34a','US$');
+  else if(patrSub==='cripto')b.innerHTML=viewAcoes('cripto','₿ Criptomoedas','#f59e0b','US$');
   else if(patrSub==='dol')b.innerHTML=viewDolar();
 }
 
@@ -690,9 +696,9 @@ function editorBox(it){
   else h+='<label class="fl">Nome</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">';
   if(t==='terreno'){h+='<label class="fl" style="margin-top:6px;">Local / Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'">';}
   if(t==='gasto_extra'||t==='cartao_item'){h+='<label class="fl" style="margin-top:6px;">Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
-  if(t==='acao_br'||t==='acao_eua'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
-  var moeda=(t==='acao_eua'||t==='dolar')?'US$':'R$';
-  var vlbl=(t==='acao_br'||t==='acao_eua')?'Valor pago ('+moeda+')':(t==='cofrinho'?'Valor aplicado (R$)':'Valor ('+moeda+')');
+  if(t==='acao_br'||t==='acao_eua'||t==='cripto'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
+  var moeda=(t==='acao_eua'||t==='cripto'||t==='dolar')?'US$':'R$';
+  var vlbl=(t==='acao_br'||t==='acao_eua'||t==='cripto')?'Valor pago ('+moeda+')':(t==='cofrinho'?'Valor aplicado (R$)':'Valor ('+moeda+')');
   h+='<label class="fl" style="margin-top:6px;">'+vlbl+'</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)">';
   if(t==='dolar'){h+='<label class="fl" style="margin-top:6px;">Descrição (opcional)</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Valor pago (R$)</label><input class="fi" id="ed-meta" inputmode="decimal" value="'+(it.meta?fmtN(it.meta):'')+'" oninput="maskBRL(this)">';}
   if(t==='cofrinho'){h+='<label class="fl" style="margin-top:6px;">Tipo</label><select class="fi" id="ed-cat">'+PRODUTOS_RF.map(function(p){return '<option value="'+p+'"'+((it.categoria||'Cofrinho')===p?' selected':'')+'>'+p+'</option>';}).join('')+'</select>'+
