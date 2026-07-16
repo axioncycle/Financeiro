@@ -615,6 +615,13 @@ function viewCofrinhos(){
   var h='<div class="card"><div class="ttl">🏦 Renda Fixa & Rendimento</div>'+
     '<div style="font-size:20px;font-weight:800;color:#60a5fa;">'+fmt(tot)+'</div>'+
     '<div style="font-size:11px;margin-bottom:8px;"><span style="color:#22c55e;font-weight:700;">+ '+fmt(rendLiq)+' líquido</span> <span style="color:var(--text3);">· aplicado '+fmt(aplicado)+' · já com IR/IOF descontado · CDI '+fmtN(getCdi())+'% a.a. <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchCdi()">🔄</span></span></div>';
+  if(items.length>=2){
+    var arr=items.map(function(c){return {label:c.nome||'—',value:cofrinhoAtual(c)};}).filter(function(x){return x.value>0;}).sort(function(a,b){return b.value-a.value;});
+    if(arr.length>=2){var tt=arr.reduce(function(s,x){return s+x.value;},0);
+      arr.forEach(function(x,i){x.color=PIE_COLORS[i%PIE_COLORS.length];});
+      var leg=arr.map(function(x){return '<div style="display:flex;align-items:center;gap:5px;font-size:10px;margin-bottom:3px;"><span style="width:9px;height:9px;border-radius:2px;background:'+x.color+';flex-shrink:0;"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(x.label)+'</span><span style="color:var(--text3);">'+(x.value/tt*100).toFixed(1)+'%</span></div>';}).join('');
+      h+='<div style="display:flex;gap:12px;align-items:center;margin:6px 0 12px;">'+svgPie(arr,110)+'<div style="flex:1;min-width:0;">'+leg+'</div></div>';}
+  }
   if(!items.length)h+='<div class="empty">Nenhuma aplicação</div>';
   items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}
     var atual=cofrinhoAtual(c),rLiq=cofrinhoRendLiq(c),rBruto=cofrinhoRend(c),ir=cofrinhoIR(c),iof=cofrinhoIOF(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),du=diasUteis(c.data), irPct=(irAliquota(diasDesde(c.data))*100), prod=rfProduto(c), isento=rfIsento(c);
