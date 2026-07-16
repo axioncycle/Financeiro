@@ -11830,9 +11830,19 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
   // ── ENVIOS PENDENTES ─────────────────────────────────────────
   if(opts.envios){
     var pend=loadVendas().filter(function(v){return v.pendente;}).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
-    var enviosRows=pend.map(function(v){return[v.date||'',v.canal||'',(v.cliente||'').substring(0,22),(v.produto||'').substring(0,28),(v.pendenteMotivo||'').substring(0,45)];});
+    var pFat=0,pLL=0;
+    pend.forEach(function(v){pFat+=(+v.venda||0);pLL+=(+v.lucroLL||0);});
+    var pMarg=pFat>0?(pLL/pFat*100):0;
+    function kbox(lb,val,cor){return '<div style="background:#ffffff08;border:1px solid '+C.border+';border-radius:8px;padding:10px 12px;"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;">'+lb+'</div><div style="font-size:16px;font-weight:800;color:'+(cor||C.text)+';margin-top:3px;">'+val+'</div></div>';}
+    var resumo='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;">'+
+      kbox('Qtd. Envios',pend.length,C.text)+
+      kbox('Faturamento',fmtR(pFat),'#1E90FF')+
+      kbox('Lucro Líquido',fmtR(pLL),pLL>=0?'#22c55e':'#ef4444')+
+      kbox('Margem',fmtP(pMarg),pMarg>=0?'#22c55e':'#ef4444')+
+    '</div>';
+    var enviosRows=pend.map(function(v){return[fmtDate(v.date),v.canal||'',(v.cliente||'').substring(0,22),(v.produto||'').substring(0,28),(v.pendenteMotivo||'').substring(0,45)];});
     var colsEnv=[{label:'Data'},{label:'Canal'},{label:'Cliente'},{label:'SKU / Produto'},{label:'Motivo'}];
-    sections+=card('Envios Pendentes ('+pend.length+')','⏳',(enviosRows.length?tabela(colsEnv,enviosRows,null):'<p style="color:#888;text-align:center;">Nenhum envio pendente</p>'),'#ef4444');
+    sections+=card('Envios Pendentes ('+pend.length+')','⏳',resumo+(enviosRows.length?tabela(colsEnv,enviosRows,null):'<p style="color:#888;text-align:center;">Nenhum envio pendente</p>'),'#ef4444');
   }
 
   if(!sections){
@@ -11863,8 +11873,6 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
         '</div>'+
         '<div style="text-align:right;opacity:0.6;font-size:10px;">'+
           '<div>Gerado em</div><div style="font-size:11px;margin-top:2px;">'+geradoEm+'</div>'+
-          '<div style="margin-top:8px;">'+qtd+' vendas</div>'+
-          '<div style="font-size:14px;font-weight:700;margin-top:2px;">'+fmtR(fat)+'</div>'+
         '</div>'+
       '</div>'+
     '</div>'+
