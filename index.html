@@ -1096,8 +1096,16 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 <div class="ovl" id="m-ver-venda">
   <div class="modal" style="max-height:88vh;overflow-y:auto;">
     <div class="mhdl"></div>
-    <div class="mtitle" id="ver-v-title">Detalhes da Venda</div>
-    <div id="ver-v-body"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <div class="mtitle" id="ver-v-title" style="margin:0;">Detalhes da Venda</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;white-space:nowrap;user-select:none;">
+        <input type="checkbox" id="ver-v-pend" onchange="toggleVerPendente()" style="width:16px;height:16px;accent-color:#ef4444;">Aguardando envio
+      </label>
+    </div>
+    <div id="ver-v-motivo-wrap" style="display:none;margin-top:8px;">
+      <textarea id="ver-v-motivo" placeholder="Motivo da pendência de envio..." onchange="salvarVerMotivo(this.value)" style="width:100%;background:var(--input);border:1px solid #ef444466;border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:52px;"></textarea>
+    </div>
+    <div id="ver-v-body" style="margin-top:8px;"></div>
     <button class="btn btn-s" onclick="closeModal('m-ver-venda')" style="margin-top:10px;width:100%;">Fechar</button>
   </div>
 </div>
@@ -1640,10 +1648,10 @@ function saveEstoque(containerId,skuId,local,qty){
 function loadVendasDB(cb){
   // Fetch id as text to preserve int8 precision (avoids JS float rounding)
   // Paginado via dbGetAll: sem isso o PostgREST corta em 1000 linhas
-  dbGetAll('vendas','select=id::text,date,cliente,vendedor,canal,produto,prod_id,origem,container_id,venda,custo,taxa_pct,taxa,imp_pct,imp,com_pct,com,frete,lucro_si,lucro_ll,duplo,pag1_tipo,pag1_val,pag1_taxa,pag2_tipo,pag2_val,pag2_taxa,ml_order_id,created_at&order=date.desc')
+  dbGetAll('vendas','select=id::text,date,cliente,vendedor,canal,produto,prod_id,origem,container_id,venda,custo,taxa_pct,taxa,imp_pct,imp,com_pct,com,frete,lucro_si,lucro_ll,duplo,pag1_tipo,pag1_val,pag1_taxa,pag2_tipo,pag2_val,pag2_taxa,ml_order_id,pendente,pendente_motivo,created_at&order=date.desc')
   .then(function(rows){
     if(!Array.isArray(rows))rows=[];
-    var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null,createdAt:r.created_at?new Date(r.created_at).getTime():0};});
+    var v=rows.map(function(r){return{id:r.id,date:r.date,cliente:r.cliente,vendedor:r.vendedor||'',canal:r.canal,produto:r.produto,prodId:r.prod_id,origem:r.origem,containerId:r.container_id,venda:+r.venda||0,custo:+r.custo||0,taxaPct:+r.taxa_pct||0,taxa:+r.taxa||0,impPct:+r.imp_pct||0,imp:+r.imp||0,comPct:+r.com_pct||0,com:+r.com||0,frete:+r.frete||0,lucroSI:+r.lucro_si||0,lucroLL:+r.lucro_ll||0,duplo:r.duplo||false,pag1tipo:r.pag1_tipo||"",pag1val:+r.pag1_val||0,pag1taxa:+r.pag1_taxa||0,pag2tipo:r.pag2_tipo||"",pag2val:+r.pag2_val||0,pag2taxa:+r.pag2_taxa||0,mlOrderId:r.ml_order_id||null,pendente:r.pendente||false,pendenteMotivo:r.pendente_motivo||"",createdAt:r.created_at?new Date(r.created_at).getTime():0};});
     cb(v);
   }).catch(function(){cb([]);});
 }
@@ -1655,7 +1663,8 @@ function saveVendaDB(v){
     imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,
     lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo||false,
     pag1_tipo:v.pag1tipo||'',pag1_val:v.pag1val||0,pag1_taxa:v.pag1taxa||0,
-    pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0
+    pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0,
+    pendente:v.pendente||false,pendente_motivo:v.pendenteMotivo||''
   };
   if(v.mlOrderId) row.ml_order_id=v.mlOrderId;
   row.vendedor=v.vendedor||'';
@@ -4017,7 +4026,9 @@ function renderHist(){
     var v=fv[i];
     var pagInfo='';
     if(v.duplo) pagInfo='<span style="font-size:9px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b33;border-radius:10px;padding:1px 5px;font-weight:700;">'+v.pag1tipo+' '+fmt(v.pag1val)+'('+((v.pag1taxa||0))+'%) + '+v.pag2tipo+' '+fmt(v.pag2val)+'('+((v.pag2taxa||0))+'%)</span>';
-    var vProd=v.produto||'—';html+='<div class="li"><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div><div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+fmt(v.venda)+'</div></div></div>';
+    var pendInfo='';
+    if(v.pendente) pendInfo='<div style="margin-top:4px;font-size:10px;color:#ef4444;font-weight:700;border:1.5px solid #ef4444;border-radius:8px;padding:3px 8px;display:inline-block;background:#ef444414;">⏳ Aguardando envio'+(v.pendenteMotivo?': '+esc(v.pendenteMotivo):'')+'</div>';
+    var vProd=v.produto||'—';html+='<div class="li"'+(v.pendente?' style="border-left:2px solid #ef4444;"':'')+'><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div>'+pendInfo+'<div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+fmt(v.venda)+'</div></div></div>';
   }
   el.innerHTML=html;
 }
@@ -9772,7 +9783,37 @@ function verVendaBody(id){
   if(!body) return;
   var title=document.getElementById('ver-v-title');
   if(title) title.textContent=v.produto||'Detalhes da Venda';
+  // Estado "aguardando envio"
+  var chk=document.getElementById('ver-v-pend');
+  var wrap=document.getElementById('ver-v-motivo-wrap');
+  var mot=document.getElementById('ver-v-motivo');
+  if(chk) chk.checked=!!v.pendente;
+  if(wrap) wrap.style.display=v.pendente?'block':'none';
+  if(mot) mot.value=v.pendenteMotivo||'';
   body.innerHTML=buildVerVendaHTML(_buildVerVendaRows(v));
+}
+function toggleVerPendente(){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  var chk=document.getElementById('ver-v-pend');
+  v.pendente=chk?chk.checked:false;
+  var wrap=document.getElementById('ver-v-motivo-wrap');
+  if(wrap) wrap.style.display=v.pendente?'block':'none';
+  if(!v.pendente) v.pendenteMotivo='';
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast(v.pendente?'Marcada como aguardando envio':'Pendência removida');
+}
+function salvarVerMotivo(val){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.pendenteMotivo=val||'';
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
 }
 
 function salvarClienteVenda(val){
@@ -11293,6 +11334,7 @@ function gerarRelatorio(){
     despesas:chk('rel-despesas'),
     caixa:chk('rel-caixa'),
     lista:chk('rel-lista'),
+    envios:chk('rel-envios'),
     g_fat:chk('rel-g-fat'),
     g_fat_ano:chk('rel-g-fat-ano'),
     g_liq:chk('rel-g-liq'),
@@ -11785,6 +11827,14 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
     sections+=card('Lista de Vendas','📝',(listaRows.length?tabela(cols6,listaRows,null):'<p style="color:#888;text-align:center;">Sem vendas no período</p>')+(vendas.length>200?'<p style="font-size:10px;color:#888;margin-top:6px;">Exibindo as 200 mais recentes de '+vendas.length+'</p>':''),C.text2);
   }
 
+  // ── ENVIOS PENDENTES ─────────────────────────────────────────
+  if(opts.envios){
+    var pend=loadVendas().filter(function(v){return v.pendente;}).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+    var enviosRows=pend.map(function(v){return[v.date||'',v.canal||'',(v.cliente||'').substring(0,22),(v.produto||'').substring(0,28),(v.pendenteMotivo||'').substring(0,45)];});
+    var colsEnv=[{label:'Data'},{label:'Canal'},{label:'Cliente'},{label:'SKU / Produto'},{label:'Motivo'}];
+    sections+=card('Envios Pendentes ('+pend.length+')','⏳',(enviosRows.length?tabela(colsEnv,enviosRows,null):'<p style="color:#888;text-align:center;">Nenhum envio pendente</p>'),'#ef4444');
+  }
+
   if(!sections){
     sections='<div style="text-align:center;color:#888;padding:40px;">Nenhuma seção selecionada.</div>';
   }
@@ -11979,6 +12029,10 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:var(--bg3);border-radius:8px;">
           <input type="checkbox" id="rel-lista" style="width:16px;height:16px;accent-color:#1E90FF;">
           <div><div style="font-size:12px;font-weight:700;color:var(--text);">📝 Lista de Vendas</div><div style="font-size:9px;color:var(--text3);">Detalhamento individual (máx. 200)</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#ef444414;border:1px solid #ef444444;border-radius:8px;">
+          <input type="checkbox" id="rel-envios" style="width:16px;height:16px;accent-color:#ef4444;">
+          <div><div style="font-size:12px;font-weight:700;color:#ef4444;">⏳ Envios Pendentes</div><div style="font-size:9px;color:var(--text3);">Vendas aguardando envio: cliente, SKU, canal e motivo</div></div>
         </label>
       </div>
     </div>
