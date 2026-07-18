@@ -583,9 +583,9 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><label class="fl">Preço de Venda (R$)</label><input class="fi" id="sim-preco" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
       <div><label class="fl">Custo (R$)</label><input class="fi" id="sim-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
-      <div><label class="fl">Taxa (%)</label><input class="fi" id="sim-taxa" type="number" step="0.01" inputmode="decimal" placeholder="0" oninput="simVenda()"></div>
+      <div><label class="fl">Taxa (R$)</label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
       <div><label class="fl">Imposto (%)</label><input class="fi" id="sim-imp" type="number" step="0.01" inputmode="decimal" placeholder="0" oninput="simVenda()"></div>
-      <div><label class="fl">Comissão (%)</label><input class="fi" id="sim-com" type="number" step="0.01" inputmode="decimal" placeholder="0" oninput="simVenda()"></div>
+      <div><label class="fl">Comissão (R$)</label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
       <div><label class="fl">Frete (R$)</label><input class="fi" id="sim-frete" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
     </div>
     <div id="sim-result" style="margin-top:12px;"></div>
@@ -8036,11 +8036,11 @@ function simVenda(){
   function gv(id){var e=document.getElementById(id);return e?e.value:'';}
   var preco=parseBRL(gv('sim-preco')||'0')||0;
   var custo=parseBRL(gv('sim-custo')||'0')||0;
-  var taxaP=parseFloat(gv('sim-taxa'))||0;
+  var taxa=parseBRL(gv('sim-taxa')||'0')||0;
   var impP=parseFloat(gv('sim-imp'))||0;
-  var comP=parseFloat(gv('sim-com'))||0;
+  var com=parseBRL(gv('sim-com')||'0')||0;
   var frete=parseBRL(gv('sim-frete')||'0')||0;
-  var taxa=preco*taxaP/100, imp=preco*impP/100, com=preco*comP/100;
+  var imp=preco*impP/100;
   var lucro=preco-custo-taxa-imp-com-frete;
   var margem=preco>0?lucro/preco*100:0;
   var markup=custo>0?preco/custo:0;
@@ -8050,9 +8050,9 @@ function simVenda(){
   el.innerHTML='<div style="background:var(--bg2);border-radius:10px;padding:12px;">'+
     lin('Preço de venda',preco,false)+
     lin('Custo',custo,true)+
-    lin('Taxa ('+taxaP+'%)',taxa,true)+
+    lin('Taxa',taxa,true)+
     lin('Imposto ('+impP+'%)',imp,true)+
-    lin('Comissão ('+comP+'%)',com,true)+
+    lin('Comissão',com,true)+
     lin('Frete',frete,true)+
     '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:800;">Lucro Líquido</span><span style="font-size:20px;font-weight:900;color:'+rc+';">'+fmt(lucro)+'</span></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">'+
