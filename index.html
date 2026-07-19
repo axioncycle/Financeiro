@@ -827,6 +827,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <button id="btn-marg-prod-mc" onclick="setMargProdMode('mc')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:#a855f7;color:#fff;">Marg. Contrib.</button>
       <button id="btn-marg-prod-ll" onclick="setMargProdMode('ll')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">Lucro Líq.</button>
       <button id="btn-marg-prod-pct" onclick="setMargProdMode('pct')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">% Margem</button>
+      <button id="btn-marg-prod-mku" onclick="setMargProdMode('mku')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">Markup</button>
       <button id="btn-marg-prod-qtd" onclick="setMargProdMode('qtd')" style="padding:4px 10px;border-radius:10px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:var(--sbtn-bg);color:var(--text2);">Qtd Vendas</button>
     </div>
     <div id="marg-prod-list"></div>
@@ -10887,7 +10888,7 @@ function renderCaixaProjecao(mMap, saldoAcum){
 
 function setMargProdMode(mode){
   _margProdMode=mode;
-  var modes=['mc','ll','pct','qtd'];
+  var modes=['mc','ll','pct','mku','qtd'];
   modes.forEach(function(m){
     var btn=document.getElementById('btn-marg-prod-'+m);
     if(btn){
@@ -10945,9 +10946,10 @@ function renderMargProd(){
   var prodMap={};
   vendas.forEach(function(v){
     var nome=v.produto||'Sem nome';
-    if(!prodMap[nome]) prodMap[nome]={nome:nome,fat:0,mc:0,ll:0,qtd:0};
+    if(!prodMap[nome]) prodMap[nome]={nome:nome,fat:0,mc:0,ll:0,custo:0,qtd:0};
     var mc=(+v.venda||0)-(+v.taxa||0)-(+v.com||0)-(+v.custo||0)-(+v.frete||0);
     prodMap[nome].fat+=(+v.venda||0);
+    prodMap[nome].custo+=(+v.custo||0);
     prodMap[nome].mc+=mc;
     prodMap[nome].ll+=(+v.lucroLL||0);
     prodMap[nome].qtd++;
@@ -10964,6 +10966,11 @@ function renderMargProd(){
     }
     if(_margProdMode==='ll') return b.ll-a.ll;
     if(_margProdMode==='qtd') return b.qtd-a.qtd;
+    if(_margProdMode==='mku'){
+      var ma=a.custo>0?(a.fat/a.custo):0;
+      var mb=b.custo>0?(b.fat/b.custo):0;
+      return mb-ma;
+    }
     return b.mc-a.mc;
   });
 
@@ -10971,6 +10978,7 @@ function renderMargProd(){
     if(_margProdMode==='pct') return p.fat>0?(p.mc/p.fat*100):0;
     if(_margProdMode==='ll') return Math.abs(p.ll);
     if(_margProdMode==='qtd') return p.qtd;
+    if(_margProdMode==='mku') return p.custo>0?(p.fat/p.custo):0;
     return Math.abs(p.mc);
   }))||1;
 
@@ -10989,6 +10997,10 @@ function renderMargProd(){
       val=p.qtd;
       valStr=p.qtd+(p.qtd===1?' venda':' vendas');
       pct=p.qtd/maxVal*100;
+    } else if(_margProdMode==='mku'){
+      val=p.custo>0?(p.fat/p.custo):0;
+      valStr=val>0?(val.toFixed(2)+'x'):'—';
+      pct=val/maxVal*100;
     } else {
       val=p.mc;
       valStr=fmt(val);
