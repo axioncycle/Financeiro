@@ -583,9 +583,9 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><label class="fl">Preço de Venda (R$)</label><input class="fi" id="sim-preco" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
       <div><label class="fl">Custo (R$)</label><input class="fi" id="sim-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
-      <div><label class="fl">Taxa (R$)</label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
-      <div><label class="fl">Imposto (%)</label><input class="fi" id="sim-imp" type="number" step="0.01" inputmode="decimal" placeholder="0" oninput="simVenda()"></div>
-      <div><label class="fl">Comissão (R$)</label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
+      <div><label class="fl">Taxa <span id="sim-taxa-tg" onclick="simToggle('taxa')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'taxa')"></div>
+      <div><label class="fl">Imposto <span id="sim-imp-tg" onclick="simToggle('imp')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(%)</span></label><input class="fi" id="sim-imp" inputmode="decimal" placeholder="0" oninput="simInput(this,'imp')"></div>
+      <div><label class="fl">Comissão <span id="sim-com-tg" onclick="simToggle('com')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'com')"></div>
       <div><label class="fl">Frete (R$)</label><input class="fi" id="sim-frete" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
     </div>
     <div id="sim-result" style="margin-top:12px;"></div>
@@ -8031,16 +8031,29 @@ function calcSimEscala(){
 }
 
 // ── SIMULAÇÃO DE VENDA (aba Análise) ──────────────────
+var simMode={taxa:'R$',imp:'%',com:'R$'};
+function simToggle(k){
+  simMode[k]=simMode[k]==='%'?'R$':'%';
+  var tg=document.getElementById('sim-'+k+'-tg');if(tg)tg.textContent='('+simMode[k]+')';
+  var inp=document.getElementById('sim-'+k);
+  if(inp){
+    if(simMode[k]==='R$'){inp.value=inp.value?maskBRLval(inp.value):'';}
+    else{var n=parseBRL(inp.value)||0;inp.value=inp.value?String(n):'';}
+  }
+  simVenda();
+}
+function maskBRLval(v){var n=parseBRL(v)||0;return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function simInput(el,k){if(simMode[k]==='R$'){maskBRL(el);}else{el.value=el.value.replace(/[^0-9.,]/g,'');}simVenda();}
 function simVenda(){
   var el=document.getElementById('sim-result');if(!el)return;
   function gv(id){var e=document.getElementById(id);return e?e.value:'';}
+  function simVal(k,preco){var raw=gv('sim-'+k)||'0';if(simMode[k]==='%'){return preco*(parseFloat(raw)||0)/100;}return parseBRL(raw)||0;}
   var preco=parseBRL(gv('sim-preco')||'0')||0;
   var custo=parseBRL(gv('sim-custo')||'0')||0;
-  var taxa=parseBRL(gv('sim-taxa')||'0')||0;
-  var impP=parseFloat(gv('sim-imp'))||0;
-  var com=parseBRL(gv('sim-com')||'0')||0;
+  var taxa=simVal('taxa',preco);
+  var com=simVal('com',preco);
   var frete=parseBRL(gv('sim-frete')||'0')||0;
-  var imp=preco*impP/100;
+  var imp=simVal('imp',preco);
   var lucro=preco-custo-taxa-imp-com-frete;
   var margem=preco>0?lucro/preco*100:0;
   var markup=custo>0?preco/custo:0;
@@ -8050,9 +8063,9 @@ function simVenda(){
   el.innerHTML='<div style="background:var(--bg2);border-radius:10px;padding:12px;">'+
     lin('Preço de venda',preco,false)+
     lin('Custo',custo,true)+
-    lin('Taxa',taxa,true)+
-    lin('Imposto ('+impP+'%)',imp,true)+
-    lin('Comissão',com,true)+
+    lin('Taxa'+(simMode.taxa==='%'?' ('+(parseFloat(gv('sim-taxa'))||0)+'%)':''),taxa,true)+
+    lin('Imposto'+(simMode.imp==='%'?' ('+(parseFloat(gv('sim-imp'))||0)+'%)':''),imp,true)+
+    lin('Comissão'+(simMode.com==='%'?' ('+(parseFloat(gv('sim-com'))||0)+'%)':''),com,true)+
     lin('Frete',frete,true)+
     '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:800;">Lucro Líquido</span><span style="font-size:20px;font-weight:900;color:'+rc+';">'+fmt(lucro)+'</span></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">'+
