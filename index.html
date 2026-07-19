@@ -944,23 +944,25 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <span id="duplo-total" style="font-size:14px;font-weight:700;color:#22c55e;">R$ 0,00</span>
       </div>
     </div>
-    <div class="r3">
+    <div class="r2">
       <div class="fg">
-        <label class="fl" style="display:flex;justify-content:space-between;align-items:center;">
+        <label class="fl" style="display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:16px;">
           <span>Imposto</span>
-          <span id="imp-mode-toggle" onclick="toggleImpMode()" style="cursor:pointer;font-size:10px;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:4px 10px;user-select:none;">%</span>
+          <span id="imp-mode-toggle" onclick="toggleImpMode()" style="cursor:pointer;font-size:10px;line-height:1;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:4px 9px;user-select:none;flex-shrink:0;">%</span>
         </label>
         <input class="fi" id="v-imp" type="text" inputmode="decimal" placeholder="0,00" oninput="maskImpField(this);calcRes()">
       </div>
       <div class="fg">
-        <label class="fl" style="display:flex;justify-content:space-between;align-items:center;">
+        <label class="fl" style="display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:16px;">
           <span>Comissão</span>
-          <span id="com-mode-toggle" onclick="toggleComMode()" style="cursor:pointer;font-size:10px;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:4px 10px;user-select:none;">R$</span>
+          <span id="com-mode-toggle" onclick="toggleComMode()" style="cursor:pointer;font-size:10px;line-height:1;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:4px 9px;user-select:none;flex-shrink:0;">R$</span>
         </label>
         <input class="fi" id="v-com" type="text" inputmode="decimal" placeholder="0,00" oninput="maskComField(this);calcRes()">
       </div>
-      <div class="fg"><label class="fl">Frete</label><input class="fi" id="v-frete" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
-      <div class="fg"><label class="fl">Vendedor</label><input class="fi" id="v-vendedor" type="text" placeholder="Nome do vendedor"></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label class="fl" style="min-height:16px;">Frete</label><input class="fi" id="v-frete" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg"><label class="fl" style="min-height:16px;">Vendedor</label><input class="fi" id="v-vendedor" type="text" placeholder="Nome do vendedor"></div>
     </div>
     <div class="divider"></div>
     <div class="stitle" style="margin-top:0;">Resultado</div>
@@ -9803,6 +9805,8 @@ function _buildVerVendaRows(v){
   var comPct=v.comPct||0;
   var margContrib=v.venda-(v.taxa||0)-(v.com||0)-(v.custo||0)-(v.frete||0);
   var margPct=v.venda>0?(margContrib/v.venda*100):0;
+  var markup=(v.custo||0)>0?(v.venda/v.custo):0;
+  var markupPct=(v.custo||0)>0?((v.venda-v.custo)/v.custo*100):0;
   var rows=[
     {label:'📅 Data',data:true,dataVal:(v.date||'').slice(0,10)},
     {label:'👤 Cliente',cliente:true,clienteVal:v.cliente||''},
@@ -9819,6 +9823,7 @@ function _buildVerVendaRows(v){
     {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0,pct:_pctVenda(v.imp,v.venda)},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
+    {label:'📈 Markup',val:markup>0?(markup.toFixed(2)+'x ('+markupPct.toFixed(1)+'%)'):'—',color:'#1E90FF',bold:true},
     {label:'✅ Lucro Líquido',val:fmt(v.lucroLL||0)+' ('+(v.venda>0?((v.lucroLL||0)/v.venda*100).toFixed(1):0)+'%)',color:(v.lucroLL||0)>=0?'#22c55e':'#ef4444',bold:true,big:true},
   ];
   if(v.duplo){
