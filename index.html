@@ -109,6 +109,8 @@ body.beige::before{background:
   radial-gradient(55% 45% at 90% 40%, rgba(180,120,60,.08), transparent 60%);}
 input,select,button,textarea{font-family:inherit;}
 input[type=number]{-webkit-appearance:none;-moz-appearance:textfield;}
+input[type=date].fi{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;}
+input[type=date].fi::-webkit-date-and-time-value{text-align:center;margin:0;}
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 /* Fira Code para números/dados */
 .kval,.li-v,.cbx .cv,.sqty,.fi[type=number],.num{font-family:'Fira Code','Fira Mono',monospace;font-variant-numeric:tabular-nums;}
