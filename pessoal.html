@@ -53,6 +53,7 @@ body.light::before{background:
 .li .del{background:none;border:none;color:#ef4444;font-size:17px;cursor:pointer;width:36px;height:36px;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;transition:transform .08s,background .15s;}
 .li .del:active{transform:scale(.88);background:var(--bg3);}
 .fi{width:100%;background:var(--input);border:1px solid var(--input-border);border-radius:9px;padding:12px 12px;color:var(--text);font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s;}
+input[type=date].fi{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;}
 .fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,.18);}
 .fl{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block;}
 .row{display:flex;gap:8px;}
@@ -417,10 +418,11 @@ function viewLista(tipo,titulo,col,hasCat){
   var items=byTipo(tipo);var total=items.reduce(function(s,i){return s+(+i.valor||0);},0);
   var h='<div class="card"><div class="ttl">'+titulo+'</div><div style="font-size:20px;font-weight:800;color:'+col+';margin-bottom:10px;">'+fmt(total)+'</div>';
   if(!items.length)h+='<div class="empty">Nenhum item</div>';
-  items.forEach(function(it){if(editingId===it.id){h+=editorBox(it);return;}h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(it.nome||'—')+'</div>'+(it.categoria?'<div class="sb">'+esc(it.categoria)+'</div>':'')+'</div><div class="vl" style="color:'+col+';">'+fmt(it.valor)+'</div>'+itemActions(it)+'</div>';});
+  items.forEach(function(it){if(editingId===it.id){h+=editorBox(it);return;}h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;"><div class="nm">'+esc(it.nome||'—')+'</div>'+(it.categoria||it.data?'<div class="sb">'+esc(it.categoria||'')+(it.categoria&&it.data?' · ':'')+(it.data?'📅 '+fmtData(it.data):'')+'</div>':'')+'</div><div class="vl" style="color:'+col+';">'+fmt(it.valor)+'</div>'+itemActions(it)+'</div>';});
   h+='<div class="add-box"><label class="fl">Nome</label><input class="fi" id="add-nome" placeholder="Descrição">'+
      (hasCat?'<label class="fl" style="margin-top:8px;">Local / Categoria</label><input class="fi" id="add-cat" placeholder="Opcional">':'')+
-     '<label class="fl" style="margin-top:8px;">Valor (R$)</label><input class="fi" id="add-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
+     '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor (R$)</label><input class="fi" id="add-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
+     '<div><label class="fl">Data</label><input class="fi" id="add-data" type="date" value="'+today()+'"></div></div>'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addSimple(\''+tipo+'\','+(hasCat?1:0)+')">+ Adicionar</button></div>';
   return h+'</div>';
 }
@@ -428,7 +430,7 @@ function addSimple(tipo,hasCat){
   var nome=(document.getElementById('add-nome').value||'').trim();
   var val=parseBRL(document.getElementById('add-val').value);
   if(!nome){toast('Informe o nome',true);return;}
-  var obj={tipo:tipo,nome:nome,valor:val};
+  var obj={tipo:tipo,nome:nome,valor:val,data:(document.getElementById('add-data')||{value:''}).value||today()};
   if(hasCat){var c=document.getElementById('add-cat');if(c)obj.categoria=(c.value||'').trim();}
   addItem(obj,function(){render();toast('Adicionado!');});
 }
@@ -456,12 +458,13 @@ function viewAcoes(tipo,titulo,col,moeda){
     var info=ganhoInfo(a),igc=info.g>=0?'#22c55e':'#ef4444';
     h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;">'+
        '<div class="nm">'+esc(a.nome||'—')+(nomeAtivo(a)?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(nomeAtivo(a))+'</span>':'')+'</div>'+
-       '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+'</div></div>'+
+       '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+(a.data?' · 📅 '+fmtData(a.data):'')+'</div></div>'+
        '<div style="text-align:right;"><div class="vl" style="color:'+col+';">'+fmtCur(info.cv,moeda)+'</div>'+(isUSD?'<div style="font-size:10px;color:var(--accent);">'+fmt(info.cv*getDolar())+'</div>':'')+'</div>'+
        '<button class="del" style="color:#22c55e;font-size:17px;" onclick="novaCompra('+a.id+')" title="Nova compra">＋</button>'+itemActions(a)+'</div>';});
   h+='<div class="add-box"><label class="fl">Ticker (ex: '+(isUSD?'AAPL, VOO':'PETR4, ITUB4')+')</label><input class="fi" id="ac-nome" placeholder="'+(isUSD?'AAPL':'PETR4')+'">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Quantidade</label><input class="fi" id="ac-qtd" inputmode="decimal" placeholder="0"></div>'+
      '<div><label class="fl">Valor pago ('+moeda+')</label><input class="fi" id="ac-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
+     '<label class="fl" style="margin-top:8px;">Data da compra</label><input class="fi" id="ac-data" type="date" value="'+today()+'">'+
      '<div style="font-size:10px;color:var(--text3);margin-top:5px;">O preço atual é buscado ao vivo pelo ticker. Use o código exato da ação.</div>'+
      '<button class="btn-add" style="margin-top:8px;" onclick="addAcao(\''+tipo+'\')">+ Adicionar</button></div>';
   return h+'</div>';
@@ -477,7 +480,7 @@ function addAcao(tipo){
     updItem(existente.id,{qtd:(+existente.qtd||0)+qtd,valor:(+existente.valor||0)+val},function(){fetchPrices(function(){render();});toast(nome+' atualizado (posição somada)!');});
     return;
   }
-  addItem({tipo:tipo,nome:nome,qtd:qtd,valor:val},function(){fetchPrices(function(){render();});toast('Ação adicionada!');});
+  addItem({tipo:tipo,nome:nome,qtd:qtd,valor:val,data:(document.getElementById('ac-data')||{value:''}).value||today()},function(){fetchPrices(function(){render();});toast('Ação adicionada!');});
 }
 
 // Dólar (reserva em US$)
@@ -512,21 +515,22 @@ function viewDevedores(){
   items.forEach(function(d){
     if(editingId===d.id){h+=editorBox(d);return;}
     if(devAjusteId===d.id){h+=devAjusteBox(d);return;}
-    h+='<div class="li" style="border-left-color:#f59e0b;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+(d.categoria?'<div class="sb">'+esc(d.categoria)+'</div>':'')+'</div>'+
+    h+='<div class="li" style="border-left-color:#f59e0b;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+'</div>'+(d.categoria||d.data?'<div class="sb">'+esc(d.categoria||'')+(d.categoria&&d.data?' · ':'')+(d.data?'📅 '+fmtData(d.data):'')+'</div>':'')+'</div>'+
       '<div class="vl" style="color:#f59e0b;">'+fmt(d.valor)+'</div>'+
       '<button class="del" style="color:#22c55e;font-size:18px;" onclick="devAjustar('+d.id+',1)" title="Adicionar valor">＋</button>'+
       '<button class="del" style="color:#ef4444;font-size:22px;" onclick="devAjustar('+d.id+',-1)" title="Retirar valor">−</button>'+
       itemActions(d)+'</div>';});
   h+='<div class="add-box"><label class="fl">Nome</label><input class="fi" id="dv-nome" placeholder="Ex: João">'+
      '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="dv-desc" placeholder="Ex: empréstimo">'+
-     '<label class="fl" style="margin-top:8px;">Valor</label><input class="fi" id="dv-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
+     '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor</label><input class="fi" id="dv-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
+     '<div><label class="fl">Data</label><input class="fi" id="dv-data" type="date" value="'+today()+'"></div></div>'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addDevedor()">+ Adicionar</button></div>';
   return h+'</div>';
 }
 function addDevedor(){
   var nome=(document.getElementById('dv-nome').value||'').trim();
   if(!nome){toast('Informe o nome',true);return;}
-  addItem({tipo:'devedor',nome:nome,categoria:(document.getElementById('dv-desc').value||'').trim(),valor:parseBRL(document.getElementById('dv-val').value)},function(){render();toast('Devedor adicionado!');});
+  addItem({tipo:'devedor',nome:nome,categoria:(document.getElementById('dv-desc').value||'').trim(),valor:parseBRL(document.getElementById('dv-val').value),data:(document.getElementById('dv-data')||{value:''}).value||today()},function(){render();toast('Devedor adicionado!');});
 }
 function viewDolar(){
   var items=byTipo('dolar');
@@ -547,6 +551,7 @@ function viewDolar(){
      '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="dl-desc" placeholder="Ex: reserva viagem">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor em US$</label><input class="fi" id="dl-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
      '<div><label class="fl">Valor pago (R$)</label><input class="fi" id="dl-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
+     '<label class="fl" style="margin-top:8px;">Data da compra</label><input class="fi" id="dl-data" type="date" value="'+today()+'">'+
      '<div style="font-size:10px;color:var(--text3);margin-top:5px;">A taxa média de compra é calculada automaticamente (R$ pago ÷ US$).</div>'+
      '<button class="btn-add" style="margin-top:8px;" onclick="addDolar()">+ Adicionar</button>';
   if(items.length){
@@ -565,7 +570,7 @@ function viewDolar(){
   items.forEach(function(d){if(editingId===d.id){h+=editorBox(d);return;}
     var usd=+d.valor||0, custo=+d.meta||0, atual=usd*cot, g=atual-custo, pg=custo>0?g/custo*100:0, mr=usd>0?custo/usd:0, igc=g>=0?'#22c55e':'#ef4444';
     h+='<div class="li" style="border-left-color:#a3e635;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(d.nome||'—')+(d.categoria?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(d.categoria)+'</span>':'')+'</div>'+
-      '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+'</div></div>'+
+      '<div class="sb">'+fmtUSD(usd)+(custo>0?' · pago '+fmt(custo)+' (R$ '+fmtN(mr)+') · <span style="color:'+igc+';font-weight:700;">'+(g>=0?'+':'')+pg.toFixed(2)+'%</span>':'')+(d.data?' · 📅 '+fmtData(d.data):'')+'</div></div>'+
       '<div style="text-align:right;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(custo>0?'<div style="font-size:10px;color:'+igc+';">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+itemActions(d)+'</div>';});
   var saidas=byTipo('dolar_saida').slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   if(saidas.length){
@@ -580,7 +585,7 @@ function addDolar(){
   var val=parseBRL(document.getElementById('dl-val').value);
   var custo=parseBRL(document.getElementById('dl-custo').value);
   if(!val){toast('Informe o valor em US$',true);return;}
-  addItem({tipo:'dolar',nome:nome,categoria:desc,valor:val,meta:custo},function(){render();toast('Reserva adicionada!');});
+  addItem({tipo:'dolar',nome:nome,categoria:desc,valor:val,meta:custo,data:(document.getElementById('dl-data')||{value:''}).value||today()},function(){render();toast('Reserva adicionada!');});
 }
 // Retirada — reduz US$ e custo proporcionalmente (mantém a taxa média)
 function registrarRetirada(){
@@ -759,6 +764,7 @@ function editorBox(it){
   if(t==='cofrinho'){h+='<label class="fl" style="margin-top:6px;">Tipo</label><select class="fi" id="ed-cat">'+PRODUTOS_RF.map(function(p){return '<option value="'+p+'"'+((it.categoria||'Cofrinho')===p?' selected':'')+'>'+p+'</option>';}).join('')+'</select>'+
     '<div class="row" style="margin-top:6px;"><div><label class="fl">Data da aplicação</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'"></div><div><label class="fl">% do CDI</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||105)+'"></div></div>'+
     '<label class="fl" style="margin-top:6px;">Meta</label><input class="fi" id="ed-meta" inputmode="decimal" value="'+(it.meta?fmtN(it.meta):'')+'" oninput="maskBRL(this)">';}
+  if(t==='terreno'||t==='devedor'||t==='acao_br'||t==='acao_eua'||t==='cripto'||t==='dolar'){h+='<label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
   h+='<div class="row" style="margin-top:10px;"><button class="btn-add" onclick="saveEditItem('+it.id+')">✓ Salvar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelEdit()">Cancelar</button></div>';
   return h+'</div>';
 }
