@@ -6653,6 +6653,21 @@ function skcCatList(extra){var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB'
 function skcFillCatSelect(id,sel){var el=document.getElementById(id);if(!el)return;el.innerHTML=skcCatList(sel).map(function(c){return '<option value="'+esc(c)+'"'+(c===sel?' selected':'')+'>'+esc(c)+'</option>';}).join('');}
 function skcSetCat(c){skcCat=c;renderSkuCadastro();}
 function skcEdit(id){skcEditId=id;skcAddOpen=false;var f=document.getElementById('skc-addform');if(f)f.style.display='none';renderSkuCadastro();}
+function skcDuplicate(id){
+  var all=getAllCustoSKUs(),s=null,i;
+  for(i=0;i<all.length;i++){if(String(all[i].id)===String(id)){s=all[i];break;}}
+  if(!s)return;
+  skcEditId=null;skcAddOpen=true;
+  var f=document.getElementById('skc-addform'),b=document.getElementById('skc-add-btn');
+  if(f)f.style.display='block';
+  if(b)b.textContent='✕ Fechar';
+  skcFillCatSelect('skc-new-cat',s.cat||'');
+  var n=document.getElementById('skc-new-nome');if(n)n.value=(s.nome||'')+' (cópia)';
+  var u=document.getElementById('skc-new-usd');if(u)u.value=s.usd||'';
+  renderSkuCadastro();
+  if(f&&f.scrollIntoView)f.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(n){n.focus();n.select&&n.select();}
+}
 function skcCancelEdit(){skcEditId=null;renderSkuCadastro();}
 function skcToggleAdd(){
   skcAddOpen=!skcAddOpen;skcEditId=null;
@@ -6711,6 +6726,7 @@ function renderSkuCadastro(){
         (s.usd>0?'<div style="font-size:13px;font-weight:800;color:#1E90FF;">$ '+fmtN(s.usd)+'</div><div style="font-size:10px;color:#22c55e;">R$ '+fmtN(brl)+'</div>':'<div style="font-size:11px;color:var(--text3);">sem preço</div>')+
       '</div>'+
       '<button onclick="skcEdit(\''+s.id+'\')" title="Editar" style="border:none;background:#1E90FF22;color:#1E90FF;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">✎</button>'+
+      '<button onclick="skcDuplicate(\''+s.id+'\')" title="Duplicar" style="border:none;background:#22c55e22;color:#22c55e;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">⧉</button>'+
       (s.custom?'<button onclick="skcDelete(\''+s.id+'\')" title="Apagar" style="border:none;background:#ef444422;color:#ef4444;border-radius:6px;padding:6px 10px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">×</button>':'')+
     '</div>';
   });
