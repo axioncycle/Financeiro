@@ -1523,6 +1523,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <input class="fi" id="skc-dref" inputmode="decimal" oninput="skcSetDolarRef(this.value)" style="max-width:100px;font-weight:700;text-align:center;padding:8px 10px;">
       <span id="skc-dref-status" style="font-size:10px;font-weight:700;"></span>
       <span onclick="skcUseLive()" style="cursor:pointer;color:#1E90FF;font-weight:700;font-size:11px;white-space:nowrap;">🔄 ao vivo</span>
+      <span style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Fator imp.</span>
+      <input class="fi" id="skc-ifator" inputmode="decimal" oninput="skcSetFator(this.value)" title="Fator de importação (multiplica o valor em R$)" style="max-width:90px;font-weight:700;text-align:center;padding:8px 10px;">
     </div>
 
     <!-- Formulário de novo SKU (oculto por padrão) -->
@@ -6642,6 +6644,8 @@ function skcDolarRef(){var m=skcDolarManual();if(m>0)return m;var l=skcLiveVal()
 function skcDolarIsLive(){return !(skcDolarManual()>0)&&skcLiveVal()>0;}
 function skcSetDolarRef(val){var v=parseFloat(String(val).replace(',','.'))||0;try{localStorage.setItem('skc_dolar_ref',JSON.stringify(v));}catch(e){}renderSkuCadastro();}
 function skcUseLive(){try{localStorage.removeItem('skc_dolar_ref');}catch(e){}fetchSkcDolar(true);}
+function skcFator(){var v=parseFloat(String(sg('skc_ifator','1')).replace(',','.'));return v>0?v:1;}
+function skcSetFator(val){var v=parseFloat(String(val).replace(',','.'))||0;try{localStorage.setItem('skc_ifator',JSON.stringify(v));}catch(e){}renderSkuCadastro();}
 function fetchSkcDolar(force){
   fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(function(r){return r.json();}).then(function(j){
     var bid=j&&j.USDBRL&&parseFloat(j.USDBRL.bid);
@@ -6691,6 +6695,7 @@ function renderSkuCadastro(){
   var list=document.getElementById('skc-list');if(!list)return;
   var dref=document.getElementById('skc-dref');if(dref&&document.activeElement!==dref)dref.value=fmtN(skcDolarRef());
   var drefSt=document.getElementById('skc-dref-status');if(drefSt){var live=skcDolarIsLive();drefSt.textContent=live?'🟢 ao vivo':'✏️ manual';drefSt.style.color=live?'#22c55e':'#f59e0b';}
+  var ifat=document.getElementById('skc-ifator');if(ifat&&document.activeElement!==ifat)ifat.value=fmtN(skcFator());
   var all=getAllCustoSKUs();
   // chips de categoria
   var catSet={};all.forEach(function(s){catSet[s.cat||'—']=1;});
@@ -6709,14 +6714,14 @@ function renderSkuCadastro(){
     return true;
   });
   filtered.sort(function(a,b){return (a.cat||'').localeCompare(b.cat||'')||(a.nome||'').localeCompare(b.nome||'');});
-  var ref=skcDolarRef();
+  var ref=skcDolarRef();var fator=skcFator();
   var sum=document.getElementById('skc-summary');
-  if(sum){var comUsd=all.filter(function(s){return (s.usd||0)>0;}).length;sum.innerHTML=filtered.length+' de '+all.length+' SKUs · '+comUsd+' com preço · BRL calculado a R$ '+fmtN(ref);}
+  if(sum){var comUsd=all.filter(function(s){return (s.usd||0)>0;}).length;sum.innerHTML=filtered.length+' de '+all.length+' SKUs · '+comUsd+' com preço · R$ = USD × '+fmtN(ref)+' × fator '+fmtN(fator);}
   if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;">Nenhum SKU encontrado</div>';return;}
   var h='';
   filtered.forEach(function(s){
     if(String(skcEditId)===String(s.id)){h+=skcEditRow(s);return;}
-    var brl=(s.usd||0)*ref;
+    var brl=(s.usd||0)*ref*fator;
     h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;margin-bottom:5px;background:var(--bg2);">'+
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(s.nome)+'</div>'+
