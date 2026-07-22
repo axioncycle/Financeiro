@@ -1518,10 +1518,11 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <input class="fi" id="skc-search" placeholder="&#128269; Pesquisar por nome ou categoria..." oninput="renderSkuCadastro()" autocomplete="off" style="margin-bottom:8px;">
 
     <!-- Cotação de referência (USD → BRL só para exibição) -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <span style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Cotação ref. R$</span>
-      <input class="fi" id="skc-dref" inputmode="decimal" oninput="skcSetDolarRef(this.value)" style="max-width:110px;font-weight:700;text-align:center;padding:8px 10px;">
-      <span style="font-size:10px;color:var(--text3);">converte USD → BRL na lista</span>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Dólar R$</span>
+      <input class="fi" id="skc-dref" inputmode="decimal" oninput="skcSetDolarRef(this.value)" style="max-width:100px;font-weight:700;text-align:center;padding:8px 10px;">
+      <span id="skc-dref-status" style="font-size:10px;font-weight:700;"></span>
+      <span onclick="skcUseLive()" style="cursor:pointer;color:#1E90FF;font-weight:700;font-size:11px;white-space:nowrap;">🔄 ao vivo</span>
     </div>
 
     <!-- Formulário de novo SKU (oculto por padrão) -->
@@ -6512,6 +6513,7 @@ function initCustoPage(){
   }
   if(custoContId) sel.value=custoContId;
   renderCustoPage();
+  fetchSkcDolar();
   // Load last ROI params as defaults when no container is selected
   if(!custoContId){
     dbGet('configuracoes','chave=eq.roi_global').then(function(rows){
@@ -6633,9 +6635,20 @@ function renderCustoPage(){
 }
 
 // ── CADASTRO DE SKU (card na aba Custos) ──────────────────────────────────
-var skcCat='__all__',skcEditId=null,skcAddOpen=false;
-function skcDolarRef(){var v=parseFloat(String(sg('skc_dolar_ref','5.50')).replace(',','.'));return v>0?v:5.5;}
+var skcCat='__all__',skcEditId=null,skcAddOpen=false,skcDolarLive=0,skcDolarLiveLoaded=false;
+function skcLiveVal(){if(!skcDolarLiveLoaded){skcDolarLive=parseFloat(sg('skc_dolar_live',0))||0;skcDolarLiveLoaded=true;}return skcDolarLive;}
+function skcDolarManual(){var v=sg('skc_dolar_ref',null);v=(v==null)?0:parseFloat(String(v).replace(',','.'));return v>0?v:0;}
+function skcDolarRef(){var m=skcDolarManual();if(m>0)return m;var l=skcLiveVal();if(l>0)return l;return 5.40;}
+function skcDolarIsLive(){return !(skcDolarManual()>0)&&skcLiveVal()>0;}
 function skcSetDolarRef(val){var v=parseFloat(String(val).replace(',','.'))||0;try{localStorage.setItem('skc_dolar_ref',JSON.stringify(v));}catch(e){}renderSkuCadastro();}
+function skcUseLive(){try{localStorage.removeItem('skc_dolar_ref');}catch(e){}fetchSkcDolar(true);}
+function fetchSkcDolar(force){
+  fetch('https://economia.awesomeapi.com.br/last/USD-BRL').then(function(r){return r.json();}).then(function(j){
+    var bid=j&&j.USDBRL&&parseFloat(j.USDBRL.bid);
+    if(bid>0){skcDolarLive=Math.round(bid*100)/100;skcDolarLiveLoaded=true;try{localStorage.setItem('skc_dolar_live',JSON.stringify(skcDolarLive));}catch(e){}renderSkuCadastro();if(force)toast('Dólar atualizado: R$ '+fmtN(skcDolarLive));}
+    else if(force)toast('Não consegui a cotação',true);
+  }).catch(function(){if(force)toast('Sem conexão para cotação',true);});
+}
 function skcCatList(extra){var cats=sg('ax_v6_cats',['RIM','DISC','GRAVEL','MTB']).slice();if(extra&&cats.indexOf(extra)<0)cats.push(extra);return cats;}
 function skcFillCatSelect(id,sel){var el=document.getElementById(id);if(!el)return;el.innerHTML=skcCatList(sel).map(function(c){return '<option value="'+esc(c)+'"'+(c===sel?' selected':'')+'>'+esc(c)+'</option>';}).join('');}
 function skcSetCat(c){skcCat=c;renderSkuCadastro();}
@@ -6662,6 +6675,7 @@ function skcEditRow(s){
 function renderSkuCadastro(){
   var list=document.getElementById('skc-list');if(!list)return;
   var dref=document.getElementById('skc-dref');if(dref&&document.activeElement!==dref)dref.value=fmtN(skcDolarRef());
+  var drefSt=document.getElementById('skc-dref-status');if(drefSt){var live=skcDolarIsLive();drefSt.textContent=live?'🟢 ao vivo':'✏️ manual';drefSt.style.color=live?'#22c55e':'#f59e0b';}
   var all=getAllCustoSKUs();
   // chips de categoria
   var catSet={};all.forEach(function(s){catSet[s.cat||'—']=1;});
