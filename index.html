@@ -1276,6 +1276,28 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <button class="btn btn-s" onclick="cancelSkuEdit();closeModal('m-add-sku');" style="margin-top:10px;width:100%;">Fechar</button>
   </div>
 </div>
+<div class="ovl" id="m-import-sku">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="mhdl"></div>
+    <div class="mtitle">Importar lista de SKUs</div>
+    <div id="imp-step1">
+      <p style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.4;">Cole a lista — uma por linha, no formato <b>Nome - Quantidade</b>. O custo USD é puxado do cadastro. Linhas em branco são ignoradas.</p>
+      <textarea id="imp-text" style="width:100%;min-height:170px;background:var(--input);border:1px solid var(--input-border);border-radius:8px;padding:10px;color:var(--text);font-size:12px;font-family:monospace;outline:none;box-sizing:border-box;" placeholder="→ RIM 50mm BLACK LOGO VALVE - 10&#10;→ DISC 60mm CINZA LOGO GREY - 10"></textarea>
+      <button class="btn" style="width:100%;margin-top:10px;" onclick="impAnalisar()">Analisar lista →</button>
+    </div>
+    <div id="imp-step2" style="display:none;">
+      <div id="imp-summary" style="font-size:11px;font-weight:700;margin-bottom:8px;"></div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Confira o SKU sugerido para cada linha. Ajuste no seletor ou escolha <b>— ignorar —</b> para o que não deve entrar.</div>
+      <div id="imp-preview"></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0;cursor:pointer;"><input type="checkbox" id="imp-clear" style="width:16px;height:16px;">Limpar SKUs atuais do contêiner antes de importar</label>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-s" onclick="impVoltar()">← Voltar</button>
+        <button class="btn" style="flex:1;" id="imp-apply-btn" onclick="impAplicar()">Aplicar</button>
+      </div>
+    </div>
+    <button class="btn btn-s" onclick="closeModal('m-import-sku')" style="width:100%;margin-top:10px;">Fechar</button>
+  </div>
+</div>
 <div class="ovl" id="m-edit-cont">
   <div class="modal">
     <div class="mhdl"></div>
@@ -1373,7 +1395,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div style="font-size:10px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Bloco 2</div>
         <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-top:2px;">Planejamento de Compra</div>
       </div>
-      <button onclick="addSkuRow()" style="padding:7px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">+ SKU</button>
+      <div style="display:flex;gap:6px;">
+        <button onclick="openImportSku()" style="padding:7px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">📥 Importar</button>
+        <button onclick="addSkuRow()" style="padding:7px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">+ SKU</button>
+      </div>
     </div>
     <div id="sku-rows" style="margin-bottom:10px;"></div>
   </div>
@@ -6789,6 +6814,108 @@ function skcDelete(id){
   if(String(skcEditId)===String(id))skcEditId=null;
   renderSkuCadastro();if(typeof renderEst==='function')renderEst();renderSkuRows();
   toast('SKU removido!');
+}
+
+// ── IMPORTADOR DE LISTA DE SKUs (Planejamento de Compra) ──────────────────
+var impRows=[];
+function impContNome(){var cs=loadContainers();for(var i=0;i<cs.length;i++){if(String(cs[i].id)===String(custoContId))return cs[i].nome;}return '';}
+function impParse(text){
+  var out=[];
+  String(text||'').split(/\r?\n/).forEach(function(ln){
+    ln=ln.replace(/^[\s→>\-•*·]+/,'').trim();
+    if(!ln)return;
+    var m=ln.match(/^(.*?)\s*[-–—:]\s*(\d+)\s*$/);
+    var nome,qty;
+    if(m){nome=m[1].trim();qty=parseInt(m[2],10)||1;}else{nome=ln;qty=1;}
+    if(nome)out.push({raw:ln,nome:nome,qty:qty});
+  });
+  return out;
+}
+function impNorm(s){s=String(s||'').toLowerCase();if(s.normalize)s=s.normalize('NFD').replace(/[̀-ͯ]/g,'');return s.replace(/[^a-z0-9]+/g,' ').trim();}
+function impTokens(s){var stop={brake:1,logo:1,de:1,da:1,do:1,com:1,e:1};return impNorm(s).split(' ').filter(function(t){return t&&!stop[t];});}
+function impScore(qt,ct){
+  if(!qt.length||!ct.length)return 0;
+  var cs={};ct.forEach(function(t){cs[t]=1;});var qs={};qt.forEach(function(t){qs[t]=1;});
+  var hit=0;qt.forEach(function(t){if(cs[t])hit++;});
+  var chit=0;ct.forEach(function(t){if(qs[t])chit++;});
+  return (hit/qt.length)*0.7+(chit/ct.length)*0.3;
+}
+function impBestMatch(nome,all){
+  var qt=impTokens(nome),first=null,fs=-1,ss=-1,i,sc;
+  for(i=0;i<all.length;i++){sc=impScore(qt,impTokens(all[i].nome));if(sc>fs){ss=fs;fs=sc;first=all[i];}else if(sc>ss){ss=sc;}}
+  return {best:first,score:fs<0?0:fs,diff:(fs<0?0:fs)-(ss<0?0:ss)};
+}
+function impSkuOptions(selName){
+  var all=getAllCustoSKUs().slice().sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+  var o='<option value="">— ignorar —</option>';
+  all.forEach(function(s){o+='<option value="'+esc(s.nome)+'"'+(s.nome===selName?' selected':'')+'>'+esc(s.nome)+(s.usd?(' ($'+fmtN(s.usd)+')'):'')+'</option>';});
+  return o;
+}
+function openImportSku(){
+  if(!custoContId){toast('Selecione o Contêiner (ex: 7) no topo antes de importar',true);return;}
+  impRows=[];
+  var t=document.getElementById('imp-text');if(t)t.value='';
+  document.getElementById('imp-step1').style.display='block';
+  document.getElementById('imp-step2').style.display='none';
+  var cl=document.getElementById('imp-clear');if(cl)cl.checked=false;
+  openModal('m-import-sku');
+}
+function impVoltar(){document.getElementById('imp-step1').style.display='block';document.getElementById('imp-step2').style.display='none';}
+function impAnalisar(){
+  var txt=(document.getElementById('imp-text')||{value:''}).value;
+  var parsed=impParse(txt);
+  if(!parsed.length){toast('Cole a lista para analisar',true);return;}
+  var all=getAllCustoSKUs();
+  impRows=parsed.map(function(p){
+    var r=impBestMatch(p.nome,all);
+    var auto=!!(r.best&&r.score>=0.5&&r.diff>=0.08);
+    return {raw:p.raw,nome:p.nome,qty:p.qty,selName:auto?r.best.nome:'',suggest:r.best?r.best.nome:'',score:r.score,auto:auto};
+  });
+  document.getElementById('imp-step1').style.display='none';
+  document.getElementById('imp-step2').style.display='block';
+  var ab=document.getElementById('imp-apply-btn');if(ab)ab.textContent='Aplicar ao '+(impContNome()||'contêiner');
+  impRenderPreview();
+}
+function impRenderPreview(){
+  var prev=document.getElementById('imp-preview');if(!prev)return;
+  var h='';
+  impRows.forEach(function(r,idx){
+    var conf=Math.round(r.score*100);
+    var col=r.selName?(r.score>=0.75?'#22c55e':'#f59e0b'):'#ef4444';
+    var badge=r.selName?(conf+'%'):(r.suggest?'revisar':'sem match');
+    var hint=(!r.selName&&r.suggest)?'<div style="font-size:9px;color:#f59e0b;margin-top:2px;">sugestão: '+esc(r.suggest)+' ('+conf+'%)</div>':'';
+    h+='<div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px;background:var(--bg2);">'+
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:5px;display:flex;justify-content:space-between;gap:8px;"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(r.raw)+'</span><span style="flex-shrink:0;font-weight:700;color:'+col+';">'+badge+'</span></div>'+
+      '<div style="display:flex;gap:6px;align-items:center;">'+
+        '<select onchange="impSelChange('+idx+',this.value)" class="fs" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">'+impSkuOptions(r.selName)+'</select>'+
+        '<input type="number" min="0" value="'+r.qty+'" onchange="impQtyChange('+idx+',this.value)" class="fi" style="width:62px;text-align:center;padding:6px;font-size:13px;">'+
+      '</div>'+hint+
+    '</div>';
+  });
+  prev.innerHTML=h;
+  var matched=impRows.filter(function(r){return r.selName;}).length;
+  var sum=document.getElementById('imp-summary');
+  if(sum)sum.innerHTML='<span style="color:#22c55e;">'+matched+' casados</span> · <span style="color:#ef4444;">'+(impRows.length-matched)+' a revisar/ignorar</span> · alvo: '+esc(impContNome()||'—');
+}
+function impSelChange(idx,val){if(impRows[idx]){impRows[idx].selName=val;impRenderPreview();}}
+function impQtyChange(idx,val){if(impRows[idx])impRows[idx].qty=parseInt(val,10)||0;}
+function impAplicar(){
+  if(!custoContId){toast('Selecione o contêiner primeiro',true);return;}
+  var all=getAllCustoSKUs();var usdMap={};all.forEach(function(s){usdMap[s.nome]=s.usd||0;});
+  var map={};
+  impRows.forEach(function(r){if(r.selName&&r.qty>0)map[r.selName]=(map[r.selName]||0)+r.qty;});
+  var names=Object.keys(map);
+  if(!names.length){toast('Nenhum SKU selecionado',true);return;}
+  if(document.getElementById('imp-clear').checked)skuRows=[];
+  names.forEach(function(nome){
+    var ex=null,i;for(i=0;i<skuRows.length;i++){if(skuRows[i].skuNome===nome){ex=skuRows[i];break;}}
+    if(ex){ex.qty=map[nome];ex.usd=usdMap[nome]||ex.usd||0;}
+    else skuRows.push({skuNome:nome,usd:usdMap[nome]||0,qty:map[nome],brl:0});
+  });
+  renderSkuRows();calcResumo();
+  saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
+  closeModal('m-import-sku');
+  toast(names.length+' SKUs aplicados ao contêiner!');
 }
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────
