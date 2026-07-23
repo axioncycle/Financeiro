@@ -1395,7 +1395,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div style="font-size:10px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Bloco 2</div>
         <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-top:2px;">Planejamento de Compra</div>
       </div>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button onclick="exportSkuRowsXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">📊 Exportar</button>
         <button onclick="openImportSku()" style="padding:7px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">📥 Importar</button>
         <button onclick="addSkuRow()" style="padding:7px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">+ SKU</button>
       </div>
@@ -6916,6 +6917,32 @@ function impAplicar(){
   saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
   closeModal('m-import-sku');
   toast(names.length+' SKUs aplicados ao contêiner!');
+}
+// Exporta o Planejamento de Compra (Bloco 2) em planilha Excel (.xls)
+function exportSkuRowsXls(){
+  var rows=(skuRows||[]).filter(function(r){return r.skuNome&&r.skuNome!=='__manage__';});
+  if(!rows.length){toast('Nenhum SKU para exportar',true);return;}
+  var cont=impContNome()||'container';
+  var totQty=0,totUsd=0;
+  var body='';
+  rows.forEach(function(r){
+    var q=parseInt(r.qty,10)||0,u=parseFloat(r.usd)||0,t=q*u;
+    totQty+=q;totUsd+=t;
+    body+='<tr><td>'+esc(r.skuNome)+'</td><td style="text-align:center;">'+q+'</td>'+
+      '<td style="text-align:right;">'+u.toFixed(2)+'</td><td style="text-align:right;">'+t.toFixed(2)+'</td></tr>';
+  });
+  var html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>'+
+    '<table border="1"><thead>'+
+    '<tr><th>SKU</th><th>Quantidade</th><th>Valor USD (un)</th><th>Total USD</th></tr></thead><tbody>'+
+    body+
+    '<tr><td><b>TOTAL</b></td><td style="text-align:center;"><b>'+totQty+'</b></td><td></td><td style="text-align:right;"><b>'+totUsd.toFixed(2)+'</b></td></tr>'+
+    '</tbody></table></body></html>';
+  var blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='planejamento_'+String(cont).replace(/[^a-zA-Z0-9]+/g,'_')+'.xls';a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},1500);
+  toast('Planilha exportada!');
 }
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────
