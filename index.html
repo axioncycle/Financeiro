@@ -259,22 +259,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .kmom.down{color:#ef4444;}
 .kmom.flat{color:var(--text3);}
 
-/* Swipe hint */
-@keyframes swipeHint{
-  0%{opacity:0;transform:translateX(0);}
-  20%{opacity:1;}
-  50%{transform:translateX(-18px);}
-  80%{opacity:1;}
-  100%{opacity:0;transform:translateX(0);}
-}
-.swipe-hint{
-  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
-  background:rgba(59,130,246,0.9);color:#fff;border-radius:8px;
-  padding:5px 14px;font-size:10px;font-weight:700;z-index:9999;
-  animation:swipeHint 2.5s ease-in-out forwards;pointer-events:none;
-  white-space:nowrap;letter-spacing:.3px;
-}
-
 /* KPI animation */
 @keyframes kpiIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 .kval{animation:kpiIn 0.3s ease-out;}
@@ -7886,17 +7870,6 @@ initDB(function(){
       }
     });
   },2000); // aguarda 2s para o app estabilizar
-  // Show swipe hint once on first load
-  if(!localStorage.getItem('axion_swipe_hint')){
-    localStorage.setItem('axion_swipe_hint','1');
-    setTimeout(function(){
-      var h=document.createElement('div');
-      h.className='swipe-hint';
-      h.textContent='← Deslize para trocar de aba →';
-      document.body.appendChild(h);
-      setTimeout(function(){if(h.parentNode)h.parentNode.removeChild(h);},2600);
-    },1500);
-  }
 });
 
 
@@ -11665,28 +11638,6 @@ document.addEventListener('click',function(e){
   }
 });
 
-
-// ── SWIPE NAVIGATION ────────────────────────────────────────────────
-(function(){
-  var PAGES=['dash','dash2','vend','est','res','custo','caixa'];
-  var _tx=0,_ty=0,_active=false;
-  document.addEventListener('touchstart',function(e){
-    var t=(e.target.tagName||'').toLowerCase();
-    if(t==='input'||t==='select'||t==='textarea'||t==='button'||t==='canvas') return;
-    _tx=e.touches[0].clientX; _ty=e.touches[0].clientY; _active=true;
-  },{passive:true});
-  document.addEventListener('touchend',function(e){
-    if(!_active) return; _active=false;
-    var dx=e.changedTouches[0].clientX-_tx;
-    var dy=e.changedTouches[0].clientY-_ty;
-    if(Math.abs(dx)<55||Math.abs(dy)>80) return;
-    var idx=PAGES.indexOf(curPage); if(idx<0) return;
-    var next=dx<0?PAGES[idx+1]:PAGES[idx-1]; if(!next) return;
-    goTo(next);
-    var nb=document.getElementById('nb-'+next);
-    if(nb) setTimeout(function(){nb.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});},50);
-  },{passive:true});
-})();
 
 // ── SITE SYNC (Vowt) ─────────────────────────────────────────────────
 // ── SITE SYNC HELPERS ────────────────────────────────────────────────
