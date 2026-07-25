@@ -907,7 +907,7 @@ function analisarImport(){
   var rules=getImportRules();
   _imp.rows=list.map(function(x){
     var r=rules[normDesc(x.desc)];
-    return {raw:x.desc,nome:(r&&r.nome)||x.desc,valor:x.valor,dia:x.dia||'01',cat:(r&&r.cat)||x.cat||'',dest:(r&&r.dest)||(x.receita?'ganho':'gasto_extra'),known:!!r,receita:!!x.receita};
+    return {raw:x.desc,nome:(r&&r.nome)||x.desc,valor:x.valor,dia:x.dia||'01',mk:x.mk||'',cat:(r&&r.cat)||x.cat||'',dest:(r&&r.dest)||(x.receita?'ganho':'gasto_extra'),known:!!r,receita:!!x.receita};
   });
   previewImport();
 }
@@ -919,15 +919,17 @@ function cleanExtratoDesc(d){
   d=d.replace(/^\d{4,}\s*-\s*/,'');
   return d.replace(/\s+/g,' ').trim();
 }
+var MES_NUM={janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+function mesNum(nm){nm=String(nm||'').toLowerCase();if(nm.normalize)nm=nm.normalize('NFD').replace(/[̀-ͯ]/g,'');return MES_NUM[nm]||0;}
 function parseExtrato(txt){
   var lines=txt.split(/\n/).map(function(s){return s.trim();}).filter(Boolean);
-  var out=[],curDia='01';
-  var reDay=/^(\d{1,2})\s+de\s+[a-zçãéêó]+\s+de\s+\d{4}/i;
+  var out=[],curDia='01',curMk='';
+  var reDay=/^(\d{1,2})\s+de\s+([a-zçãéêó]+)\s+de\s+(\d{4})/i;
   var reVal=/(-?)\s*R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})/g;
   var skip=/(saldo total|saldo dispon|saldo bloque|per[ií]odo|cpf\/cnpj|institui[cç]|fale com|ouvidoria|^sac\b|defici[eê]ncia|solicitado em|valor\s+saldo|saldo por transa|saldo do dia)/i;
   for(var i=0;i<lines.length;i++){
     var ln=lines[i];
-    var dm=ln.match(reDay);if(dm){curDia=dm[1];continue;}
+    var dm=ln.match(reDay);if(dm){curDia=dm[1];var _mn=mesNum(dm[2]);if(_mn)curMk=dm[3]+'-'+String(_mn).padStart(2,'0');continue;}
     if(skip.test(ln)&&!/R\$/.test(ln))continue;
     reVal.lastIndex=0;var vals=[],m;
     while((m=reVal.exec(ln))){vals.push({sign:m[1]==='-'?-1:1,v:parseBRL(m[2]),idx:m.index});}
@@ -937,7 +939,7 @@ function parseExtrato(txt){
     var receita=valor>0; // positivo = recebido/ganho
     var desc=cleanExtratoDesc(ln.slice(0,first.idx));
     if(!desc)desc=receita?'Recebimento':'Gasto';
-    out.push({desc:desc,valor:Math.abs(valor),dia:String(Math.min(28,Math.max(1,parseInt(curDia,10)||1))).padStart(2,'0'),cat:receita?'':autoCat(desc),receita:receita});
+    out.push({desc:desc,valor:Math.abs(valor),dia:String(Math.min(28,Math.max(1,parseInt(curDia,10)||1))).padStart(2,'0'),cat:receita?'':autoCat(desc),receita:receita,mk:curMk||''});
   }
   return out;
 }
@@ -1007,7 +1009,7 @@ function previewImport(){
       '<div style="display:flex;gap:6px;align-items:center;">'+
         '<select class="fi" onchange="impSetDest('+i+',this.value)" style="flex:1;font-size:12px;padding:6px 8px;">'+destOpts(x.dest)+'</select>'+
         '<input class="fi" value="'+esc(x.cat||'')+'" onchange="impSetCat('+i+',this.value)" placeholder="Categoria" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">'+
-        '<span style="font-size:10px;color:var(--text3);white-space:nowrap;">dia '+x.dia+'</span>'+
+        '<span style="font-size:10px;color:'+(x.mk?'var(--accent)':'var(--text3)')+';white-space:nowrap;font-weight:'+(x.mk?'700':'400')+';">'+(x.mk?(MONTHS[+x.mk.slice(5,7)-1]+'/'+x.mk.slice(2,4)):('dia '+x.dia))+'</span>'+
       '</div>'+
     '</div>';
   });
@@ -1022,17 +1024,17 @@ function impSetDest(i,v){
   var s=document.getElementById('imp-soma');if(s)s.innerHTML=impSomaTxt();
 }
 function applyImport(){
-  var mk=selMk();
+  var selM=selMk();
   var picks=_imp.rows.filter(function(r){return r.dest&&r.dest!=='descartar';});
   if(!picks.length){toast('Escolha o destino de ao menos um gasto',true);return;}
   var agg={};
-  picks.forEach(function(r){var nome=(r.nome||'').trim()||'Gasto';var key=r.dest+'|'+nome.toLowerCase();if(!agg[key])agg[key]={tipo:r.dest,nome:nome,valor:0,cat:(r.cat||'').trim()};agg[key].valor+=r.valor;});
+  picks.forEach(function(r){var nome=(r.nome||'').trim()||'Gasto';var mkk=r.mk||selM;var key=r.dest+'|'+mkk+'|'+nome.toLowerCase();if(!agg[key])agg[key]={tipo:r.dest,mk:mkk,nome:nome,valor:0,cat:(r.cat||'').trim()};agg[key].valor+=r.valor;});
   var updates=[],adds=[];
   Object.keys(agg).forEach(function(k){
     var a=agg[k];
-    var ex=ITEMS.find(function(x){return x.tipo===a.tipo&&(x.data||'').slice(0,7)===mk&&(x.nome||'').trim().toLowerCase()===a.nome.toLowerCase();});
+    var ex=ITEMS.find(function(x){return x.tipo===a.tipo&&(x.data||'').slice(0,7)===a.mk&&(x.nome||'').trim().toLowerCase()===a.nome.toLowerCase();});
     if(ex)updates.push({id:ex.id,valor:(+ex.valor||0)+a.valor});
-    else adds.push({tipo:a.tipo,nome:a.nome,valor:a.valor,data:mk+'-01',categoria:a.cat});
+    else adds.push({tipo:a.tipo,nome:a.nome,valor:a.valor,data:a.mk+'-01',categoria:a.cat});
   });
   // Aprende: memoriza descrição do extrato/fatura → destino, categoria e nome escolhidos
   var rules=getImportRules();
