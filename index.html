@@ -5375,22 +5375,29 @@ function renderRes(){
       '<div id="mes'+i+'" style="display:none;padding:12px 14px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;">'+
         '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">📦 Vendas do mês ('+mv.length+')</span>'+
-        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#f59e0b;">'+fmt(lsi)+'</span><span style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#f59e0b;">'+fmt(lsi)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div style="display:none;margin-bottom:4px;">'+
         (mvRows||'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhuma venda no mês</div>')+
         '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total (s/ imposto)</span><span style="color:#f59e0b;">'+fmt(lsi)+'</span></div>'+
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
-      '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔁 Despesas Fixas</div>'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+        '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🔁 Despesas Fixas</span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totF)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+      '</div>'+
+      '<div style="display:none;margin-top:8px;">'+
       fixaRows+
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
       '</div>'+
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
-        '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Despesas Extras</span>'+
-        '<button onclick="openGastoBox('+i+')" style="background:#1E90FF22;border:1px solid #1E90FF55;color:#1E90FF;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;">+ gasto</button>'+
       '</div>'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+        '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;flex:1;">🧾 Despesas Extras</span>'+
+        '<button onclick="event.stopPropagation();openGastoBox('+i+')" style="background:#1E90FF22;border:1px solid #1E90FF55;color:#1E90FF;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;flex-shrink:0;">+ gasto</button>'+
+        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totE)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+      '</div>'+
+      '<div id="extras-body-'+i+'" style="display:none;margin-top:8px;">'+
       extraRows+
       '<div id="gasto-box-'+i+'" style="display:none;background:var(--bg2);border:1px solid #1E90FF44;border-radius:10px;padding:12px;margin-top:8px;">'+
         '<div style="font-size:11px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Novo gasto</div>'+
@@ -5403,8 +5410,13 @@ function renderRes(){
       '</div>'+
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
       '</div>'+
+      '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
-      '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">± Resultado Financeiro</div>'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+        '<span style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;">± Resultado Financeiro</span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+      '</div>'+
+      '<div style="display:none;margin-top:8px;">'+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
         var isPos=f.valor>=0;
         return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);">'+
@@ -5427,6 +5439,7 @@ function renderRes(){
         '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 10px;cursor:pointer;">+</button>'+
       '</div>'+
       (totFin!==0?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Saldo Financeiro</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>':'')+
+      '</div>'+
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
@@ -5495,9 +5508,10 @@ function renderRes(){
 }
 
 function toggleMes(id){var el=document.getElementById(id);if(el) el.style.display=el.style.display==='none'?'block':'none';}
-function toggleResSec(el){var c=el.nextElementSibling;if(!c)return;var open=c.style.display!=='none';c.style.display=open?'none':'block';var ar=el.querySelector('span:last-child span:last-child');if(ar)ar.textContent=open?'▾':'▴';}
+function toggleResSec(el){var c=el.nextElementSibling;if(!c)return;var open=c.style.display!=='none';c.style.display=open?'none':'block';var ar=el.querySelector('.res-arrow');if(ar)ar.textContent=open?'▾':'▴';}
 function openGastoBox(i){
   var mes=document.getElementById('mes'+i);if(mes)mes.style.display='block';
+  var body=document.getElementById('extras-body-'+i);if(body){body.style.display='block';var hdr=body.previousElementSibling;if(hdr){var ar=hdr.querySelector('.res-arrow');if(ar)ar.textContent='▴';}}
   var box=document.getElementById('gasto-box-'+i);if(box)box.style.display='block';
   var inp=document.getElementById('en'+i);
   if(box){try{box.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}}
