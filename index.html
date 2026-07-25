@@ -1052,7 +1052,16 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 <!-- RESULTADO -->
 <div class="pg" id="pg-res">
   <div id="res-anual" style="background:var(--card);border:1px solid #1E90FF33;border-radius:12px;padding:14px;margin-bottom:14px;"></div>
-  <div class="stitle">Por Mes</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div class="stitle" style="margin:0;">Por Mês</div>
+    <div style="position:relative;">
+      <button onclick="toggleResExp()" id="res-exp-btn" style="padding:6px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">⬇ Exportar DRE</button>
+      <div id="res-exp-menu" style="display:none;position:absolute;right:0;top:112%;background:var(--modal-bg);border:1px solid var(--border);border-radius:8px;z-index:30;overflow:hidden;min-width:120px;box-shadow:0 8px 24px rgba(0,0,0,.35);">
+        <div onclick="exportResultado('pdf')" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);">📄 PDF</div>
+        <div onclick="exportResultado('xls')" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;">📊 Excel</div>
+      </div>
+    </div>
+  </div>
   <div id="res-meses"></div>
 </div>
 
@@ -5133,6 +5142,7 @@ function renderRes(){
   // Mostra somente até o mês subsequente ao atual (esconde meses futuros distantes)
   var _resNow=new Date();var _resNext=new Date(_resNow.getFullYear(),_resNow.getMonth()+1,1);
   var resMaxMk=_resNext.getFullYear()+'-'+String(_resNext.getMonth()+1).padStart(2,'0');
+  var resCurMk=_resNow.getFullYear()+'-'+String(_resNow.getMonth()+1).padStart(2,'0');
   meses=meses.filter(function(m){return m<=resMaxMk;});
   var anoFat=0,anoLSI=0,anoDesp=0;
   for(i=0;i<meses.length;i++){
@@ -5301,8 +5311,11 @@ function renderRes(){
         '</div>';
       }).join('');
       return '<div style="margin-top:12px;padding:10px;background:#ffffff06;border-radius:10px;border:1px solid var(--border);">'+
-        '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📊 Cascata de Resultado</div>'+
-        bars+'</div>';
+        '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+          '<span style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:1px;">📊 Cascata de Resultado</span>'+
+          '<span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span>'+
+        '</div>'+
+        '<div style="display:none;margin-top:8px;">'+bars+'</div>'+'</div>';
     })()+
     '<div style="margin-top:10px;padding:10px;background:#ffffff08;border-radius:10px;border:1px solid var(--border);">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
@@ -5368,12 +5381,20 @@ function renderRes(){
       '<button onclick="addFixa(\''+mk+'\')" style="background:#1E90FF22;border:1px solid #1E90FF44;color:#1E90FF;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;padding:5px 10px;flex-shrink:0;">+</button>'+
     '</div>';
     var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
-    html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'+
+    var isCur=(mk===resCurMk);
+    var lightM=(mg>=META_MARG_LIQ?'🟢':mg>=META_MARG_LIQ*0.6?'🟡':'🔴');
+    html+='<div style="background:var(--card);border:1px solid '+(isCur?'#1E90FF':'var(--border)')+';border-radius:12px;margin-bottom:10px;overflow:hidden;'+(isCur?'box-shadow:0 0 0 1px #1E90FF44;':'')+'">'+
       '<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;" onclick="toggleMes(\'mes'+i+'\')">'+
-      '<span style="flex:1;min-width:0;font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
-      '<span style="font-size:16px;font-weight:800;color:'+rc+';flex-shrink:0;">'+fmt(res)+'</span></div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:15px;font-weight:800;">'+mlabel(mk)+'</span>'+(isCur?'<span style="font-size:8px;font-weight:800;background:#1E90FF;color:#fff;border-radius:10px;padding:2px 7px;letter-spacing:.5px;">ATUAL</span>':'')+'</div>'+
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px;">Fat: <b style="color:#1E90FF;">'+fmt(fat)+'</b></div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;">'+
+        '<div style="font-size:16px;font-weight:800;color:'+rc+';white-space:nowrap;">'+fmt(res)+'</div>'+
+        '<div style="font-size:10px;margin-top:2px;white-space:nowrap;">'+lightM+' <b style="color:'+rc+';">'+mg.toFixed(1)+'%</b></div>'+
+      '</div></div>'+
       '<div id="mes'+i+'" style="display:none;padding:12px 14px;">'+
-      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;">'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-left:3px solid #22c55e;border-radius:8px;padding:8px 10px;margin-bottom:8px;">'+
         '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">📦 Vendas do mês ('+mv.length+')</span>'+
         '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#f59e0b;">'+fmt(lsi)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
@@ -5381,7 +5402,7 @@ function renderRes(){
         (mvRows||'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhuma venda no mês</div>')+
         '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total (s/ imposto)</span><span style="color:#f59e0b;">'+fmt(lsi)+'</span></div>'+
       '</div>'+
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🔁 Despesas Fixas</span>'+
         '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totF)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
@@ -5391,7 +5412,7 @@ function renderRes(){
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
       '</div>'+
       '</div>'+
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f97316;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
         '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;flex:1;">🧾 Despesas Extras</span>'+
         '<button onclick="event.stopPropagation();openGastoBox('+i+')" style="background:#1E90FF22;border:1px solid #1E90FF55;color:#1E90FF;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;flex-shrink:0;">+ gasto</button>'+
@@ -5411,7 +5432,7 @@ function renderRes(){
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
       '</div>'+
       '</div>'+
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;">± Resultado Financeiro</span>'+
         '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
@@ -5441,7 +5462,7 @@ function renderRes(){
       (totFin!==0?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Saldo Financeiro</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>':'')+
       '</div>'+
       '</div>'+
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:10px;padding:12px;margin-bottom:10px;">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
       '<div><div style="font-size:9px;color:var(--text3);font-weight:600;">EBITDA</div><div style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(ebitdaM)+'</div></div>'+
       '<div><div style="font-size:9px;color:var(--text3);font-weight:600;">EBIT (c/ Financeiro)</div><div style="font-size:14px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';">'+fmt(ebitFinM)+'</div></div>'+
@@ -5518,6 +5539,92 @@ function openGastoBox(i){
   if(inp)setTimeout(function(){inp.focus();},120);
 }
 function closeGastoBox(i){var box=document.getElementById('gasto-box-'+i);if(box)box.style.display='none';}
+function toggleResExp(){var m=document.getElementById('res-exp-menu');if(m)m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none';}
+// Monta a DRE por mês do período selecionado (respeita o filtro de ano e o corte de meses)
+function buildResDRE(){
+  var vendas=loadVendas();
+  var mset={},i;
+  for(i=0;i<vendas.length;i++) mset[mkey(vendas[i].date)]=1;
+  var dk=Object.keys(loadDesp());for(i=0;i<dk.length;i++) mset[dk[i]]=1;
+  var _n=new Date();var _nx=new Date(_n.getFullYear(),_n.getMonth()+1,1);
+  var maxMk=_nx.getFullYear()+'-'+String(_nx.getMonth()+1).padStart(2,'0');
+  var meses=Object.keys(mset).filter(function(m){return m<=maxMk;}).sort();
+  var ySel=window._resAnoSel||'all';
+  if(ySel!=='all') meses=meses.filter(function(m){return m.split('-')[0]===ySel;});
+  var rows=meses.map(function(mk){
+    var mv=vendas.filter(function(v){return mkey(v.date)===mk;});
+    var fat=0,taxas=0,custo=0,frete=0,lsi=0,impE=0;
+    mv.forEach(function(v){fat+=+v.venda||0;taxas+=(+v.taxa||0)+(+v.com||0);custo+=+v.custo||0;frete+=+v.frete||0;lsi+=+v.lucroSI||0;impE+=+v.imp||0;});
+    var md=getMDesp(mk),fixas=0,extras=0,fin=0,k;
+    for(k=0;k<md.fixas.length;k++) fixas+=parseFloat(md.fixas[k].valor)||0;
+    for(k=0;k<md.extras.length;k++) extras+=parseFloat(md.extras[k].valor)||0;
+    if(md.financeiro) for(k=0;k<md.financeiro.length;k++) fin+=parseFloat(md.financeiro[k].valor)||0;
+    var das=md.das>0?md.das:impE;
+    var margContrib=lsi-extras;
+    var ebitda=margContrib-fixas;
+    var res=ebitda+fin-das;
+    var margem=fat>0?(res/fat*100):0;
+    return {mk:mk,label:mlabel(mk),fat:fat,taxas:taxas,custo:custo,frete:frete,extras:extras,margContrib:margContrib,fixas:fixas,fin:fin,das:das,res:res,margem:margem};
+  });
+  return {periodo:(ySel==='all'?'Geral':ySel),rows:rows};
+}
+function exportResultado(fmt){
+  var m=document.getElementById('res-exp-menu');if(m)m.style.display='none';
+  var dre=buildResDRE();
+  if(!dre.rows.length){toast('Sem dados para exportar',true);return;}
+  if(fmt==='xls') exportResCSV(dre); else exportResPDF(dre);
+}
+function exportResCSV(dre){
+  function num(n){return (Math.round((n||0)*100)/100).toFixed(2).replace('.',',');}
+  var cols=['Mês','Faturamento','Taxas','CMV','Frete','Extras','Margem Contrib','Fixas','Financeiro','DAS','Líquido','Margem %'];
+  var lines=[cols.join(';')];
+  var t={fat:0,taxas:0,custo:0,frete:0,extras:0,margContrib:0,fixas:0,fin:0,das:0,res:0};
+  dre.rows.forEach(function(r){
+    lines.push([r.label,num(r.fat),num(r.taxas),num(r.custo),num(r.frete),num(r.extras),num(r.margContrib),num(r.fixas),num(r.fin),num(r.das),num(r.res),num(r.margem)].join(';'));
+    ['fat','taxas','custo','frete','extras','margContrib','fixas','fin','das','res'].forEach(function(k){t[k]+=r[k];});
+  });
+  var tMarg=t.fat>0?(t.res/t.fat*100):0;
+  lines.push(['TOTAL',num(t.fat),num(t.taxas),num(t.custo),num(t.frete),num(t.extras),num(t.margContrib),num(t.fixas),num(t.fin),num(t.das),num(t.res),num(tMarg)].join(';'));
+  var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  shareOrDownload(blob,'DRE_'+dre.periodo+'.csv','DRE exportada!');
+}
+function exportResPDF(dre){
+  var dateStr=new Date().toLocaleDateString('pt-BR');
+  function c(n){return fmt(n);}
+  var t={fat:0,taxas:0,custo:0,frete:0,extras:0,margContrib:0,fixas:0,fin:0,das:0,res:0};
+  var body=dre.rows.map(function(r){
+    ['fat','taxas','custo','frete','extras','margContrib','fixas','fin','das','res'].forEach(function(k){t[k]+=r[k];});
+    var rc=r.res>=0?'#166534':'#b91c1c';
+    return '<tr><td>'+esc(r.label)+'</td><td class="num">'+c(r.fat)+'</td><td class="num">'+c(r.taxas)+'</td><td class="num">'+c(r.custo)+'</td><td class="num">'+c(r.frete)+'</td><td class="num">'+c(r.extras)+'</td><td class="num">'+c(r.margContrib)+'</td><td class="num">'+c(r.fixas)+'</td><td class="num">'+c(r.fin)+'</td><td class="num">'+c(r.das)+'</td><td class="num" style="color:'+rc+';font-weight:800;">'+c(r.res)+'</td><td class="num">'+r.margem.toFixed(1)+'%</td></tr>';
+  }).join('');
+  var tMarg=t.fat>0?(t.res/t.fat*100):0;
+  var foot='<tr><td>TOTAL</td><td class="num">'+c(t.fat)+'</td><td class="num">'+c(t.taxas)+'</td><td class="num">'+c(t.custo)+'</td><td class="num">'+c(t.frete)+'</td><td class="num">'+c(t.extras)+'</td><td class="num">'+c(t.margContrib)+'</td><td class="num">'+c(t.fixas)+'</td><td class="num">'+c(t.fin)+'</td><td class="num">'+c(t.das)+'</td><td class="num">'+c(t.res)+'</td><td class="num">'+tMarg.toFixed(1)+'%</td></tr>';
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>DRE Axion Cycle — '+dre.periodo+'</title>'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}'+
+    'body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:18px 20px;}'+
+    'h1{font-size:19px;font-weight:800;color:#1a1a2e;}'+
+    '.subtitle{font-size:11px;color:#555;margin-bottom:14px;}'+
+    'table{width:100%;border-collapse:collapse;}'+
+    'th{background:#1a1a2e;color:#fff;font-size:9px;font-weight:700;padding:5px 6px;text-align:left;}'+
+    'th.num,td.num{text-align:right;white-space:nowrap;}'+
+    'td{padding:5px 6px;border-bottom:1px solid #eee;font-size:10px;}'+
+    'tr:nth-child(even) td{background:#f8fafc;}'+
+    'tfoot td{background:#eef2ff;color:#1d4ed8;font-weight:800;border-top:2px solid #c7d2fe;}'+
+    '@media print{body{padding:8px;}}'+
+    '</style></head><body>'+
+    '<h1>DRE — Demonstrativo de Resultado</h1>'+
+    '<div class="subtitle">Axion Cycle · Período: '+esc(dre.periodo)+' · Gerado em '+dateStr+'</div>'+
+    '<table><thead><tr><th>Mês</th><th class="num">Faturamento</th><th class="num">Taxas</th><th class="num">CMV</th><th class="num">Frete</th><th class="num">Extras</th><th class="num">Marg.Contrib</th><th class="num">Fixas</th><th class="num">Financeiro</th><th class="num">DAS</th><th class="num">Líquido</th><th class="num">Margem</th></tr></thead>'+
+    '<tbody>'+body+'</tbody><tfoot>'+foot+'</tfoot></table>'+
+    '<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;">'+
+    '<button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
+    '<button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Fechar</button>'+
+    '</div></body></html>';
+  var win=window.open('','_blank');
+  if(!win){toast('Permita pop-ups para exportar PDF',true);return;}
+  win.document.write(html);win.document.close();win.focus();
+  setTimeout(function(){win.print();},600);
+}
 function saveProlabore(mk,val){
   var md=getMDesp(mk);
   md.prolabore=parseBRL(val);
