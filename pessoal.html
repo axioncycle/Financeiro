@@ -907,7 +907,7 @@ function analisarImport(){
   var rules=getImportRules();
   _imp.rows=list.map(function(x){
     var r=rules[normDesc(x.desc)];
-    return {raw:x.desc,nome:(r&&r.nome)||x.desc,valor:x.valor,dia:x.dia||'01',cat:(r&&r.cat)||x.cat||'',dest:(r&&r.dest)||'gasto_extra',known:!!r};
+    return {raw:x.desc,nome:(r&&r.nome)||x.desc,valor:x.valor,dia:x.dia||'01',cat:(r&&r.cat)||x.cat||'',dest:(r&&r.dest)||(x.receita?'ganho':'gasto_extra'),known:!!r,receita:!!x.receita};
   });
   previewImport();
 }
@@ -933,10 +933,11 @@ function parseExtrato(txt){
     while((m=reVal.exec(ln))){vals.push({sign:m[1]==='-'?-1:1,v:parseBRL(m[2]),idx:m.index});}
     if(!vals.length)continue;
     var first=vals[0];var valor=first.sign*first.v;
-    if(valor>=0)continue; // só gastos (valores negativos)
+    if(!valor)continue; // ignora valor zero
+    var receita=valor>0; // positivo = recebido/ganho
     var desc=cleanExtratoDesc(ln.slice(0,first.idx));
-    if(!desc)desc='Gasto';
-    out.push({desc:desc,valor:Math.abs(valor),dia:String(Math.min(28,Math.max(1,parseInt(curDia,10)||1))).padStart(2,'0'),cat:autoCat(desc)});
+    if(!desc)desc=receita?'Recebimento':'Gasto';
+    out.push({desc:desc,valor:Math.abs(valor),dia:String(Math.min(28,Math.max(1,parseInt(curDia,10)||1))).padStart(2,'0'),cat:receita?'':autoCat(desc),receita:receita});
   }
   return out;
 }
@@ -989,19 +990,19 @@ function autoCat(d){d=(d||'').toLowerCase();
   if(/(shopping|loja|magaz|renner|zara|roupa|americanas|shopee|mercadolivre|aliexpress)/.test(d))return 'Compras';
   return '';
 }
+function impSomaTxt(){var g=0,r=0;_imp.rows.forEach(function(x){if(x.dest==='descartar')return;if(x.dest==='ganho')r+=x.valor;else g+=x.valor;});return _imp.rows.length+' itens · <span style="color:#ef4444;">gastos '+fmt(g)+'</span> · <span style="color:#22c55e;">ganhos '+fmt(r)+'</span>';}
 function previewImport(){
   var b=document.getElementById('ov-body');
-  var soma=_imp.rows.reduce(function(s,x){return x.dest==='descartar'?s:s+x.valor;},0);
-  var destOpts=function(sel){return [['gasto_fixo','Fixo'],['gasto_extra','Extra'],['gasto_outro','Outros'],['descartar','Descartar']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');};
-  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;"><span id="imp-soma">'+_imp.rows.length+' gastos · '+fmt(soma)+'</span></div><button class="del" onclick="closeOv()">×</button></div>'+
-    '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Renomeie, escolha destino e categoria. O app memoriza e já preenche na próxima importação. Descrições iguais no mesmo mês são somadas.</div>'+
+  var destOpts=function(sel){return [['ganho','Ganho'],['gasto_fixo','Fixo'],['gasto_extra','Extra'],['gasto_outro','Outros'],['descartar','Descartar']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');};
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;font-size:14px;"><span id="imp-soma">'+impSomaTxt()+'</span></div><button class="del" onclick="closeOv()">×</button></div>'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Gastos (vermelho) e recebidos (verde). Escolha o destino de cada linha — recebidos podem ir para Ganho ou Descartar. Descrições iguais no mesmo mês são somadas.</div>'+
     '<div style="max-height:52vh;overflow-y:auto;">';
   _imp.rows.forEach(function(x,i){
     h+='<div id="imp-row-'+i+'" style="border:1px solid var(--border);border-radius:9px;padding:8px;margin-bottom:6px;background:var(--bg2);'+(x.dest==='descartar'?'opacity:.45;':'')+'">'+
       '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'+
         '<input class="fi" value="'+esc(x.nome)+'" onchange="impSetNome('+i+',this.value)" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">'+
-        (x.known?'<span style="font-size:9px;font-weight:700;color:#22c55e;white-space:nowrap;" title="Preenchido pelo histórico">✓ aprendido</span>':'')+
-        '<span style="font-size:13px;font-weight:800;color:#ef4444;white-space:nowrap;">'+fmt(x.valor)+'</span>'+
+        (x.known?'<span style="font-size:9px;font-weight:700;color:var(--accent);white-space:nowrap;" title="Preenchido pelo histórico">✓ aprendido</span>':'')+
+        '<span style="font-size:13px;font-weight:800;color:'+(x.receita?'#22c55e':'#ef4444')+';white-space:nowrap;">'+(x.receita?'+ ':'')+fmt(x.valor)+'</span>'+
       '</div>'+
       '<div style="display:flex;gap:6px;align-items:center;">'+
         '<select class="fi" onchange="impSetDest('+i+',this.value)" style="flex:1;font-size:12px;padding:6px 8px;">'+destOpts(x.dest)+'</select>'+
@@ -1018,7 +1019,7 @@ function impSetCat(i,v){if(_imp.rows[i])_imp.rows[i].cat=v;}
 function impSetDest(i,v){
   var r=_imp.rows[i];if(!r)return;r.dest=v;
   var el=document.getElementById('imp-row-'+i);if(el)el.style.opacity=(v==='descartar')?'.45':'1';
-  var s=document.getElementById('imp-soma');if(s)s.textContent=_imp.rows.length+' gastos · '+fmt(_imp.rows.reduce(function(a,x){return x.dest==='descartar'?a:a+x.valor;},0));
+  var s=document.getElementById('imp-soma');if(s)s.innerHTML=impSomaTxt();
 }
 function applyImport(){
   var mk=selMk();
