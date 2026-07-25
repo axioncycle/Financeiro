@@ -5130,6 +5130,10 @@ function renderRes(){
   var dkeys=Object.keys(loadDesp());
   for(i=0;i<dkeys.length;i++) mset[dkeys[i]]=1;
   var meses=Object.keys(mset).sort().reverse();
+  // Mostra somente até o mês subsequente ao atual (esconde meses futuros distantes)
+  var _resNow=new Date();var _resNext=new Date(_resNow.getFullYear(),_resNow.getMonth()+1,1);
+  var resMaxMk=_resNext.getFullYear()+'-'+String(_resNext.getMonth()+1).padStart(2,'0');
+  meses=meses.filter(function(m){return m<=resMaxMk;});
   var anoFat=0,anoLSI=0,anoDesp=0;
   for(i=0;i<meses.length;i++){
     var mk=meses[i];
@@ -5365,19 +5369,33 @@ function renderRes(){
     '</div>';
     var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
     html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'+
-      '<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleMes(\'mes'+i+'\')">'+
-      '<span style="font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
-      '<span style="font-size:16px;font-weight:800;color:'+rc+';">'+fmt(res)+'</span></div>'+
+      '<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">'+
+      '<span onclick="toggleMes(\'mes'+i+'\')" style="cursor:pointer;flex:1;min-width:0;font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
+      '<button onclick="event.stopPropagation();openGastoBox('+i+')" title="Adicionar gasto" style="background:#1E90FF22;border:1px solid #1E90FF55;color:#1E90FF;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;padding:1px 11px;line-height:1.4;flex-shrink:0;">+</button>'+
+      '<span onclick="toggleMes(\'mes'+i+'\')" style="cursor:pointer;font-size:16px;font-weight:800;color:'+rc+';flex-shrink:0;">'+fmt(res)+'</span></div>'+
       '<div id="mes'+i+'" style="display:none;padding:12px 14px;">'+
-      '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Lucro das Vendas (s/ imposto)</div>'+
-      mvRows+
-      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total</span><span style="color:#f59e0b;">'+fmt(lsi)+'</span></div>'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;">'+
+        '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">📦 Vendas do mês ('+mv.length+')</span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#f59e0b;">'+fmt(lsi)+'</span><span style="font-size:12px;color:var(--text3);">▾</span></span>'+
+      '</div>'+
+      '<div style="display:none;margin-bottom:4px;">'+
+        (mvRows||'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhuma venda no mês</div>')+
+        '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total (s/ imposto)</span><span style="color:#f59e0b;">'+fmt(lsi)+'</span></div>'+
+      '</div>'+
       '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Despesas Fixas</div>'+
       fixaRows+
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
       '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Despesas Extras</div>'+
       extraRows+
-      '<div style="display:flex;gap:6px;margin-top:6px;"><input id="en'+i+'" class="fi" type="text" placeholder="Descricao" style="flex:1;font-size:12px;padding:8px 10px;"><input id="ev'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" oninput="maskBRL(this)" style="width:80px;font-size:12px;padding:8px 10px;"><select id="em'+i+'" class="fi" style="width:60px;font-size:11px;padding:6px 4px;" title="Parcelas"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option></select><button onclick="addExtra(\''+mk+'\','+i+')" style="background:#1E90FF;border:none;border-radius:8px;color:#fff;font-size:16px;padding:0 10px;cursor:pointer;">+</button></div>'+
+      '<div id="gasto-box-'+i+'" style="display:none;background:var(--bg2);border:1px solid #1E90FF44;border-radius:10px;padding:12px;margin-top:8px;">'+
+        '<div style="font-size:11px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Novo gasto</div>'+
+        '<label class="fl">Descrição</label><input id="en'+i+'" class="fi" type="text" placeholder="Ex: Anúncios, embalagem...">'+
+        '<div class="r2" style="margin-top:8px;">'+
+          '<div><label class="fl">Valor (R$)</label><input id="ev'+i+'" class="fi" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div>'+
+          '<div><label class="fl">Repetir</label><select id="em'+i+'" class="fs"><option value="1">1x (só este mês)</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option></select></div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;margin-top:10px;"><button onclick="addExtra(\''+mk+'\','+i+')" class="btn" style="flex:1;">✓ Salvar gasto</button><button onclick="closeGastoBox('+i+')" class="btn btn-s" style="width:auto;padding:0 16px;">Cancelar</button></div>'+
+      '</div>'+
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
       '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">± Resultado Financeiro</div>'+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
@@ -5469,6 +5487,15 @@ function renderRes(){
 }
 
 function toggleMes(id){var el=document.getElementById(id);if(el) el.style.display=el.style.display==='none'?'block':'none';}
+function toggleResSec(el){var c=el.nextElementSibling;if(!c)return;var open=c.style.display!=='none';c.style.display=open?'none':'block';var ar=el.querySelector('span:last-child span:last-child');if(ar)ar.textContent=open?'▾':'▴';}
+function openGastoBox(i){
+  var mes=document.getElementById('mes'+i);if(mes)mes.style.display='block';
+  var box=document.getElementById('gasto-box-'+i);if(box)box.style.display='block';
+  var inp=document.getElementById('en'+i);
+  if(box){try{box.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}}
+  if(inp)setTimeout(function(){inp.focus();},120);
+}
+function closeGastoBox(i){var box=document.getElementById('gasto-box-'+i);if(box)box.style.display='none';}
 function saveProlabore(mk,val){
   var md=getMDesp(mk);
   md.prolabore=parseBRL(val);
