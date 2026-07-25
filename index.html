@@ -5369,10 +5369,9 @@ function renderRes(){
     '</div>';
     var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
     html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">'+
-      '<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">'+
-      '<span onclick="toggleMes(\'mes'+i+'\')" style="cursor:pointer;flex:1;min-width:0;font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
-      '<button onclick="event.stopPropagation();openGastoBox('+i+')" title="Adicionar gasto" style="background:#1E90FF22;border:1px solid #1E90FF55;color:#1E90FF;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;padding:1px 11px;line-height:1.4;flex-shrink:0;">+</button>'+
-      '<span onclick="toggleMes(\'mes'+i+'\')" style="cursor:pointer;font-size:16px;font-weight:800;color:'+rc+';flex-shrink:0;">'+fmt(res)+'</span></div>'+
+      '<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;" onclick="toggleMes(\'mes'+i+'\')">'+
+      '<span style="flex:1;min-width:0;font-size:16px;font-weight:800;">'+mlabel(mk)+'</span>'+
+      '<span style="font-size:16px;font-weight:800;color:'+rc+';flex-shrink:0;">'+fmt(res)+'</span></div>'+
       '<div id="mes'+i+'" style="display:none;padding:12px 14px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;">'+
         '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">📦 Vendas do mês ('+mv.length+')</span>'+
@@ -5382,10 +5381,16 @@ function renderRes(){
         (mvRows||'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhuma venda no mês</div>')+
         '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total (s/ imposto)</span><span style="color:#f59e0b;">'+fmt(lsi)+'</span></div>'+
       '</div>'+
-      '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Despesas Fixas</div>'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔁 Despesas Fixas</div>'+
       fixaRows+
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
-      '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">Despesas Extras</div>'+
+      '</div>'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+        '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Despesas Extras</span>'+
+        '<button onclick="openGastoBox('+i+')" style="background:#1E90FF22;border:1px solid #1E90FF55;color:#1E90FF;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;">+ gasto</button>'+
+      '</div>'+
       extraRows+
       '<div id="gasto-box-'+i+'" style="display:none;background:var(--bg2);border:1px solid #1E90FF44;border-radius:10px;padding:12px;margin-top:8px;">'+
         '<div style="font-size:11px;font-weight:700;color:#1E90FF;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Novo gasto</div>'+
@@ -5397,7 +5402,9 @@ function renderRes(){
         '<div style="display:flex;gap:8px;margin-top:10px;"><button onclick="addExtra(\''+mk+'\','+i+')" class="btn" style="flex:1;">✓ Salvar gasto</button><button onclick="closeGastoBox('+i+')" class="btn btn-s" style="width:auto;padding:0 16px;">Cancelar</button></div>'+
       '</div>'+
       (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
-      '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;">± Resultado Financeiro</div>'+
+      '</div>'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">± Resultado Financeiro</div>'+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
         var isPos=f.valor>=0;
         return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);">'+
@@ -5420,7 +5427,8 @@ function renderRes(){
         '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 10px;cursor:pointer;">+</button>'+
       '</div>'+
       (totFin!==0?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Saldo Financeiro</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>':'')+
-      '<div style="background:var(--bg2);border-radius:8px;padding:12px;margin-top:12px;">'+
+      '</div>'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
       '<div><div style="font-size:9px;color:var(--text3);font-weight:600;">EBITDA</div><div style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(ebitdaM)+'</div></div>'+
       '<div><div style="font-size:9px;color:var(--text3);font-weight:600;">EBIT (c/ Financeiro)</div><div style="font-size:14px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';">'+fmt(ebitFinM)+'</div></div>'+
