@@ -660,6 +660,11 @@ function chgYear(d){selYear+=d;render();}
 function setMonth(m){selMonth=m;render();}
 function ganhosMes(mk){return byTipo('ganho').filter(function(g){return (g.data||'').slice(0,7)===mk;}).reduce(function(s,g){return s+(+g.valor||0);},0);}
 function orcRow(label,val,col,sign){return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;"><span style="color:var(--text2);">'+label+'</span><span style="font-weight:700;color:'+col+';">'+sign+' '+fmt(val)+'</span></div>';}
+var orcCollapse={ganho:true,gasto_fixo:true,gasto_extra:true,gasto_outro:true,viagem:true};
+function toggleOrc(k){orcCollapse[k]=!orcCollapse[k];render();}
+function irHoje(){selYear=_n.getFullYear();selMonth=_n.getMonth()+1;render();}
+function updViagemOrc(id,val){updItem(id,{valor:parseBRL(val)},function(){render();});}
+function updViagemData(id,val){updItem(id,{data:val||today()},function(){render();});}
 function renderOrcamento(){
   var el=document.getElementById('pg-orc');
   var mk=selMk();
@@ -667,8 +672,8 @@ function renderOrcamento(){
   var saldo=ganhos-fixos-extras-outros;
   var h='<div class="card"><div class="ttl">👛 Planejamento Mensal</div>'+
     '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Ganhos e gastos do mês</div>'+
-    '<div class="yr"><button onclick="chgYear(-1)">‹</button><span>'+selYear+'</span><button onclick="chgYear(1)">›</button></div>'+
-    '<div class="mrow">'+MONTHS.map(function(m,i){return '<button class="mb'+(selMonth===i+1?' on':'')+'" onclick="setMonth('+(i+1)+')">'+m+'</button>';}).join('')+'</div>'+
+    '<div class="yr"><button onclick="chgYear(-1)">‹</button><span>'+selYear+'</span><button onclick="chgYear(1)">›</button><button onclick="irHoje()" style="margin-left:8px;font-size:11px;padding:5px 12px;border-radius:12px;background:var(--sbtn-bg);color:var(--accent);font-weight:700;border:1px solid var(--accent);width:auto;">Hoje</button></div>'+
+    '<div class="mrow">'+MONTHS.map(function(m,i){var isCur=(selYear===_n.getFullYear()&&i+1===_n.getMonth()+1);return '<button class="mb'+(selMonth===i+1?' on':'')+'"'+(isCur&&selMonth!==i+1?' style="box-shadow:inset 0 0 0 1.5px var(--accent);"':'')+' onclick="setMonth('+(i+1)+')">'+m+'</button>';}).join('')+'</div>'+
     '<div style="background:var(--bg2);border-radius:12px;padding:12px;">'+
       orcRow('🤑 Ganhos',ganhos,'#22c55e','+')+
       orcRow('📌 Gastos Fixos',fixos,'#ef4444','−')+
@@ -682,13 +687,18 @@ function renderOrcamento(){
 function ganhoBloco(mk){
   var items=byTipo('ganho').filter(function(g){return (g.data||'').slice(0,7)===mk;});
   var total=items.reduce(function(s,g){return s+(+g.valor||0);},0);
-  var h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><div class="ttl" style="margin:0;">🤑 Ganhos do mês</div><span style="font-size:16px;font-weight:800;color:#22c55e;">'+fmt(total)+'</span></div>';
+  var col=orcCollapse.ganho;
+  var h='<div class="card"><div onclick="toggleOrc(\'ganho\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+    '<div class="ttl" style="margin:0;">🤑 Ganhos do mês</div>'+
+    '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;font-weight:800;color:#22c55e;">'+fmt(total)+'</span><span style="font-size:12px;color:var(--text3);">'+(col?'▾':'▴')+'</span></div></div>';
+  h+='<div style="display:'+(col?'none':'block')+';margin-top:8px;">';
   if(!items.length)h+='<div class="empty">Nenhum ganho lançado</div>';
   items.forEach(function(g){if(editingId===g.id){h+=editorBox(g);return;}
     h+='<div class="li" style="border-left-color:#22c55e;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(g.nome||'—')+'</div></div><div class="vl gr">'+fmt(g.valor)+'</div>'+itemActions(g)+'</div>';});
   h+='<div class="add-box"><label class="fl">Descrição</label><input class="fi" id="gn-nome" placeholder="Ex: Salário, Vendas, Rendimento">'+
      '<label class="fl" style="margin-top:8px;">Valor</label><input class="fi" id="gn-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
      '<button class="btn-add" style="margin-top:10px;border-color:#22c55e;color:#22c55e;" onclick="addGanho()">+ Adicionar ganho</button></div>';
+  h+='</div>';
   return h+'</div>';
 }
 function addGanho(){
@@ -702,7 +712,11 @@ function gastoBloco(tipo,titulo,isExtra,mk){
   var items=byTipo(tipo).filter(function(g){return (g.data||'').slice(0,7)===mk;}).sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   var total=items.reduce(function(s,g){return s+(+g.valor||0);},0);
   var idp=tipo==='gasto_fixo'?'gf':(tipo==='gasto_extra'?'ge':'go');
-  var h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><div class="ttl" style="margin:0;">'+titulo+'</div><span style="font-size:16px;font-weight:800;color:#ef4444;">'+fmt(total)+'</span></div>';
+  var col=orcCollapse[tipo];
+  var h='<div class="card"><div onclick="toggleOrc(\''+tipo+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+    '<div class="ttl" style="margin:0;">'+titulo+'</div>'+
+    '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;font-weight:800;color:#ef4444;">'+fmt(total)+'</span><span style="font-size:12px;color:var(--text3);">'+(col?'▾':'▴')+'</span></div></div>';
+  h+='<div style="display:'+(col?'none':'block')+';margin-top:8px;">';
   if(!items.length)h+='<div class="empty">Nenhum lançamento</div>';
   items.forEach(function(g){if(editingId===g.id){h+=editorBox(g);return;}
     h+='<div class="li" style="border-left-color:#ef4444;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(g.nome||'—')+'</div><div class="sb">'+(isExtra?fmtData(g.data):'Mensal')+(g.categoria?' · '+esc(g.categoria):'')+'</div></div><div class="vl rd">'+fmt(g.valor)+'</div>'+itemActions(g)+'</div>';});
@@ -710,6 +724,7 @@ function gastoBloco(tipo,titulo,isExtra,mk){
   if(isExtra)h+='<div class="row" style="margin-top:8px;"><div><label class="fl">Dia</label><input class="fi" id="'+idp+'-data" type="date" value="'+mk+'-'+String(Math.min(_n.getDate(),28)).padStart(2,'0')+'"></div><div><label class="fl">Valor</label><input class="fi" id="'+idp+'-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div><label class="fl" style="margin-top:8px;">Categoria (opcional)</label><input class="fi" id="'+idp+'-cat" placeholder="Ex: Alimentação">';
   else h+='<label class="fl" style="margin-top:8px;">Valor mensal</label><input class="fi" id="'+idp+'-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">';
   h+='<button class="btn-add" style="margin-top:10px;" onclick="addGastoB(\''+tipo+'\','+(isExtra?1:0)+',\''+idp+'\')">+ Adicionar</button></div>';
+  h+='</div>';
   return h+'</div>';
 }
 function addGastoB(tipo,isExtra,idp){
@@ -750,13 +765,30 @@ function setViagemSel(id){viagemSel=id;render();}
 function viagemSection(mk){
   var dests=viagemDests();
   if((viagemSel==null||!dests.some(function(d){return String(d.id)===String(viagemSel);}))&&dests.length)viagemSel=dests[0].id;
-  var h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">✈️ Planejamento de Viagem</div><button class="btn-add" style="width:auto;padding:7px 12px;font-size:12px;" onclick="addViagemDest()">+ Destino</button></div>';
-  if(!dests.length){h+='<div class="empty">Nenhuma viagem. Toque em + Destino.</div>';return h+'</div>';}
+  var col=orcCollapse.viagem;
+  var h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;">'+
+    '<div onclick="toggleOrc(\'viagem\')" style="cursor:pointer;flex:1;display:flex;align-items:center;gap:8px;"><div class="ttl" style="margin:0;">✈️ Planejamento de Viagem</div><span style="font-size:12px;color:var(--text3);">'+(col?'▾':'▴')+'</span></div>'+
+    '<button class="btn-add" style="width:auto;padding:7px 12px;font-size:12px;" onclick="addViagemDest()">+ Destino</button></div>';
+  if(!dests.length){h+='<div class="empty" style="margin-top:8px;">Nenhuma viagem. Toque em + Destino.</div>';return h+'</div>';}
+  h+='<div style="display:'+(col?'none':'block')+';margin-top:10px;">';
   h+='<div class="sub" style="margin-bottom:10px;">'+dests.map(function(d){return '<button class="sbn'+(String(viagemSel)===String(d.id)?' on':'')+'" onclick="setViagemSel('+d.id+')">'+esc(d.nome||'Destino')+'</button>';}).join('')+'</div>';
   var dest=dests.find(function(d){return String(d.id)===String(viagemSel);})||dests[0];
   var gastos=viagemGastos(dest.id);
   var tot=gastos.reduce(function(s,g){return s+(+g.valor||0);},0);
   h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><div style="font-size:14px;font-weight:800;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:8px;align-items:center;"><span style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</span><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
+  // Orçamento x realizado + data + contagem regressiva
+  var orc=+dest.valor||0;
+  var restante=orc-tot;
+  var pctUsed=orc>0?Math.min(100,tot/orc*100):0;
+  var cd='';
+  if(dest.data){var _dv=new Date(dest.data.slice(0,10)+'T00:00:00');var _t0=new Date(today()+'T00:00:00');var days=Math.round((_dv-_t0)/86400000);cd=days>0?('faltam '+days+' dia'+(days>1?'s':'')):(days===0?'é hoje! 🎉':('há '+Math.abs(days)+' dia'+(Math.abs(days)>1?'s':''))); }
+  h+='<div style="background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:10px;">'+
+    '<div class="row"><div><label class="fl">Orçamento (R$)</label><input class="fi" value="'+(orc?fmtN(orc):'')+'" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)" onchange="updViagemOrc('+dest.id+',this.value)"></div>'+
+    '<div><label class="fl">Data da viagem</label><input class="fi" type="date" value="'+((dest.data||'').slice(0,10))+'" onchange="updViagemData('+dest.id+',this.value)"></div></div>'+
+    (orc>0?'<div style="margin-top:8px;"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--text3);">Realizado '+fmt(tot)+' de '+fmt(orc)+'</span><span style="font-weight:700;color:'+(restante>=0?'#22c55e':'#ef4444')+';">'+(restante>=0?'resta '+fmt(restante):'excedeu '+fmt(-restante))+'</span></div>'+
+      '<div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;"><div style="height:100%;width:'+pctUsed.toFixed(0)+'%;background:'+(tot>orc?'#ef4444':'var(--accent)')+';border-radius:4px;"></div></div></div>':'')+
+    (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">🗓️ '+cd+'</div>':'')+
+  '</div>';
   if(!gastos.length)h+='<div class="empty">Nenhum gasto lançado</div>';
   gastos.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){
     if(editingId===g.id){h+=editorBox(g);return;}
@@ -766,6 +798,7 @@ function viagemSection(mk){
      '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor</label><input class="fi" id="vg-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Data</label><input class="fi" id="vg-data" type="date" value="'+today()+'"></div></div>'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addViagemGasto('+dest.id+')">+ Adicionar gasto</button></div>';
+  h+='</div>';
   return h+'</div>';
 }
 function addViagemDest(){
