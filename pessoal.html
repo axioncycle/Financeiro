@@ -874,6 +874,10 @@ function setCardTotal(mk,total,cb){
 }
 function closeOv(){document.getElementById('ov').style.display='none';}
 var _imp={origem:'',rows:[]};
+// ── Aprendizado da importação (memoriza descrição → destino/categoria/nome) ──
+function normDesc(s){s=String(s||'').toLowerCase();if(s.normalize)s=s.normalize('NFD').replace(/[̀-ͯ]/g,'');return s.replace(/[^a-z0-9]+/g,' ').trim();}
+function getImportRules(){var it=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='import_rules';});if(!it||!it.obs)return {};try{return JSON.parse(it.obs)||{};}catch(e){return {};}}
+function saveImportRules(map,cb){var it=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='import_rules';});if(it)updItem(it.id,{obs:JSON.stringify(map)},cb);else addItem({tipo:'config',nome:'import_rules',obs:JSON.stringify(map)},cb);}
 function openImport(origem){
   _imp={origem:origem,rows:[]};
   var isFat=origem==='fatura';
@@ -900,7 +904,11 @@ function analisarImport(){
   var txt=(document.getElementById('imp-txt')||{value:''}).value||'';
   var list=_imp.origem==='fatura'?parseFatura(txt).items:parseExtrato(txt);
   if(!list.length){toast('Nenhum gasto reconhecido',true);return;}
-  _imp.rows=list.map(function(x){return {nome:x.desc,valor:x.valor,dia:x.dia||'01',cat:x.cat||'',dest:'gasto_extra'};});
+  var rules=getImportRules();
+  _imp.rows=list.map(function(x){
+    var r=rules[normDesc(x.desc)];
+    return {raw:x.desc,nome:(r&&r.nome)||x.desc,valor:x.valor,dia:x.dia||'01',cat:(r&&r.cat)||x.cat||'',dest:(r&&r.dest)||'gasto_extra',known:!!r};
+  });
   previewImport();
 }
 // Parser do extrato Inter: linhas com "-R$ x" (gasto) + saldo; ignora recebidos
@@ -986,16 +994,18 @@ function previewImport(){
   var soma=_imp.rows.reduce(function(s,x){return x.dest==='descartar'?s:s+x.valor;},0);
   var destOpts=function(sel){return [['gasto_fixo','Fixo'],['gasto_extra','Extra'],['gasto_outro','Outros'],['descartar','Descartar']].map(function(o){return '<option value="'+o[0]+'"'+(sel===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');};
   var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">'+_imp.rows.length+' gastos · '+fmt(soma)+'</div><button class="del" onclick="closeOv()">×</button></div>'+
-    '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Renomeie se quiser e escolha o destino de cada linha. Descrições iguais no mesmo mês são somadas.</div>'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Renomeie, escolha destino e categoria. O app memoriza e já preenche na próxima importação. Descrições iguais no mesmo mês são somadas.</div>'+
     '<div style="max-height:52vh;overflow-y:auto;">';
   _imp.rows.forEach(function(x,i){
     h+='<div style="border:1px solid var(--border);border-radius:9px;padding:8px;margin-bottom:6px;background:var(--bg2);'+(x.dest==='descartar'?'opacity:.45;':'')+'">'+
       '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'+
         '<input class="fi" value="'+esc(x.nome)+'" onchange="impSetNome('+i+',this.value)" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">'+
+        (x.known?'<span style="font-size:9px;font-weight:700;color:#22c55e;white-space:nowrap;" title="Preenchido pelo histórico">✓ aprendido</span>':'')+
         '<span style="font-size:13px;font-weight:800;color:#ef4444;white-space:nowrap;">'+fmt(x.valor)+'</span>'+
       '</div>'+
       '<div style="display:flex;gap:6px;align-items:center;">'+
         '<select class="fi" onchange="impSetDest('+i+',this.value)" style="flex:1;font-size:12px;padding:6px 8px;">'+destOpts(x.dest)+'</select>'+
+        '<input class="fi" value="'+esc(x.cat||'')+'" onchange="impSetCat('+i+',this.value)" placeholder="Categoria" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">'+
         '<span style="font-size:10px;color:var(--text3);white-space:nowrap;">dia '+x.dia+'</span>'+
       '</div>'+
     '</div>';
@@ -1004,13 +1014,14 @@ function previewImport(){
   b.innerHTML=h;
 }
 function impSetNome(i,v){if(_imp.rows[i])_imp.rows[i].nome=v;}
+function impSetCat(i,v){if(_imp.rows[i])_imp.rows[i].cat=v;}
 function impSetDest(i,v){if(_imp.rows[i]){_imp.rows[i].dest=v;previewImport();}}
 function applyImport(){
   var mk=selMk();
   var picks=_imp.rows.filter(function(r){return r.dest&&r.dest!=='descartar';});
   if(!picks.length){toast('Escolha o destino de ao menos um gasto',true);return;}
   var agg={};
-  picks.forEach(function(r){var nome=(r.nome||'').trim()||'Gasto';var key=r.dest+'|'+nome.toLowerCase();if(!agg[key])agg[key]={tipo:r.dest,nome:nome,valor:0,cat:r.cat||''};agg[key].valor+=r.valor;});
+  picks.forEach(function(r){var nome=(r.nome||'').trim()||'Gasto';var key=r.dest+'|'+nome.toLowerCase();if(!agg[key])agg[key]={tipo:r.dest,nome:nome,valor:0,cat:(r.cat||'').trim()};agg[key].valor+=r.valor;});
   var updates=[],adds=[];
   Object.keys(agg).forEach(function(k){
     var a=agg[k];
@@ -1018,8 +1029,11 @@ function applyImport(){
     if(ex)updates.push({id:ex.id,valor:(+ex.valor||0)+a.valor});
     else adds.push({tipo:a.tipo,nome:a.nome,valor:a.valor,data:mk+'-01',categoria:a.cat});
   });
+  // Aprende: memoriza descrição do extrato/fatura → destino, categoria e nome escolhidos
+  var rules=getImportRules();
+  picks.forEach(function(r){var key=normDesc(r.raw||r.nome);if(key)rules[key]={nome:(r.nome||'').trim(),cat:(r.cat||'').trim(),dest:r.dest};});
   var n=updates.length+adds.length,ui=0;
-  function finish(){closeOv();render();toast(n+' gasto(s) distribuído(s)!');}
+  function finish(){saveImportRules(rules,function(){closeOv();render();toast(n+' gasto(s) distribuído(s)!');});}
   function doAdds(){if(!adds.length){finish();return;}addItemsBatch(adds,finish);}
   function nextUpd(){if(ui>=updates.length){doAdds();return;}var u=updates[ui++];updItem(u.id,{valor:u.valor},nextUpd);}
   nextUpd();
