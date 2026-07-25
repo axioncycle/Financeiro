@@ -883,6 +883,7 @@ function openImport(origem){
   var isFat=origem==='fatura';
   var b=document.getElementById('ov-body');
   b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div class="ttl" style="margin:0;">'+(isFat?'💳 Importar Fatura':'🏦 Importar Extrato')+' — '+MONTHS[selMonth-1]+'/'+selYear+'</div><button class="del" onclick="closeOv()">×</button></div>'+
+    (isFat?'<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:10px;color:var(--text3);">📅 As compras entram no <b style="color:var(--accent);">mês selecionado ('+MONTHS[selMonth-1]+'/'+selYear+')</b> — deixe no <b>mês do pagamento</b> da fatura, não no mês das compras.</div>':'')+
     (isFat?'<div style="display:flex;gap:6px;margin-bottom:8px;"><button class="btn-add" style="padding:7px;font-size:11px;" onclick="document.getElementById(\'imp-pwd\').value=\'\';toast(\'Cartão 1\')">Cartão 1</button><button class="btn-add" style="padding:7px;font-size:11px;" onclick="document.getElementById(\'imp-pwd\').value=\'02533\';toast(\'Senha do Cartão 2 preenchida\')">Cartão 2 (senha)</button></div>':'')+
     '<input id="imp-pwd" class="fi" placeholder="Senha do PDF (se tiver)" style="margin-bottom:8px;">'+
     '<label class="fl">1) Enviar PDF</label>'+
