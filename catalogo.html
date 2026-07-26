@@ -105,16 +105,21 @@ main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
 .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);transition:.2s}
 .dots i.on{background:#fff;width:16px;border-radius:3px}
 /* Galeria de fotos profissionais */
-.pro-hint{color:var(--text3);font-size:.82rem;margin:2px 0 12px}
-.pro-wrap{display:flex;flex-direction:column;gap:14px}
-.pro-main{position:relative;aspect-ratio:3/2;max-height:64vh;background:#05080d;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.pro-hint{color:var(--text3);font-size:.82rem;margin:2px 0 14px}
+.pro-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+.pro-main{position:sticky;top:calc(var(--fbh,72px) + 10px);z-index:2;aspect-ratio:4/3;max-height:78vh;background:#05080d;border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
 .pro-main .wimg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
-.pro-count{position:absolute;bottom:10px;right:12px;background:rgba(5,8,13,.6);border:1px solid var(--border2);color:var(--text);font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:999px;backdrop-filter:blur(4px);font-variant-numeric:tabular-nums}
-.pro-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.pro-count{position:absolute;bottom:10px;right:12px;background:rgba(5,8,13,.65);border:1px solid var(--border2);color:var(--text);font-size:.78rem;font-weight:700;padding:5px 11px;border-radius:999px;backdrop-filter:blur(4px);font-variant-numeric:tabular-nums}
+.pro-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:9px}
 .pro-thumb{padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;cursor:pointer;background:#05080d;aspect-ratio:1/1;position:relative;-webkit-tap-highlight-color:transparent}
 .pro-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:.15s}
 .pro-thumb:hover img{transform:scale(1.05)}
-.pro-thumb.on{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+.pro-thumb.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+@media(max-width:820px){
+  .pro-wrap{grid-template-columns:1fr}
+  .pro-main{max-height:54vh;box-shadow:0 12px 30px -12px rgba(0,0,0,.8)}
+  .pro-thumbs{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+}
 .tags{position:absolute;top:10px;left:10px;display:flex;flex-wrap:wrap;gap:6px;z-index:2;pointer-events:none}
 .tag{font-size:.63rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px 8px;border-radius:6px;backdrop-filter:blur(4px)}
 .tag.depth{background:rgba(47,155,255,.16);color:var(--blue);border:1px solid rgba(47,155,255,.38)}
@@ -257,7 +262,7 @@ var COLORS = {
    PRODUTOS  (modelos reais, fotos do Drive por cor)
    variants: [{color, img(DriveID)}]
    ========================================================================= */
-// Fotos profissionais (pasta "Profissionais" do Drive) — seleção de alta resolução
+// Fotos profissionais (pasta "Profissionais" do Drive) — seleção deduplicada (sem RAW/banner)
 var PRO_PHOTOS = [
  "1Fb3ZoCaVpF9sbOUasQhITHkynCE_6OTe","18BRDxJFqlF6O5XiQQeuOAta2tTFqVHHV","1OSBhs5nONN7wH8716bY0v2SGK8uQsUY4",
  "1KOEgIzKqRIBrl3XvJt6iBQkcch7I06PZ","1d2ZEgMtpjfAQEZPW7XFyrVBYi_xVJNqh","1s8qAy-hM17AnlJaEWwnTZ_ja-M9jgXgo",
@@ -265,12 +270,25 @@ var PRO_PHOTOS = [
  "1bKt0gsoX0Cq77lr2LCUDWciO-FWkrbIv","1ccEq_IYPTGZFKMvCe1QykWzu2ez0CN9e","1gY0XoUlV9uuwxl7-MALfHnHVadIxAKzK",
  "1J40PBxmc9N744ljBQxJ08ZSvAFBDzFrW","1FPJr_kZXRDuyFXJd605J_Bu5p2iCkqnL","1Vy54V9v6sMWMeduQQwU9UXNuDvTevre2",
  "149tlBYDFwzCCdSszXBNbLlX94-QatsXY","18KYYaLuOfNojXO9b-9k4ktTBCZuPF-wC","1-DXkTvas2b-YDQ0MqElCSD5pXr0EIfjn",
- "1ZPGM94S4w5VsAmmjTRdKC7D3EPOBVbnU","1pu2QpUucaNbmqZmGm_9jy6M3WjJ7zY8f","1v5wvCQHkLiQUzbzqJvNja3ugln7SYP3N",
- "1fKgufj5nGn0WVIoqs--dNxAqdmXTGsvS","1c_wvZ_LZS5WTTwH_nuJOTqh_y3PhmO0W","15unFWxPDC2HTXymIAtrMECLjXz4wgRo5",
- "1cgHYaO7wXa4gzTwvLwsYAXDf32ogPD9N","1EQOulccjt6SkyU6RraJEG5nBE7rpvomR","1aGMjnMGu3EBlUwpk-ayNqdKlJ19VlIIj",
- "1RQrppV3_CaOw5VIOCwuveO4Uqdw9lBgg","1hfU0PbuiOjxwfekbxoLavyyiqMNRA5oo","15Iq4yb3zrlTt5SL7byDekr5deEFVyUyA",
- "1Q-64iT14AC6teNTzWezAwRnWrRnzx271","1zzH5adiQvhPcPuswitQZdo7-AnmY61ab","1hhhFaBzn-v55k34tfIaLR8TcpZCR60HB",
- "1x75zDucfzDQoPV-v3U_ahTFKAIZ8YLtL","1JilFNOM2Lnws3mQpRxPsQ-3hwnDBixrQ","1cMhuUBNEkIG-YAVv-tfhyIyLx6JrZKUg"
+ "1ZPGM94S4w5VsAmmjTRdKC7D3EPOBVbnU","1pu2QpUucaNbmqZmGm_9jy6M3WjJ7zY8f","1fKgufj5nGn0WVIoqs--dNxAqdmXTGsvS",
+ "1c_wvZ_LZS5WTTwH_nuJOTqh_y3PhmO0W","15unFWxPDC2HTXymIAtrMECLjXz4wgRo5","1cgHYaO7wXa4gzTwvLwsYAXDf32ogPD9N",
+ "1EQOulccjt6SkyU6RraJEG5nBE7rpvomR","1aGMjnMGu3EBlUwpk-ayNqdKlJ19VlIIj","1RQrppV3_CaOw5VIOCwuveO4Uqdw9lBgg",
+ "1hfU0PbuiOjxwfekbxoLavyyiqMNRA5oo","15Iq4yb3zrlTt5SL7byDekr5deEFVyUyA","1Q-64iT14AC6teNTzWezAwRnWrRnzx271",
+ "1zzH5adiQvhPcPuswitQZdo7-AnmY61ab","1hhhFaBzn-v55k34tfIaLR8TcpZCR60HB","1x75zDucfzDQoPV-v3U_ahTFKAIZ8YLtL",
+ "1JilFNOM2Lnws3mQpRxPsQ-3hwnDBixrQ","1cMhuUBNEkIG-YAVv-tfhyIyLx6JrZKUg",
+ "1hptmfR4mrs9y4E0_HlSOUYqmOQwyRGQf","1PtwFT5Meby9YH0LlrUrmJquAYTz1bMbH","1M9_-dV2YoMspgx-x_iSZ0eCKE0QCaPBc",
+ "1NniBMjiBv2bd-xRQ8ZQUSXwK5SKECZ6c","1GnKWZKJ2X6ZRf3JbgCQZqlIkHSUdKh8s","1MLxfR7KAUrn8kCzzKONCz7j-2AoxnZPD",
+ "1YRtsa5d0b1aMpXVXFazie0SAhI5LJU7l","1jA-LHiAFE3OA0wzLTI9xoLX7IRWd4IDn","1FAOdfoZFkbXWYt9x5PvZ813m5Ecf_v7-",
+ "1QOSGEXmhqc95FGlvHG5kDQ7MztcKcL7K","12u_h2xBZK6_Zmy-O9RryjZBGpY6YTN9F","1WNpjheFP_xs1ey2Wi8pdwwta5iZY30uP",
+ "1AbghwH3EHMlKYnlEE2nz-fZ6fu3k3D5l","1-16GRRFk25NkRh_kybFiM-akMyqUUEuA","11ZQFBoEOQDTv2s79q9NRuiFrTm1vIQzw",
+ "10gDVx4XiR-uVu-fXCpTkQmTNzMK9-ApY","19d9Dz-tQSI66YuRr70u6WxYY7vEuaP3O","1F4534Nc7N4pAQqWUXQyeBKECD0NkCe5E",
+ "11_1WXHqo_b3mZTYXHJFW9SVkIMDE3_j6","1gw1J1G87X_d8qAe1dAVN-3wjXje-hGme","1__9pScIFh08VhQJQOZUfxViGTG2ulh3d",
+ "1hyW1FbJTtJrnYSGGTrWBlfeFiv3v89cr","1sVymSw_3oyjdHkDZbS6QnGT75jeKzeB7","1IzgVy2sZTCihxfTjnLlK2-LMuH0Hx7xJ",
+ "1kjVjCkxbqCsqf_taN3i0T9Q8-Fu886SY","1IZ63LsF7iD-Ge3GTX-W6K3lKVpE5ef3l","1b8kheBO9Ij6x_YIUuGLqzNNAjJiPQCKT",
+ "14DwE2rCgVNCFep1TDw_hCrkadlZ3APfa","12T5jiBJglJFkgYss4mkxxIJCIke7iveZ","1Pe5M7Bh1BiP7efwQHyfC3ZGssPDXenhx",
+ "1un6a0FpbUKX7Bf6wHCXICGo2FvVhuho1","1lfhqsdyOM7hMA2ZrjxRorbHOQfTzjntP","1B6clZn_E5qJow2_qUEVNePA-IFxXrSxg",
+ "1lh61ft4N8VOMlLVMr87bRPzN_EMgyvxB","1F2eTlkJObvN1DRKXc3zmhEdOBHY0Pgr1","1lpt5C4zqC6uvuPEJkDG3TJ0VJTasAXoB",
+ "1B_72wfBOoH5LkZrq8bwVf0g-58tRHfLL","1sn_0XY07Nh7pLBrH-4Baw5FkP1VGBQXz"
 ];
 var PRODUCTS = [
 /* ---------------- RIM BRAKE ---------------- */
@@ -691,7 +709,11 @@ document.addEventListener('touchend',function(e){
   _tgi=null;
 },{passive:true});
 
+function updateFbh(){ var fb=document.querySelector('.filterbar'); if(fb) document.documentElement.style.setProperty('--fbh', fb.offsetHeight+'px'); }
+window.addEventListener('resize', updateFbh);
+updateFbh();
 render();
+setTimeout(updateFbh,120);
 </script>
 </body>
 </html>
