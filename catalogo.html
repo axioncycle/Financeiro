@@ -47,6 +47,10 @@ img{max-width:100%;display:block}
     repeating-linear-gradient(45deg, rgba(255,255,255,.015) 0 6px, transparent 6px 12px),
     repeating-linear-gradient(-45deg, rgba(0,0,0,.28) 0 6px, transparent 6px 12px);}
 
+/* ============================ TOPBAR ============================ */
+.topbar{background:linear-gradient(90deg,var(--bg2),var(--bg3,#163058),var(--bg2));color:var(--text2);text-align:center;font-weight:800;letter-spacing:3.5px;font-size:.8rem;text-transform:uppercase;padding:11px 16px;border-bottom:1px solid var(--border2)}
+.topbar b{color:var(--blue);font-weight:800}
+
 /* ============================ HERO ============================ */
 header.hero{position:relative;padding:30px 20px 24px;border-bottom:1px solid var(--border);overflow:hidden}
 .hero-inner{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
@@ -129,6 +133,10 @@ main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
 .tag{font-size:.63rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px 8px;border-radius:6px;backdrop-filter:blur(4px)}
 .tag.depth{background:rgba(47,155,255,.16);color:var(--blue);border:1px solid rgba(47,155,255,.38)}
 .tag.line{background:rgba(255,255,255,.07);color:var(--text2);border:1px solid var(--border2)}
+.tag.soon{background:linear-gradient(145deg,#f0cf5c,#c99a34);color:#2a1e05;border:1px solid rgba(224,184,78,.5)}
+.card.soon .thumb .wimg,.card.soon .thumb .wfb{filter:grayscale(.35) brightness(.65)}
+.soon-ov{position:absolute;inset:0;display:grid;place-items:center;z-index:3;font-weight:900;letter-spacing:4px;font-size:1.15rem;color:#f0cf5c;background:rgba(5,8,13,.32);text-shadow:0 2px 12px rgba(0,0,0,.85);pointer-events:none}
+.soon-pill{font-size:.5em;vertical-align:middle;background:linear-gradient(145deg,#f0cf5c,#c99a34);color:#2a1e05;padding:4px 11px;border-radius:999px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
 .body{padding:15px 16px 16px;display:flex;flex-direction:column;flex:1}
 .body h3{font-size:1.02rem;font-weight:800;letter-spacing:-.2px;margin-bottom:4px}
 .summ{font-size:.82rem;color:var(--text2);margin-bottom:12px;flex:1}
@@ -198,6 +206,8 @@ footer b{color:var(--text2)}
 </style>
 </head>
 <body class="weave">
+
+<div class="topbar">CATÁLOGO <b>AXION CYCLE</b></div>
 
 <header class="hero weave">
   <div class="hero-inner">
@@ -314,7 +324,7 @@ var PRODUCTS = [
   variants:[{color:"BLACK",img:"1s2TL3DN9otEhD2B8SXtDzCHMYxuGGlRh"}]},
  {sec:"RIM", shape:"trispoke", depth:"—", line:"Time Trial", name:"Rim Brake 3-Spoke", use:"Contra-relógio / Triathlon",
   summ:"Dianteira tri-raio: rigidez extrema e assinatura visual inconfundível.",
-  variants:[{color:"BLACK",img:"15rXq-zYKJ1oZ6PG3IRN1rtmYwSaVY3cW"}]},
+  soon:true, variants:[{color:"BLACK",img:"15rXq-zYKJ1oZ6PG3IRN1rtmYwSaVY3cW"}]},
 
 /* ---------------- DISC BRAKE ---------------- */
  {sec:"DISC", shape:"aero", depth:"50mm", line:"Speed", name:"Disc Brake 50mm", use:"Estrada / All-round",
@@ -334,7 +344,7 @@ var PRODUCTS = [
   variants:[{color:"BLACK",img:"1X56HghbFuxSj3dZ7lhdKp-h7CyK7DJMA"}]},
  {sec:"DISC", shape:"trispoke", depth:"—", line:"Time Trial", name:"Disc Brake 3-Spoke", use:"Contra-relógio / Triathlon",
   summ:"Tri-raio no padrão disc. Máxima rigidez e presença visual para provas de crono.",
-  variants:[{color:"BLACK",img:"15rXq-zYKJ1oZ6PG3IRN1rtmYwSaVY3cW"}]},
+  soon:true, variants:[{color:"BLACK",img:"15rXq-zYKJ1oZ6PG3IRN1rtmYwSaVY3cW"}]},
 
 /* ---------------- GRAVEL ---------------- */
  {sec:"GRAVEL", shape:"gravel", depth:"45mm", line:"Gravel", name:"Gravel 45mm", use:"Gravel / Aventura",
@@ -565,10 +575,11 @@ function matches(p){
 function card(p,gi){
   var vIdx=state.color[gi]||0, v=p.variants[vIdx];
   var swl = p.variants.length>1 ? p.variants.length+' cores' : COLORS[v.color].label;
-  return '<article class="card">'
+  return '<article class="card'+(p.soon?' soon':'')+'">'
     + '<div class="thumb gallery" data-gi="'+gi+'" onclick="openModal('+gi+')">'
-      + '<div class="tags">'+(p.depth!=="—"?'<span class="tag depth">'+p.depth+'</span>':'')+'<span class="tag line">'+p.line+'</span></div>'
+      + '<div class="tags">'+(p.depth!=="—"?'<span class="tag depth">'+p.depth+'</span>':'')+'<span class="tag line">'+p.line+'</span>'+(p.soon?'<span class="tag soon">Em breve</span>':'')+'</div>'
       + mediaHTML(p,gi,vIdx)
+      + (p.soon?'<span class="soon-ov">EM BREVE</span>':'')
     + '</div>'
     + '<div class="body">'
       + '<h3>'+p.name+'</h3>'
@@ -673,7 +684,7 @@ function buildModal(gi,vIdx){
       + '<div class="m-img gallery" data-gi="'+gi+'">'+mediaHTML(p,gi,vIdx)+'</div>'
       + '<div class="m-info">'
         + '<div class="m-line">'+(p.sec==="RIM"?"Rim Brake":p.sec==="DISC"?"Disc Brake":p.sec==="GRAVEL"?"Gravel":"MTB")+' · '+p.line+'</div>'
-        + '<h2>'+p.name+'</h2>'
+        + '<h2>'+p.name+(p.soon?' <span class="soon-pill">Em breve</span>':'')+'</h2>'
         + '<p class="m-summ">'+p.summ+'</p>'
         + '<div class="m-sw">'+sw+'</div>'
         + '<div class="m-swname">Cor: <b style="color:var(--text)">'+COLORS[v.color].label+'</b>'+(p.variants.length>1?' · '+p.variants.length+' cores disponíveis':'')+'</div>'
@@ -688,7 +699,7 @@ function buildModal(gi,vIdx){
       + '<h4>'+spark+'Por que escolher esta roda</h4>'
       + '<div class="triggers">'+trig.map(function(t){return '<span class="trigger">'+spark+t+'</span>'}).join('')+'</div>'
       + '<div class="m-cta">'
-        + '<span class="btn ghost" style="cursor:default">CONSULTE O VENDEDOR</span>'
+        + (p.soon?'<span class="btn ghost" style="cursor:default;color:#f0cf5c;border-color:rgba(224,184,78,.5)">EM BREVE</span>':'<span class="btn ghost" style="cursor:default">CONSULTE O VENDEDOR</span>')
       + '</div>'
     + '</div>';
 }
