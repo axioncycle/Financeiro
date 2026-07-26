@@ -8,7 +8,7 @@
 <link rel="icon" href="assets/logo-axion.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hyperwave+One&family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    MARCA — tema AZUL (accent da logo "CYCLE")
@@ -49,7 +49,10 @@ img{max-width:100%;display:block}
 /* ============================ HERO ============================ */
 header.hero{position:relative;padding:30px 20px 24px;border-bottom:1px solid var(--border);overflow:hidden}
 .hero-inner{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
-.hero-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.hero-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:space-between}
+.hero-heads{margin-top:4px}
+.slogan{font-family:'Hyperwave One','Brush Script MT',cursive;color:var(--text);text-align:right;line-height:1;font-size:clamp(1.6rem,6.5vw,2.7rem);flex:1;min-width:150px;text-shadow:0 3px 20px rgba(47,155,255,.35)}
+.slogan span{display:block;color:var(--blue);font-size:.58em;margin-top:2px}
 .logo-plate{background:#f3f7fb;border:1px solid var(--border2);border-radius:16px;padding:8px;box-shadow:0 8px 26px -10px rgba(47,155,255,.4);flex:none}
 .logo-plate img{height:96px;width:auto;border-radius:8px;display:block}
 .hero-heads h1{font-size:clamp(1.5rem,4vw,2.5rem);font-weight:900;letter-spacing:-.5px;line-height:1.08}
@@ -57,7 +60,7 @@ header.hero{position:relative;padding:30px 20px 24px;border-bottom:1px solid var
 .hero-heads .tag{font-size:.72rem;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:6px}
 .hero-sub{color:var(--text2);max-width:640px;font-size:.98rem;margin-top:12px}
 .trust{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}
-.trust .b{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border2);padding:8px 13px;border-radius:999px;font-size:.77rem;font-weight:600;color:var(--text2)}
+.trust .b{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border2);padding:8px 13px;border-radius:999px;font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
 .trust .b svg{width:15px;height:15px;color:var(--blue)}
 
 /* ============================ FILTER ============================ */
@@ -93,6 +96,13 @@ main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
 .thumb .wimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .thumb .wfb{position:absolute;inset:0;display:grid;place-items:center;padding:8%}
 .thumb .wfb svg.wheel{width:100%;height:100%;filter:drop-shadow(0 10px 22px rgba(0,0,0,.6))}
+.nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(5,8,13,.32);backdrop-filter:blur(3px);color:#fff;display:grid;place-items:center;cursor:pointer;opacity:.5;transition:.15s;-webkit-tap-highlight-color:transparent}
+.nav:hover,.nav:active{opacity:1;background:rgba(5,8,13,.6)}
+.nav svg{width:20px;height:20px}
+.nav.prev{left:8px}.nav.next{right:8px}
+.dots{position:absolute;bottom:8px;left:0;right:0;display:flex;gap:5px;justify-content:center;z-index:3;pointer-events:none}
+.dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);transition:.2s}
+.dots i.on{background:#fff;width:16px;border-radius:3px}
 .tags{position:absolute;top:10px;left:10px;display:flex;flex-wrap:wrap;gap:6px;z-index:2;pointer-events:none}
 .tag{font-size:.63rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px 8px;border-radius:6px;backdrop-filter:blur(4px)}
 .tag.depth{background:rgba(47,155,255,.16);color:var(--blue);border:1px solid rgba(47,155,255,.38)}
@@ -171,18 +181,19 @@ footer b{color:var(--text2)}
   <div class="hero-inner">
     <div class="hero-top">
       <div class="logo-plate"><img src="assets/logo-axion.jpg" alt="Axion Cycle"></div>
-      <div class="hero-heads">
-        <div class="tag">Carbon Performance</div>
-        <h1>RODAS DE CARBONO PARA QUEM<br><span>CORRE PRA VENCER.</span></h1>
-      </div>
+      <div class="slogan">You Win,<br>I Win<span>we are together</span></div>
+    </div>
+    <div class="hero-heads">
+      <div class="tag">Carbon Performance</div>
+      <h1>RODAS DE CARBONO PARA QUEM<br><span>QUER O MELHOR UPGRADE.</span></h1>
     </div>
     <p class="hero-sub">Catálogo completo Axion Cycle — encontre sua roda em segundos. Escolha o tipo, veja as cores, especificações e compatibilidade em um só lugar.</p>
     <div class="trust">
+      <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Carbono Toray de alta qualidade</span>
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Certificação INMETRO</span>
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Garantia oficial 2 anos</span>
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h13v8H3zM16 10h4l1 3v2h-5"/><circle cx="6.5" cy="17" r="1.6"/><circle cx="17.5" cy="17" r="1.6"/></svg>Entrega para todo o Brasil</span>
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg>Clincher + Tubeless Ready</span>
-      <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Carbono Toray de alta qualidade</span>
     </div>
   </div>
 </header>
@@ -240,9 +251,6 @@ var COLORS = {
    ========================================================================= */
 var PRODUCTS = [
 /* ---------------- RIM BRAKE ---------------- */
- {sec:"RIM", shape:"aero", depth:"38mm", line:"Speed", name:"Rim Brake 38mm", use:"Estrada / Escalada",
-  summ:"A mais leve da linha rim. Sobe montanha sem penalizar a aceleração.",
-  variants:[{color:"BLACK",img:"19NvHwRRXwds5_AU4S-EsczareO1mSbEk"}]},
  {sec:"RIM", shape:"aero", depth:"50mm", line:"Speed", name:"Rim Brake 50mm", use:"Estrada / All-round",
   summ:"O equilíbrio perfeito entre aerodinâmica e subida. A roda que serve pra tudo.",
   variants:[{color:"BLACK",img:"1nxLZlvY3U70-h0iTxBAixVA8EGAlmXJV"},{color:"CINZA",img:"1CkEBvHCw7DlK_Kz1CApNAaTAbxUj3aqU"},{color:"BRANCO",img:"1U_OBYkESOjme9un5zb5xTSd19MgwwLa9"}]},
@@ -398,7 +406,7 @@ function shade(hex,p){hex=hex.replace('#','');if(hex.length===3)hex=hex.replace(
 var state={sec:"ALL", q:"", depth:"", color:{}};
 var app=document.getElementById('app');
 
-function mediaHTML(p, vIdx){
+function mediaHTML(p, gi, vIdx){
   var v=p.variants[vIdx], url=driveImg(v.img), fid='fb'+(_uid++);
   var out='';
   if(url){
@@ -407,6 +415,11 @@ function mediaHTML(p, vIdx){
     out+='<span class="wfb" id="'+fid+'" style="display:none">'+wheelSVG(p,v.color)+'</span>';
   }else{
     out+='<span class="wfb" id="'+fid+'" style="display:grid">'+wheelSVG(p,v.color)+'</span>';
+  }
+  if(p.variants.length>1){
+    out+='<button class="nav prev" aria-label="Foto anterior" onclick="event.stopPropagation();navPhoto('+gi+',-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg></button>';
+    out+='<button class="nav next" aria-label="Próxima foto" onclick="event.stopPropagation();navPhoto('+gi+',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg></button>';
+    out+='<span class="dots">'+p.variants.map(function(_v,i){return '<i'+(i===vIdx?' class="on"':'')+'></i>';}).join('')+'</span>';
   }
   return out;
 }
@@ -430,9 +443,9 @@ function card(p,gi){
   var vIdx=state.color[gi]||0, v=p.variants[vIdx];
   var swl = p.variants.length>1 ? p.variants.length+' cores' : COLORS[v.color].label;
   return '<article class="card">'
-    + '<div class="thumb" onclick="openModal('+gi+')">'
+    + '<div class="thumb gallery" data-gi="'+gi+'" onclick="openModal('+gi+')">'
       + '<div class="tags">'+(p.depth!=="—"?'<span class="tag depth">'+p.depth+'</span>':'')+'<span class="tag line">'+p.line+'</span></div>'
-      + mediaHTML(p,vIdx)
+      + mediaHTML(p,gi,vIdx)
     + '</div>'
     + '<div class="body">'
       + '<h3>'+p.name+'</h3>'
@@ -477,18 +490,31 @@ function renderChips(){
   if(ds.length<2){ el.style.display='none'; el.innerHTML=''; return; }
   el.style.display='flex';
   var h='<span class="chip-label">Perfil</span><button class="chip'+(state.depth===""?' on':'')+'" onclick="setDepth(\'\')">Todos</button>';
-  ds.forEach(function(d){ h+='<button class="chip'+(state.depth===d?' on':'')+'" onclick="setDepth(\''+d.replace(/'/g,"")+'\')">'+d+'</button>'; });
+  ds.forEach(function(d){ h+='<button class="chip'+(state.depth===d?' on':'')+'" onclick="setDepth(\''+d.replace(/'/g,"")+'\')">'+chipLabel(d)+'</button>'; });
   el.innerHTML=h;
+}
+function chipLabel(d){
+  if(d==="45/50mm") return "Wave 45/50mm";
+  if(d==="55/60mm") return "Wave 55/60mm";
+  if(d==="88mm") return "Fechada + 88mm";
+  return d;
 }
 function setDepth(d){ state.depth=d; render(); }
 function setColor(gi,vIdx){
   state.color[gi]=vIdx; render();
   if(overlay.classList.contains('on') && modal.dataset.gi==gi) buildModal(gi,vIdx);
 }
+var _swipeAt=0;
+function navPhoto(gi,dir){
+  var n=PRODUCTS[gi].variants.length; if(n<2) return;
+  state.color[gi]=(((state.color[gi]||0)+dir)%n+n)%n;
+  render();
+  if(overlay.classList.contains('on') && modal.dataset.gi==gi) buildModal(gi,state.color[gi]);
+}
 
 /* ---------------- MODAL ---------------- */
 var overlay=document.getElementById('overlay'), modal=document.getElementById('modal');
-function openModal(gi){ buildModal(gi, state.color[gi]||0); overlay.classList.add('on'); document.body.style.overflow='hidden'; }
+function openModal(gi){ if(Date.now()-_swipeAt<350) return; buildModal(gi, state.color[gi]||0); overlay.classList.add('on'); document.body.style.overflow='hidden'; }
 function buildModal(gi,vIdx){
   var p=PRODUCTS[gi], v=p.variants[vIdx];
   modal.dataset.gi=gi;
@@ -499,7 +525,7 @@ function buildModal(gi,vIdx){
   modal.innerHTML =
     '<button class="close" onclick="closeModal()">✕</button>'
     + '<div class="m-top">'
-      + '<div class="m-img">'+mediaHTML(p,vIdx)+'</div>'
+      + '<div class="m-img gallery" data-gi="'+gi+'">'+mediaHTML(p,gi,vIdx)+'</div>'
       + '<div class="m-info">'
         + '<div class="m-line">'+(p.sec==="RIM"?"Rim Brake":p.sec==="DISC"?"Disc Brake":p.sec==="GRAVEL"?"Gravel":"MTB")+' · '+p.line+'</div>'
         + '<h2>'+p.name+'</h2>'
@@ -530,6 +556,21 @@ Array.prototype.forEach.call(document.querySelectorAll('#seg button'),function(b
   b.onclick=function(){ document.querySelectorAll('#seg button').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); state.sec=b.dataset.b; state.depth=""; render(); window.scrollTo({top:document.querySelector('.filterbar').offsetTop-1,behavior:'smooth'}); };
 });
 document.getElementById('q').addEventListener('input',function(e){ state.q=e.target.value; render(); });
+
+/* ---- Swipe nas fotos (arrastar para o lado) ---- */
+var _tsx=0,_tsy=0,_tgi=null;
+document.addEventListener('touchstart',function(e){
+  var g=e.target.closest?e.target.closest('.gallery'):null;
+  if(!g){_tgi=null;return;}
+  _tgi=g.getAttribute('data-gi'); _tsx=e.touches[0].clientX; _tsy=e.touches[0].clientY;
+},{passive:true});
+document.addEventListener('touchend',function(e){
+  if(_tgi===null) return;
+  var dx=e.changedTouches[0].clientX-_tsx, dy=e.changedTouches[0].clientY-_tsy;
+  if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)+8){ _swipeAt=Date.now(); navPhoto(parseInt(_tgi), dx<0?1:-1); }
+  _tgi=null;
+},{passive:true});
+
 render();
 </script>
 </body>
