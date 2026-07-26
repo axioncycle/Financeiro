@@ -90,8 +90,9 @@ header.hero{position:relative;padding:30px 20px 24px;border-bottom:1px solid var
 
 /* ============================ SECTIONS ============================ */
 main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
-.section-head{display:flex;align-items:center;gap:14px;margin:34px 0 18px}
-.section-head h2{font-size:1.28rem;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:10px}
+.section-head{display:flex;align-items:center;gap:12px;margin:34px 0 18px;flex-wrap:wrap}
+.section-head h2{font-size:clamp(1.02rem,4.2vw,1.28rem);font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:9px;white-space:nowrap}
+.section-head h2 .hh-sub{font-size:.72em;color:var(--text3);font-weight:700}
 .section-head h2 svg{width:22px;height:22px;color:var(--blue)}
 .section-head .count{font-size:.74rem;color:var(--text3);font-weight:600;background:var(--card);border:1px solid var(--border);padding:3px 10px;border-radius:999px}
 .section-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
@@ -678,7 +679,7 @@ function render(){
   renderChips();
   if(state.sec==="PRO"){ renderPro(); return; }
   var html="";
-  if(state.sec==="ALL"||state.sec==="RIM")    html+=sectionHTML("Rim Brake (Ferradura)","RIM",IC_RIM);
+  if(state.sec==="ALL"||state.sec==="RIM")    html+=sectionHTML('Rim Brake <span class="hh-sub">(Ferradura)</span>',"RIM",IC_RIM);
   if(state.sec==="ALL"||state.sec==="DISC")   html+=sectionHTML("Disc Brake","DISC",IC_DISC);
   if(state.sec==="ALL"||state.sec==="GRAVEL") html+=sectionHTML("Gravel","GRAVEL",IC_GRAVEL);
   if(state.sec==="ALL"||state.sec==="MTB")    html+=sectionHTML("MTB","MTB",IC_MTB);
