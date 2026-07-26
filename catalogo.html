@@ -104,6 +104,17 @@ main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
 .dots{position:absolute;bottom:8px;left:0;right:0;display:flex;gap:5px;justify-content:center;z-index:3;pointer-events:none}
 .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);transition:.2s}
 .dots i.on{background:#fff;width:16px;border-radius:3px}
+/* Galeria de fotos profissionais */
+.pro-hint{color:var(--text3);font-size:.82rem;margin:2px 0 12px}
+.pro-wrap{display:flex;flex-direction:column;gap:14px}
+.pro-main{position:relative;aspect-ratio:3/2;max-height:64vh;background:#05080d;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.pro-main .wimg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.pro-count{position:absolute;bottom:10px;right:12px;background:rgba(5,8,13,.6);border:1px solid var(--border2);color:var(--text);font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:999px;backdrop-filter:blur(4px);font-variant-numeric:tabular-nums}
+.pro-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.pro-thumb{padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;cursor:pointer;background:#05080d;aspect-ratio:1/1;position:relative;-webkit-tap-highlight-color:transparent}
+.pro-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:.15s}
+.pro-thumb:hover img{transform:scale(1.05)}
+.pro-thumb.on{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
 .tags{position:absolute;top:10px;left:10px;display:flex;flex-wrap:wrap;gap:6px;z-index:2;pointer-events:none}
 .tag{font-size:.63rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px 8px;border-radius:6px;backdrop-filter:blur(4px)}
 .tag.depth{background:rgba(47,155,255,.16);color:var(--blue);border:1px solid rgba(47,155,255,.38)}
@@ -206,10 +217,7 @@ footer b{color:var(--text2)}
       <button data-b="DISC"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Disc Brake</button>
       <button data-b="GRAVEL"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l4-8 4 6 3-4 5 6"/><circle cx="12" cy="12" r="10"/></svg>Gravel</button>
       <button data-b="MTB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18l5-9 4 5 3-6 6 10"/></svg>MTB</button>
-    </div>
-    <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-      <input id="q" type="search" placeholder="Buscar por profundidade, cor, uso… (ex: 50mm, branco, contra-relógio)">
+      <button data-b="PRO"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.2"/></svg>Fotos Profissionais</button>
     </div>
   </div>
   <div class="chiprow" id="depthchips"></div>
@@ -249,6 +257,21 @@ var COLORS = {
    PRODUTOS  (modelos reais, fotos do Drive por cor)
    variants: [{color, img(DriveID)}]
    ========================================================================= */
+// Fotos profissionais (pasta "Profissionais" do Drive) — seleção de alta resolução
+var PRO_PHOTOS = [
+ "1Fb3ZoCaVpF9sbOUasQhITHkynCE_6OTe","18BRDxJFqlF6O5XiQQeuOAta2tTFqVHHV","1OSBhs5nONN7wH8716bY0v2SGK8uQsUY4",
+ "1KOEgIzKqRIBrl3XvJt6iBQkcch7I06PZ","1d2ZEgMtpjfAQEZPW7XFyrVBYi_xVJNqh","1s8qAy-hM17AnlJaEWwnTZ_ja-M9jgXgo",
+ "1tzLO7VenE7T7x3Bi6-TJt2Czjtd_eXHr","1tIIpR0TH0jae_kYKEQmssNA8KSS87YDG","14osDS0uoBCUkhVqv7Yc97b1Y4faeDyiF",
+ "1bKt0gsoX0Cq77lr2LCUDWciO-FWkrbIv","1ccEq_IYPTGZFKMvCe1QykWzu2ez0CN9e","1gY0XoUlV9uuwxl7-MALfHnHVadIxAKzK",
+ "1J40PBxmc9N744ljBQxJ08ZSvAFBDzFrW","1FPJr_kZXRDuyFXJd605J_Bu5p2iCkqnL","1Vy54V9v6sMWMeduQQwU9UXNuDvTevre2",
+ "149tlBYDFwzCCdSszXBNbLlX94-QatsXY","18KYYaLuOfNojXO9b-9k4ktTBCZuPF-wC","1-DXkTvas2b-YDQ0MqElCSD5pXr0EIfjn",
+ "1ZPGM94S4w5VsAmmjTRdKC7D3EPOBVbnU","1pu2QpUucaNbmqZmGm_9jy6M3WjJ7zY8f","1v5wvCQHkLiQUzbzqJvNja3ugln7SYP3N",
+ "1fKgufj5nGn0WVIoqs--dNxAqdmXTGsvS","1c_wvZ_LZS5WTTwH_nuJOTqh_y3PhmO0W","15unFWxPDC2HTXymIAtrMECLjXz4wgRo5",
+ "1cgHYaO7wXa4gzTwvLwsYAXDf32ogPD9N","1EQOulccjt6SkyU6RraJEG5nBE7rpvomR","1aGMjnMGu3EBlUwpk-ayNqdKlJ19VlIIj",
+ "1RQrppV3_CaOw5VIOCwuveO4Uqdw9lBgg","1hfU0PbuiOjxwfekbxoLavyyiqMNRA5oo","15Iq4yb3zrlTt5SL7byDekr5deEFVyUyA",
+ "1Q-64iT14AC6teNTzWezAwRnWrRnzx271","1zzH5adiQvhPcPuswitQZdo7-AnmY61ab","1hhhFaBzn-v55k34tfIaLR8TcpZCR60HB",
+ "1x75zDucfzDQoPV-v3U_ahTFKAIZ8YLtL","1JilFNOM2Lnws3mQpRxPsQ-3hwnDBixrQ","1cMhuUBNEkIG-YAVv-tfhyIyLx6JrZKUg"
+];
 var PRODUCTS = [
 /* ---------------- RIM BRAKE ---------------- */
  {sec:"RIM", shape:"aero", depth:"50mm", line:"Speed", name:"Rim Brake 50mm", use:"Estrada / All-round",
@@ -309,7 +332,7 @@ function isDisc(p){ return p.sec!=="RIM"; }
 function rimFicha(perfilLabel, perfilVal, largInt, raios, cassete, pneu, peso, tubePSI){
   return [
     [perfilLabel, perfilVal],
-    ["Material", "Carbono Toray T700"],
+    ["Material", "Carbono Toray T700 de Alta Qualidade"],
     ["Largura externa do aro", "25mm"],
     ["Largura interna do aro", largInt],
     ["Cubo (Hub)", "HUB AXION RATCHET 36T"],
@@ -329,7 +352,7 @@ function rimFicha(perfilLabel, perfilVal, largInt, raios, cassete, pneu, peso, t
 function discFicha(perfilLabel, perfilVal, largInt, raios, cassete, pneu, peso, tubePSI){
   return [
     [perfilLabel, perfilVal],
-    ["Material", "Carbono Toray T700"],
+    ["Material", "Carbono Toray T700 de Alta Qualidade"],
     ["Largura externa do aro", "25mm"],
     ["Largura interna do aro", largInt],
     ["Cubo (Hub)", "HUB AXION RATCHET 36T"],
@@ -358,7 +381,7 @@ var FICHA = {
  "Disc Brake Fechada 88mm":  discFicha("Configuração","Traseira fechada (Disc Wheel) + Dianteira 88mm","19mm","24 furos (Axion Light)","Shimano 10–12v · SRAM 10–12v (XDR opcional)","25 a 30mm","2160 g (tras. 1160 g + diant. 1000 g)","85 PSI"),
  "Gravel 45mm": [
     ["Perfil do aro","45mm"],
-    ["Material","Carbono Toray T700"],
+    ["Material","Carbono Toray T700 de Alta Qualidade"],
     ["Largura interna do aro","25mm (hookless)"],
     ["Largura externa do aro","32mm"],
     ["Cubo (Hub)","HUB AXION RATCHET 36T"],
@@ -374,7 +397,7 @@ var FICHA = {
  ],
  "MTB Carbon": [
     ["Perfil do aro","22mm"],
-    ["Material","Carbono Toray T700"],
+    ["Material","Carbono Toray T700 de Alta Qualidade"],
     ["Largura interna do aro","29mm"],
     ["Largura externa do aro","36mm"],
     ["Cubo (Hub)","HUB AXION RATCHET 36T"],
@@ -394,7 +417,7 @@ var FICHA = {
 function genericFicha(p){
   return [
     ["Perfil / Conjunto", p.depth==="—" ? "Tri-raio (3-spoke)" : p.depth],
-    ["Material", "Carbono Toray T700"],
+    ["Material", "Carbono Toray T700 de Alta Qualidade"],
     ["Cubo (Hub)", "HUB AXION RATCHET 36T"],
     ["Freio", isDisc(p) ? "A disco" : "Rim Brake (V-Brake / Ferradura)"],
     ["Cassete", isDisc(p) ? "HG ou XDR (Shimano / Campagnolo / SRAM)" : "HG (Shimano / SRAM)"],
@@ -480,7 +503,7 @@ function shade(hex,p){hex=hex.replace('#','');if(hex.length===3)hex=hex.replace(
 /* =========================================================================
    RENDER
    ========================================================================= */
-var state={sec:"RIM", q:"", depth:"", color:{}};
+var state={sec:"RIM", q:"", depth:"", color:{}, proIdx:0};
 var app=document.getElementById('app');
 
 function mediaHTML(p, gi, vIdx){
@@ -548,6 +571,7 @@ var IC_MTB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 
 function render(){
   renderChips();
+  if(state.sec==="PRO"){ renderPro(); return; }
   var html="";
   if(state.sec==="ALL"||state.sec==="RIM")    html+=sectionHTML("Rim Brake (Ferradura)","RIM",IC_RIM);
   if(state.sec==="ALL"||state.sec==="DISC")   html+=sectionHTML("Disc Brake","DISC",IC_DISC);
@@ -588,6 +612,27 @@ function navPhoto(gi,dir){
   render();
   if(overlay.classList.contains('on') && modal.dataset.gi==gi) buildModal(gi,state.color[gi]);
 }
+/* ---- Galeria de Fotos Profissionais ---- */
+var IC_PRO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.2"/></svg>';
+var CHEV_L='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>';
+var CHEV_R='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg>';
+function renderPro(){
+  var n=PRO_PHOTOS.length, i=((state.proIdx||0)%n+n)%n;
+  var main='<div class="pro-main gallery-pro" data-gi="pro">'
+    + '<img class="wimg" loading="lazy" alt="Foto profissional Axion Cycle" src="'+driveImg(PRO_PHOTOS[i])+'">'
+    + '<button class="nav prev" aria-label="Foto anterior" onclick="navPro(-1)">'+CHEV_L+'</button>'
+    + '<button class="nav next" aria-label="Próxima foto" onclick="navPro(1)">'+CHEV_R+'</button>'
+    + '<span class="pro-count">'+(i+1)+' / '+n+'</span>'
+  + '</div>';
+  var thumbs='<div class="pro-thumbs">'+PRO_PHOTOS.map(function(id,idx){
+    return '<button class="pro-thumb'+(idx===i?' on':'')+'" onclick="setPro('+idx+')"><img loading="lazy" src="'+driveImg(id)+'" alt=""></button>';
+  }).join('')+'</div>';
+  app.innerHTML='<div class="section-head"><h2>'+IC_PRO+'Fotos Profissionais</h2><span class="count">'+n+' fotos</span><span class="rule"></span></div>'
+    + '<p class="pro-hint">Arraste para o lado na foto grande, ou toque numa miniatura para ampliar.</p>'
+    + '<div class="pro-wrap">'+main+thumbs+'</div>';
+}
+function navPro(dir){ var n=PRO_PHOTOS.length; state.proIdx=(((state.proIdx||0)+dir)%n+n)%n; renderPro(); }
+function setPro(idx){ state.proIdx=idx; renderPro(); window.scrollTo({top:document.querySelector('.filterbar').offsetTop-1,behavior:'smooth'}); }
 
 /* ---------------- MODAL ---------------- */
 var overlay=document.getElementById('overlay'), modal=document.getElementById('modal');
@@ -632,19 +677,17 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeModal
 Array.prototype.forEach.call(document.querySelectorAll('#seg button'),function(b){
   b.onclick=function(){ document.querySelectorAll('#seg button').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); state.sec=b.dataset.b; state.depth=""; render(); window.scrollTo({top:document.querySelector('.filterbar').offsetTop-1,behavior:'smooth'}); };
 });
-document.getElementById('q').addEventListener('input',function(e){ state.q=e.target.value; render(); });
-
 /* ---- Swipe nas fotos (arrastar para o lado) ---- */
 var _tsx=0,_tsy=0,_tgi=null;
 document.addEventListener('touchstart',function(e){
-  var g=e.target.closest?e.target.closest('.gallery'):null;
+  var g=e.target.closest?e.target.closest('.gallery, .gallery-pro'):null;
   if(!g){_tgi=null;return;}
   _tgi=g.getAttribute('data-gi'); _tsx=e.touches[0].clientX; _tsy=e.touches[0].clientY;
 },{passive:true});
 document.addEventListener('touchend',function(e){
   if(_tgi===null) return;
   var dx=e.changedTouches[0].clientX-_tsx, dy=e.changedTouches[0].clientY-_tsy;
-  if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)+8){ _swipeAt=Date.now(); navPhoto(parseInt(_tgi), dx<0?1:-1); }
+  if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)+8){ _swipeAt=Date.now(); if(_tgi==="pro") navPro(dx<0?1:-1); else navPhoto(parseInt(_tgi), dx<0?1:-1); }
   _tgi=null;
 },{passive:true});
 
