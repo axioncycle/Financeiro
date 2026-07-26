@@ -264,8 +264,8 @@ var PRODUCTS = [
  {sec:"RIM", shape:"lenticular", depth:"88mm", line:"Time Trial", name:"Rim Brake Fechada 88mm", use:"Contra-relógio / Triathlon",
   summ:"Traseira lenticular (fechada) + dianteira 88mm. Aerodinâmica de contra-relógio.",
   variants:[{color:"CINZA",img:"1dKLCrlotPwICwajJwRv9PE_TkBe9tfuU"},{color:"BRANCO",img:"1eVJunqLbDdR_umea6hISDXje8M1FF1QD"}]},
- {sec:"RIM", shape:"aero", depth:"45/50mm", line:"Speed", name:"Rim Brake Wave 45/50mm", use:"Estrada / Ventania",
-  summ:"Perfil ondulado WAVE: mais estável no vento lateral sem abrir mão da aerodinâmica.",
+ {sec:"RIM", shape:"aero", depth:"55/60mm", line:"Speed", name:"Rim Brake Wave 55/60mm", use:"Estrada / Ventania",
+  summ:"Perfil ondulado Wave Enhanced+: mais estável no vento lateral sem abrir mão da aerodinâmica.",
   variants:[{color:"BLACK",img:"1s2TL3DN9otEhD2B8SXtDzCHMYxuGGlRh"}]},
  {sec:"RIM", shape:"trispoke", depth:"—", line:"Time Trial", name:"Rim Brake 3-Spoke", use:"Contra-relógio / Triathlon",
   summ:"Dianteira tri-raio: rigidez extrema e assinatura visual inconfundível.",
@@ -309,35 +309,56 @@ var PRODUCTS = [
    FICHA TÉCNICA COMPLETA / COMPATIBILIDADE / GATILHOS
    ========================================================================= */
 function isDisc(p){ return p.sec!=="RIM"; }
-function specsFor(p){
-  var freio = isDisc(p) ? "A disco" : "Ferradura (pista de frenagem em carbono)";
-  var driver = isDisc(p) ? "HG ou XDR (Shimano / Campagnolo / SRAM)" : "HG (Shimano / SRAM)";
-  var cores = p.variants.map(function(v){return COLORS[v.color].label;}).join(", ");
+// Ficha padrão de modelo RIM (dados do site axioncycle.com)
+function rimFicha(perfilLabel, perfilVal, largInt, raios, cassete, pneu, peso, tubePSI){
   return [
-    ["Sistema de freio", freio],
-    ["Perfil / Profundidade", p.depth==="—" ? "Tri-raio (3-spoke)" : p.depth],
-    ["Material", "Fibra de carbono Toray de alta qualidade"],
-    ["Construção", "Clincher + Tubeless Ready"],
-    ["Núcleo / Cassete", driver],
+    [perfilLabel, perfilVal],
+    ["Material", "Carbono Toray T700 (fibra unidirecional)"],
+    ["Largura externa do aro", "25mm"],
+    ["Largura interna do aro", largInt],
+    ["Cubo (Hub)", "HUB AXION RATCHET 36T"],
+    ["Raios", raios],
+    ["Freio", "Rim Brake (V-Brake / Ferradura)"],
+    ["Cassete", cassete],
+    ["Pneu", pneu + " — Tubeless / Clincher"],
+    ["Peso do par", peso],
+    ["Peso máx. suportado", "125 kg"],
+    ["Pressão máxima", "Clincher 120 PSI / Tubeless " + tubePSI],
+    ["Fixação", "Blocagem 9mm"],
+    ["Certificação", "INMETRO — Reg. 008991/2025"],
+    ["Garantia", "2 anos"]
+  ];
+}
+var FICHA = {
+ "Rim Brake 50mm":         rimFicha("Perfil","50mm","18mm","20 furos diant. · 24 furos tras. (Light Axion Aero)","Shimano 9–12v · SRAM 9–11v","25 a 32mm","1620 g ±30 g","90 PSI"),
+ "Rim Brake 60mm":         rimFicha("Perfil","60mm","18mm","20 furos diant. · 24 furos tras. (Light Axion Aero)","Shimano 9–12v · SRAM 9–11v","25 a 32mm","1620 g ±30 g","90 PSI"),
+ "Rim Brake Wave 55/60mm": rimFicha("Conjunto","Par com ondas 55/60mm (Wave Enhanced+)","21mm","20 furos diant. · 24 furos tras. (Axion Aero Light)","Shimano 9–12v · SRAM 9–12v","25 a 42mm","1580 g ±30 g","90 PSI"),
+ "Rim Brake 60/88mm":      rimFicha("Conjunto","Dianteira 60mm + Traseira 88mm","18mm","20 furos diant. · 24 furos tras. (Axion Aero Light)","Shimano 9–12v · SRAM 9–11v","25 a 30mm","1700 g ±30 g","85 PSI"),
+ "Rim Brake Fechada 88mm": rimFicha("Conjunto","Traseira fechada (Disc Wheel) + Dianteira 88mm","19mm","20 furos dianteiros (Axion Light Aero)","Shimano 9–12v · SRAM 9–11v","25 a 30mm","1800 g ±30 g (tras. 1150 g + diant. 650 g)","85 PSI")
+};
+function genericFicha(p){
+  return [
+    ["Perfil / Conjunto", p.depth==="—" ? "Tri-raio (3-spoke)" : p.depth],
+    ["Material", "Carbono Toray T700 (fibra unidirecional)"],
+    ["Cubo (Hub)", "HUB AXION RATCHET 36T"],
+    ["Freio", isDisc(p) ? "A disco" : "Rim Brake (V-Brake / Ferradura)"],
+    ["Cassete", isDisc(p) ? "HG ou XDR (Shimano / Campagnolo / SRAM)" : "HG (Shimano / SRAM)"],
+    ["Sistema", "Clincher + Tubeless Ready"],
     ["Velocidades", "9v · 10v · 11v · 12v"],
-    ["Uso indicado", p.use],
-    ["Cores disponíveis", cores],
     ["Certificação", "INMETRO"],
     ["Garantia", "2 anos (oficial Axion Cycle)"]
   ];
 }
+function specsFor(p){ return FICHA[p.name] || genericFicha(p); }
 function compatFor(p){
   var l = [
-    "Compatível com cassetes de 9, 10, 11 e 12 velocidades.",
-    (isDisc(p) ? "Aceita núcleo HG ou XDR — cobre os principais grupos do mercado."
-               : "Núcleo padrão HG — compatível com Shimano e SRAM."),
-    "Clincher e Tubeless Ready: rode com câmara ou tubeless."
+    "Compatível com os principais grupos Shimano e SRAM.",
+    "Clincher e Tubeless Ready: rode com câmara ou tubeless.",
+    (isDisc(p) ? "Freio a disco: o calor fica no rotor, longe do aro."
+               : "Freio Rim Brake (V-Brake / ferradura), pista de frenagem em carbono.")
   ];
-  l.push(isDisc(p)
-    ? "Freio a disco: o calor fica no rotor, longe do aro — sem estresse térmico no carbono."
-    : "Pista de frenagem em carbono otimizada para maior eficiência e segurança.");
-  if(p.sec==="GRAVEL") l.push("Aro largo, ideal para pneus de gravel e uso tubeless em terreno misto.");
-  if(p.sec==="MTB") l.push("Montagem tubeless para trilha e cross-country, com máxima rigidez lateral.");
+  if(p.sec==="GRAVEL") l.push("Aro largo, ideal para pneus de gravel e uso tubeless.");
+  if(p.sec==="MTB") l.push("Tubeless para trilha e cross-country, com máxima rigidez lateral.");
   return l;
 }
 function triggersFor(p){
