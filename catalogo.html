@@ -513,6 +513,7 @@ function triggersFor(p){
   if(p.sec==="GRAVEL") t.push("Pronta pra aventura");
   if(p.sec==="MTB") t.push("Rígida e leve");
   if(isDisc(p)) t.push("Controle total na chuva");
+  if(p.name.indexOf("Wave")>=0) t.push("Rolamento cerâmico");
   return t;
 }
 
