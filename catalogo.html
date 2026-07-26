@@ -329,12 +329,37 @@ function rimFicha(perfilLabel, perfilVal, largInt, raios, cassete, pneu, peso, t
     ["Garantia", "2 anos"]
   ];
 }
+// Ficha padrão de modelo DISC (dados do site axioncycle.com)
+function discFicha(perfilLabel, perfilVal, largInt, raios, cassete, pneu, peso, tubePSI){
+  return [
+    [perfilLabel, perfilVal],
+    ["Material", "Carbono Toray T700 (fibra unidirecional)"],
+    ["Largura externa do aro", "25mm"],
+    ["Largura interna do aro", largInt],
+    ["Cubo (Hub)", "HUB AXION RATCHET 36T"],
+    ["Raios", raios],
+    ["Freio", "Disco Center Lock"],
+    ["Eixos", "12x100mm (diant.) / 12x142mm (tras.)"],
+    ["Cassete", cassete],
+    ["Pneu", pneu + " — Tubeless / Clincher"],
+    ["Peso do par", peso],
+    ["Peso máx. suportado", "125 kg"],
+    ["Pressão máxima", "Clincher 120 PSI / Tubeless " + tubePSI],
+    ["Certificação", "INMETRO — Reg. 008991/2025"],
+    ["Garantia", "2 anos"]
+  ];
+}
 var FICHA = {
  "Rim Brake 50mm":         rimFicha("Perfil","50mm","18mm","20 furos diant. · 24 furos tras. (Light Axion Aero)","Shimano 9–12v · SRAM 9–11v","25 a 32mm","1620 g ±30 g","90 PSI"),
  "Rim Brake 60mm":         rimFicha("Perfil","60mm","18mm","20 furos diant. · 24 furos tras. (Light Axion Aero)","Shimano 9–12v · SRAM 9–11v","25 a 32mm","1620 g ±30 g","90 PSI"),
  "Rim Brake Wave 55/60mm": rimFicha("Conjunto","Par com ondas 55/60mm (Wave Enhanced+)","21mm","20 furos diant. · 24 furos tras. (Axion Aero Light)","Shimano 9–12v · SRAM 9–12v","25 a 42mm","1580 g ±30 g","90 PSI"),
  "Rim Brake 60/88mm":      rimFicha("Conjunto","Dianteira 60mm + Traseira 88mm","18mm","20 furos diant. · 24 furos tras. (Axion Aero Light)","Shimano 9–12v · SRAM 9–11v","25 a 30mm","1700 g ±30 g","85 PSI"),
- "Rim Brake Fechada 88mm": rimFicha("Conjunto","Traseira fechada (Disc Wheel) + Dianteira 88mm","19mm","20 furos dianteiros (Axion Light Aero)","Shimano 9–12v · SRAM 9–11v","25 a 30mm","1800 g ±30 g (tras. 1150 g + diant. 650 g)","85 PSI")
+ "Rim Brake Fechada 88mm": rimFicha("Conjunto","Traseira fechada (Disc Wheel) + Dianteira 88mm","19mm","20 furos dianteiros (Axion Light Aero)","Shimano 9–12v · SRAM 9–11v","25 a 30mm","1800 g ±30 g (tras. 1150 g + diant. 650 g)","85 PSI"),
+ "Disc Brake 50mm":          discFicha("Perfil do aro","50mm","18mm","24 furos (Axion Light)","Shimano HG 10–12v · SRAM 10–12v (XDR opcional)","25 a 30mm","1640 g","90 PSI"),
+ "Disc Brake 60mm":          discFicha("Perfil do aro","60mm","18mm","24 furos (Axion Light)","Shimano HG 10–12v · SRAM 10–12v (XDR opcional)","25 a 30mm","1680 g","85 PSI"),
+ "Disc Brake Wave 55/60mm":  discFicha("Conjunto","Par com ondas 55/60mm (Wave Enhanced+)","21mm","24 furos (Axion Light)","Shimano HG 10–12v · SRAM 10–12v (XDR opcional)","25 a 42mm","1640 g","90 PSI"),
+ "Disc Brake 60/88mm":       discFicha("Conjunto","Dianteira 60mm + Traseira 88mm","18mm","24 furos (Axion Aero Light)","Shimano HG 9–12v · SRAM 10–12v (XDR opcional)","25 a 30mm","1700 g ±30 g","85 PSI"),
+ "Disc Brake Fechada 88mm":  discFicha("Configuração","Traseira fechada (Disc Wheel) + Dianteira 88mm","19mm","24 furos (Axion Light)","Shimano 10–12v · SRAM 10–12v (XDR opcional)","25 a 30mm","2160 g (tras. 1160 g + diant. 1000 g)","85 PSI")
 };
 function genericFicha(p){
   return [
