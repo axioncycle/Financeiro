@@ -148,6 +148,8 @@ main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
 .mini-specs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
 .mini-specs .ms{font-size:.69rem;font-weight:600;color:var(--text2);background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:4px 8px}
 .mini-specs .ms b{color:var(--text);font-weight:700}
+.mini-specs .ms.ms-gold{color:#e6c24f;border-color:rgba(224,184,78,.45);background:rgba(224,184,78,.09)}
+.mini-specs .ms.ms-gold b{color:#f0cf5c}
 .cta{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:12px;border-top:1px dashed var(--border2)}
 .cta .see{font-size:.8rem;font-weight:700;color:var(--blue);display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 .cta .wa{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--green);transition:.15s}
@@ -654,7 +656,7 @@ function card(p,gi){
       + '<h3>'+p.name+'</h3>'
       + '<p class="summ">'+p.summ+'</p>'
       + '<div class="swatches">'+swatchHTML(p,gi,vIdx)+'<span class="sw-name">'+swl+'</span></div>'
-      + '<div class="mini-specs"><span class="ms"><b>'+(isDisc(p)?"Disc":"Rim")+'</b> brake</span><span class="ms">Tubeless <b>Ready</b></span><span class="ms">9–12<b>v</b></span></div>'
+      + '<div class="mini-specs"><span class="ms"><b>'+(isDisc(p)?"Disc":"Rim")+'</b> brake</span><span class="ms">Tubeless <b>Ready</b></span><span class="ms">9–12<b>v</b></span>'+(p.ceramic?'<span class="ms ms-gold">Rolamento <b>cerâmico</b></span>':'')+'</div>'
       + '<div class="cta">'
         + '<span class="see" onclick="openModal('+gi+')">Ver ficha técnica <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="width:14px;height:14px"><path d="M9 6l6 6-6 6"/></svg></span>'
       + '</div>'
