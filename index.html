@@ -5177,6 +5177,12 @@ function renderRes(){
 
   // Filter months by year
   var mesesF=yearSel==='all'?meses:meses.filter(function(m){return m.split('-')[0]===yearSel;});
+  // Totais anuais ignoram meses futuros sem faturamento (para bater com o Dashboard)
+  mesesF=mesesF.filter(function(m){
+    if(m<=resCurMk)return true;
+    var f=0;for(var _j=0;_j<vendas.length;_j++){if(mkey(vendas[_j].date)===m)f+=(+vendas[_j].venda||0);}
+    return f>0;
+  });
 
   // Recalculate for filtered period
   var anoFatF=0,anoLSIF=0,anoDespF=0;
