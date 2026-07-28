@@ -1872,13 +1872,16 @@ function saveContainersDB(cs){
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
 var _saveDespTimers={};
+// Data de pagamento das despesas fixas/extras — codificada no nome (sem alterar o schema)
+function encNomeData(it){return (it&&it.pdata)?((it.nome||'')+'@@'+it.pdata):((it&&it.nome)||'');}
+function decNomeData(raw){var s=String(raw||'');var idx=s.indexOf('@@');if(idx>=0){var d=s.slice(idx+2);if(/^\d{4}-\d{2}-\d{2}$/.test(d))return {nome:s.slice(0,idx),pdata:d};}return {nome:s,pdata:''};}
 function saveDespDB(mk,data){
   DB_DESP[mk]=data;
   // Debounce per-month to avoid DELETE+POST race condition
   if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
-    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:data.fixas[i].nome,valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:data.extras[i].nome,valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
     if(data.prolabore>0){r2={mes:mk,nome:'Pró-labore',valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
     // Distribuição de lucros: uma linha por lançamento (data guardada no campo nome)
     if(data.distribuicaoItems)for(i=0;i<data.distribuicaoItems.length;i++){var _di=data.distribuicaoItems[i];if((+_di.valor||0)!==0){r2={mes:mk,nome:_di.data||'',valor:+_di.valor||0,tipo:'distribuicao'};rows.push(r2);}}
@@ -5105,7 +5108,7 @@ function syncDespesasFromDB(cb){
           if(+r.valor>0) d[r.mes].das=+r.valor||0;
           // Don't add to fixas[] - skip it
         } else {
-          d[r.mes].fixas.push({nome:r.nome,valor:+r.valor||0});
+          var _fd=decNomeData(r.nome);d[r.mes].fixas.push({nome:_fd.nome,valor:+r.valor||0,pdata:_fd.pdata});
         }
       } else if(r.tipo==='prolabore'){
         d[r.mes].prolabore=+r.valor||0;
@@ -5115,7 +5118,7 @@ function syncDespesasFromDB(cb){
         if(!d[r.mes].financeiro)d[r.mes].financeiro=[];
         d[r.mes].financeiro.push({nome:r.nome,valor:+r.valor||0});
       } else {
-        d[r.mes].extras.push({nome:r.nome,valor:+r.valor||0});
+        var _ed=decNomeData(r.nome);d[r.mes].extras.push({nome:_ed.nome,valor:+r.valor||0,pdata:_ed.pdata});
       }
     }
     // Merge with localStorage (DB wins)
@@ -5136,8 +5139,9 @@ function loadDespesasFromDB(mk,cb){
     var d={fixas:[],extras:[]};var i;
     for(i=0;i<rows.length;i++){
       var r=rows[i];
-      if(r.tipo==='fixa') d.fixas.push({nome:r.nome,valor:+r.valor||0});
-      else d.extras.push({nome:r.nome,valor:+r.valor||0});
+      var _ld=decNomeData(r.nome);
+      if(r.tipo==='fixa') d.fixas.push({nome:_ld.nome,valor:+r.valor||0,pdata:_ld.pdata});
+      else d.extras.push({nome:_ld.nome,valor:+r.valor||0,pdata:_ld.pdata});
     }
     // Update localStorage cache
     var all=sg('ax_v6_desp',{});all[mk]=d;cb(d);
@@ -5372,8 +5376,9 @@ function renderRes(){
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
     var fixaRows=md.fixas.filter(function(f){return f.nome!=='DAS'&&f.nome!=='das';}).map(function(f,fi){
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);gap:6px;">'+
-        '<input type="text" value="'+f.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updFixaNome(\''+mk+'\','+fi+',this.value)">'+
+      return '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid var(--border);gap:6px;">'+
+        '<input type="text" value="'+f.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;min-width:110px;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updFixaNome(\''+mk+'\','+fi+',this.value)">'+
+        (mk>=RES_PAG_FROM?'<input type="date" value="'+((f.pdata||'').slice(0,10))+'" title="Data de pagamento" style="width:130px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;outline:none;flex-shrink:0;" onchange="updFixaData(\''+mk+'\','+fi+',this.value)">':'')+
         '<input type="text" inputmode="decimal" value="'+(fmtN(f.valor||0))+'" placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFixa(\''+mk+'\','+fi+',this.value)">'+
         '<button onclick="delFixa(\''+mk+'\','+fi+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
       '</div>';
@@ -5398,7 +5403,7 @@ function renderRes(){
       '</select>'+
       '<button onclick="addFixa(\''+mk+'\')" style="background:#1E90FF22;border:1px solid #1E90FF44;color:#1E90FF;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;padding:5px 10px;flex-shrink:0;">+</button>'+
     '</div>';
-    var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
+    var extraRows=md.extras.map(function(e,ei){return '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">'+'<input type="text" value="'+e.nome.replace(/"/g,'&quot;')+'" placeholder="Nome" style="flex:1;min-width:110px;font-size:12px;background:transparent;border:none;border-bottom:1px solid #333;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+(mk>=RES_PAG_FROM?'<input type="date" value="'+((e.pdata||'').slice(0,10))+'" title="Data de pagamento" style="width:130px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;outline:none;flex-shrink:0;" onchange="updExtraData(\''+mk+'\','+ei+',this.value)">':'')+'<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'"'+' placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:var(--text);font-size:12px;text-align:right;outline:none;"'+' oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+'<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+'</div>';}).join('');
     var isCur=(mk===resCurMk);
     var lightM=(mg>=META_MARG_LIQ?'🟢':mg>=META_MARG_LIQ*0.6?'🟡':'🔴');
     html+='<div style="background:var(--card);border:1px solid '+(isCur?'#1E90FF':'var(--border)')+';border-radius:12px;margin-bottom:10px;overflow:hidden;'+(isCur?'box-shadow:0 0 0 1px #1E90FF44;':'')+'">'+
@@ -5412,7 +5417,10 @@ function renderRes(){
         '<div style="font-size:10px;margin-top:2px;white-space:nowrap;">'+lightM+' <b style="color:'+rc+';">'+mg.toFixed(1)+'%</b></div>'+
       '</div></div>'+
       '<div id="mes'+i+'" style="display:none;padding:12px 14px;">'+
-      '<button onclick="openResImport(\''+mk+'\')" style="width:100%;padding:9px;border-radius:8px;border:1px solid #1E90FF55;background:#1E90FF18;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:10px;">📄 Importar extrato do mês</button>'+
+      '<div style="display:flex;gap:6px;margin-bottom:10px;">'+
+        '<button onclick="openResImport(\''+mk+'\')" style="flex:1;padding:9px 6px;border-radius:8px;border:1px solid #1E90FF55;background:#1E90FF18;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">📄 Importar extrato</button>'+
+        '<button onclick="exportMesXls(\''+mk+'\')" style="flex:1;padding:9px 6px;border-radius:8px;border:1px solid #22c55e55;background:#22c55e18;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">📊 Exportar Excel</button>'+
+      '</div>'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-left:3px solid #22c55e;border-radius:8px;padding:8px 10px;margin-bottom:8px;">'+
         '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">📦 Vendas do mês ('+mv.length+')</span>'+
         '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#f59e0b;">'+fmt(lsi)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
@@ -5678,6 +5686,44 @@ function aplicarRes(){
   closeModal('m-res-import');renderRes();
   toast(n+' gasto(s) importado(s) em '+mlabel(mk)+'!');
 }
+// Exporta planilha financeira do mês (Excel/CSV) — para o contador
+function exportMesXls(mk){
+  var vendas=loadVendas();
+  var mv=vendas.filter(function(v){return mkey(v.date)===mk;});
+  var fat=0,taxas=0,custo=0,frete=0,lsi=0,impE=0;
+  mv.forEach(function(v){fat+=+v.venda||0;taxas+=(+v.taxa||0)+(+v.com||0);custo+=+v.custo||0;frete+=+v.frete||0;lsi+=+v.lucroSI||0;impE+=+v.imp||0;});
+  var md=getMDesp(mk);
+  var totF=0,totE=0,totFin=0;
+  (md.fixas||[]).forEach(function(f){if(f.nome!=='DAS'&&f.nome!=='das')totF+=parseFloat(f.valor)||0;});
+  (md.extras||[]).forEach(function(e){totE+=parseFloat(e.valor)||0;});
+  (md.financeiro||[]).forEach(function(f){totFin+=parseFloat(f.valor)||0;});
+  var das=md.das>0?md.das:impE;
+  var mc=lsi-totE,ebitda=mc-totF,res=ebitda+totFin-das,margem=fat>0?res/fat*100:0;
+  function num(n){return (Math.round((n||0)*100)/100).toFixed(2).replace('.',',');}
+  function cell(v){v=String(v==null?'':v);return /[";\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+  function fd(d){d=(d||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('/'):'';}
+  var L=[];
+  L.push('Planilha Financeira;'+mlabel(mk));
+  L.push('');
+  L.push('Categoria;Descrição;Data Pagamento;Valor');
+  L.push('RECEITAS;Faturamento;;'+num(fat));
+  L.push('CUSTOS;Taxas de venda;;'+num(taxas));
+  L.push('CUSTOS;CMV (custo dos produtos);;'+num(custo));
+  L.push('CUSTOS;Frete;;'+num(frete));
+  (md.fixas||[]).forEach(function(f){if(f.nome==='DAS'||f.nome==='das')return;L.push('DESPESA FIXA;'+cell(f.nome)+';'+fd(f.pdata)+';'+num(f.valor));});
+  (md.extras||[]).forEach(function(e){L.push('DESPESA EXTRA;'+cell(e.nome)+';'+fd(e.pdata)+';'+num(e.valor));});
+  (md.financeiro||[]).forEach(function(f){L.push('FINANCEIRO;'+cell(f.nome)+';;'+num(f.valor));});
+  L.push('IMPOSTO;DAS'+(md.das>0?' (real)':' (estimado)')+';;'+num(das));
+  if((+md.prolabore||0)>0)L.push('PRÓ-LABORE;Pró-labore;;'+num(md.prolabore));
+  (md.distribuicaoItems||[]).forEach(function(di){if((+di.valor||0)!==0)L.push('DISTRIBUIÇÃO;Retirada de lucros;'+fd(di.data)+';'+num(di.valor));});
+  L.push('');
+  L.push('RESULTADO;Margem de Contribuição;;'+num(mc));
+  L.push('RESULTADO;EBITDA;;'+num(ebitda));
+  L.push('RESULTADO;Lucro Líquido;;'+num(res));
+  L.push('RESULTADO;Margem Líquida;;'+margem.toFixed(1).replace('.',',')+'%');
+  var blob=new Blob(['﻿'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  shareOrDownload(blob,'planilha financeira - '+mlabel(mk)+'.csv','Planilha exportada!');
+}
 function toggleResExp(){var m=document.getElementById('res-exp-menu');if(m)m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none';}
 // Monta a DRE por mês do período selecionado (respeita o filtro de ano e o corte de meses)
 function buildResDRE(){
@@ -5830,8 +5876,11 @@ function delFinanceiro(mk,fi){
   saveDespDB(mk,md);renderRes();toast('Lançamento removido');
 }
 
+var RES_PAG_FROM='2026-08'; // data de pagamento nas despesas a partir de agosto/2026
 function updFixa(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].valor=parseBRL(val);saveDespDB(mk,md);renderResDebounced();}
 function updFixaNome(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].nome=val;saveDespDB(mk,md);}
+function updFixaData(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].pdata=val;saveDespDB(mk,md);}
+function updExtraData(mk,idx,val){var md=getMDesp(mk);if(!md.extras[idx]) return;md.extras[idx].pdata=val;saveDespDB(mk,md);}
 function updExtraNome(mk,idx,val){var md=getMDesp(mk);if(!md.extras[idx]) return;md.extras[idx].nome=val;saveDespDB(mk,md);}
 function updFinanceiroNome(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].nome=val;saveDespDB(mk,md);}
 function updFinanceiroVal(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].valor=(md.financeiro[idx].valor>=0?1:-1)*parseBRL(val);saveDespDB(mk,md);renderResDebounced();}
