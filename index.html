@@ -5922,7 +5922,7 @@ function delFinanceiro(mk,fi){
   saveDespDB(mk,md);renderRes();toast('Lançamento removido');
 }
 
-var RES_PAG_FROM='2026-08'; // data de pagamento nas despesas a partir de agosto/2026
+var RES_PAG_FROM='2026-07'; // data de pagamento nas despesas a partir de julho/2026
 function updFixa(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].valor=parseBRL(val);saveDespDB(mk,md);renderResDebounced();}
 function updFixaNome(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].nome=val;saveDespDB(mk,md);}
 function updFixaData(mk,idx,val){var md=getMDesp(mk);if(!md.fixas[idx]) return;md.fixas[idx].pdata=val;saveDespDB(mk,md);}
