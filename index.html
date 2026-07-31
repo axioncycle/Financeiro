@@ -1014,11 +1014,12 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     </select>
     <input class="fi" id="srch-vendedor" type="text" placeholder="Filtrar vendedor..." oninput="renderHist()" style="flex:1;font-size:12px;padding:8px;">
   </div>
-  <div style="display:flex;gap:6px;margin-bottom:6px;">
-    <select class="fi" id="srch-ordem" onchange="renderHist()" style="width:100%;font-size:12px;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+  <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+    <select class="fi" id="srch-ordem" onchange="renderHist()" style="flex:1;font-size:12px;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;">
       <option value="data">Ordenar por data</option>
       <option value="recentes">Últimas adicionadas</option>
     </select>
+    <button id="srch-pend" onclick="toggleSrchPend()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #ef444455;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">⏳ Aguardando envio</button>
   </div>
   <div id="srch-info" style="font-size:10px;color:var(--text3);margin-bottom:6px;display:none;"></div>
   <div id="sync-pending-bar" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -4039,6 +4040,12 @@ function clearSearch(){
 
 // Escapa HTML de dados externos (ex.: nomes de comprador vindos do ML) antes de innerHTML
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toggleSrchPend(){
+  window._srchPend=!window._srchPend;
+  var b=document.getElementById('srch-pend');
+  if(b){if(window._srchPend){b.style.background='#ef4444';b.style.color='#fff';b.style.borderColor='#ef4444';}else{b.style.background='var(--bg2)';b.style.color='var(--text2)';b.style.borderColor='#ef444455';}}
+  renderHist();
+}
 function renderHist(){
   var vendas=loadVendas();
   var el=document.getElementById('v-hist');
@@ -4062,9 +4069,10 @@ function renderHist(){
     if(dataAte&&vDate>dataAte) continue;
     if(canal&&(v.canal||'')!==canal) continue;
     if(vendedor&&(v.vendedor||'').toLowerCase().indexOf(vendedor)<0) continue;
+    if(window._srchPend&&!v.pendente) continue;
     fv.push(v);
   }
-  var hasFilter=nome||data||dataDe||dataAte||canal||vendedor;
+  var hasFilter=nome||data||dataDe||dataAte||canal||vendedor||window._srchPend;
   var ordem=(document.getElementById('srch-ordem')||{}).value||'data';
   if(ordem==='recentes'){
     fv.sort(function(a,b){return (b.createdAt||b.id||0)-(a.createdAt||a.id||0);});
