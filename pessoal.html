@@ -32,8 +32,9 @@ body.light::before{background:
 .logo small{display:block;font-size:8px;color:var(--text3);letter-spacing:2px;margin-top:2px;}
 .icbtn{background:var(--sbtn-bg);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;color:var(--text2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .08s,background .15s;}
 .icbtn:active{transform:scale(.9);background:var(--bg3);}
-.nav{display:flex;background:var(--bg2);-webkit-backdrop-filter:var(--glass);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);position:sticky;top:64px;z-index:40;}
-.nb{flex:1;padding:13px 6px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:color .15s;}
+.nav{display:flex;background:var(--bg2);-webkit-backdrop-filter:var(--glass);backdrop-filter:var(--glass);border-bottom:1px solid var(--border);position:sticky;top:64px;z-index:40;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.nav::-webkit-scrollbar{display:none;}
+.nb{flex:1 0 auto;padding:13px 12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:color .15s;}
 .nb.on{color:var(--accent);border-bottom-color:var(--accent);}
 .page{display:none;padding:14px;max-width:640px;margin:0 auto;}
 .page.on{display:block;animation:fade .22s ease;}
@@ -101,11 +102,13 @@ input[type=date].fi{-webkit-appearance:none;appearance:none;min-width:0;max-widt
   <button class="nb on" data-pg="dash" onclick="goTo('dash')">Dashboard</button>
   <button class="nb" data-pg="patr" onclick="goTo('patr')">Patrimônio</button>
   <button class="nb" data-pg="orc" onclick="goTo('orc')">Planejamento Mensal</button>
+  <button class="nb" data-pg="viag" onclick="goTo('viag')">✈️ Viagem</button>
 </div>
 
 <div id="pg-dash" class="page on"></div>
 <div id="pg-patr" class="page"></div>
 <div id="pg-orc" class="page"></div>
+<div id="pg-viag" class="page"></div>
 
 <script>
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
@@ -358,6 +361,11 @@ function render(){
   if(CUR==='dash')renderDash();
   else if(CUR==='patr')renderPatr();
   else if(CUR==='orc')renderOrcamento();
+  else if(CUR==='viag')renderViagemPage();
+}
+function renderViagemPage(){
+  orcCollapse.viagem=false; // sempre expandido na aba própria
+  document.getElementById('pg-viag').innerHTML=viagemSection(selMk());
 }
 
 // ── Dashboard ──────────────────────────────────────────
@@ -701,7 +709,7 @@ function renderOrcamento(){
       orcRow('📦 Outros',outros,'#ef4444','−')+
       '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:800;">Saldo de '+MONTHS[selMonth-1]+'</span><span style="font-size:22px;font-weight:900;color:'+(saldo>=0?'#22c55e':'#ef4444')+';">'+fmt(saldo)+'</span></div>'+
     '</div></div>';
-  h+=importSection(mk)+ganhoBloco(mk)+gastoBloco('gasto_fixo','📌 Gastos Fixos',false,mk)+gastoBloco('gasto_extra','🧾 Gastos Extras',true,mk)+gastoBloco('gasto_outro','📦 Outros Gastos',true,mk)+viagemSection(mk);
+  h+=importSection(mk)+ganhoBloco(mk)+gastoBloco('gasto_fixo','📌 Gastos Fixos',false,mk)+gastoBloco('gasto_extra','🧾 Gastos Extras',true,mk)+gastoBloco('gasto_outro','📦 Outros Gastos',true,mk);
   el.innerHTML=h;
 }
 function ganhoBloco(mk){
