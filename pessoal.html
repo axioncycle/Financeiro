@@ -890,8 +890,11 @@ function vgGastoCard(g){
       '<div style="text-align:right;flex-shrink:0;">'+
         '<div style="font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
         (usd>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;white-space:nowrap;">US$ '+fmtN(usd)+'</div>':'')+
-        '<div style="margin-top:4px;white-space:nowrap;"><button onclick="editItem('+g.id+')" title="Editar" style="background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:0 3px;">✎</button><button onclick="rmItem('+g.id+')" title="Apagar" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:0 3px;">×</button></div>'+
       '</div>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
+      '<button onclick="editItem('+g.id+')" title="Editar" style="background:rgba(168,85,247,.12);border:1px solid var(--accent);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:7px 16px;border-radius:9px;">✎ Editar</button>'+
+      '<button onclick="rmItem('+g.id+')" title="Apagar" style="background:rgba(239,68,68,.12);border:1px solid #ef444455;color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;padding:7px 16px;border-radius:9px;">× Apagar</button>'+
     '</div>'+
   '</div>';
 }
