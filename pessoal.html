@@ -894,11 +894,16 @@ function vgGastoCard(g){
         (usd>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;white-space:nowrap;">US$ '+fmtN(usd)+'</div>':'')+
       '</div>'+
     '</div>'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
+    (info.split&&info.split.length?'<div style="margin-top:6px;background:var(--bg2);border-radius:8px;padding:6px 9px;font-size:11px;">'+
+      '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">👥 Divisão</div>'+
+      info.split.map(function(p){return '<div style="display:flex;justify-content:space-between;padding:1px 0;"><span style="color:'+(p.pg?'#22c55e':'var(--text2)')+';">'+(p.pg?'✔ ':'')+esc(p.nome||'—')+'</span><span style="font-weight:700;color:'+(p.pg?'#22c55e':'var(--text)')+';">'+fmt(p.valor)+'</span></div>';}).join('')+
+    '</div>':'')+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
       '<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;flex-shrink:0;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>'+
-      '<div style="display:flex;gap:8px;flex-shrink:0;">'+
-        '<button onclick="editItem('+g.id+')" title="Editar" style="background:rgba(168,85,247,.12);border:1px solid var(--accent);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:6px 14px;border-radius:9px;">✎ Editar</button>'+
-        '<button onclick="rmItem('+g.id+')" title="Apagar" style="background:rgba(239,68,68,.12);border:1px solid #ef444455;color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;padding:6px 14px;border-radius:9px;">× Apagar</button>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'+
+        '<button onclick="openSplit('+g.id+')" title="Dividir pagamento" style="background:rgba(96,165,250,.14);border:1px solid #60a5fa66;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">👥 Dividir</button>'+
+        '<button onclick="editItem('+g.id+')" title="Editar" style="background:rgba(168,85,247,.12);border:1px solid var(--accent);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">✎</button>'+
+        '<button onclick="rmItem('+g.id+')" title="Apagar" style="background:rgba(239,68,68,.12);border:1px solid #ef444455;color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">×</button>'+
       '</div>'+
     '</div>'+
   '</div>';
@@ -1018,6 +1023,45 @@ function vgPickCidadePeriod(id){
     updItem(id,{data:s,obs:(e&&e!==s?e:'')},function(){render();});
   });
 }
+// ── Dividir pagamento entre pessoas ────────────────────
+var _sp={id:null,people:[],total:0};
+function openSplit(id){
+  var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);
+  _sp.id=id;_sp.total=+g.valor||0;
+  _sp.people=(info.split&&info.split.length)?info.split.map(function(p){return {nome:p.nome||'',valor:+p.valor||0,pg:!!p.pg};}):[{nome:'',valor:0,pg:false},{nome:'',valor:0,pg:false}];
+  renderSplit();document.getElementById('ov').style.display='block';
+}
+function spSync(){_sp.people.forEach(function(p,i){var n=document.getElementById('sp-nome-'+i),v=document.getElementById('sp-val-'+i);if(n)p.nome=n.value;if(v)p.valor=parseBRL(v.value);});}
+function spAdd(){spSync();_sp.people.push({nome:'',valor:0,pg:false});renderSplit();}
+function spDel(i){spSync();_sp.people.splice(i,1);if(!_sp.people.length)_sp.people.push({nome:'',valor:0,pg:false});renderSplit();}
+function spTogglePg(i){spSync();_sp.people[i].pg=!_sp.people[i].pg;renderSplit();}
+function spIgual(){spSync();var n=_sp.people.length||1;var each=Math.floor((_sp.total/n)*100)/100;var resto=Math.round((_sp.total-each*n)*100)/100;_sp.people.forEach(function(p,i){p.valor=each+(i===0?resto:0);});renderSplit();}
+function spSave(){
+  spSync();var g=ITEMS.find(function(x){return x.id===_sp.id;});if(!g)return;var info=vgInfo(g);
+  var people=_sp.people.filter(function(p){return (p.nome||'').trim()||(+p.valor>0);}).map(function(p){return {nome:(p.nome||'').trim(),valor:+p.valor||0,pg:!!p.pg};});
+  closeOv();
+  updItem(_sp.id,{obs:vgSetObs(info.fim,info.pg,info.local,people)},function(){render();toast('Divisão salva!');});
+}
+function renderSplit(){
+  var b=document.getElementById('ov-body');
+  var soma=_sp.people.reduce(function(s,p){return s+(+p.valor||0);},0);var dif=Math.round((_sp.total-soma)*100)/100;
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">👥 Dividir pagamento</div><button class="del" onclick="closeOv()">×</button></div>';
+  h+='<div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Total do gasto: <b style="color:var(--accent);">'+fmt(_sp.total)+'</b></div>';
+  h+='<div style="max-height:46vh;overflow-y:auto;">';
+  _sp.people.forEach(function(p,i){
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'+
+      '<input type="checkbox" '+(p.pg?'checked':'')+' onchange="spTogglePg('+i+')" title="Pago" style="width:18px;height:18px;accent-color:#22c55e;flex-shrink:0;cursor:pointer;">'+
+      '<input class="fi" id="sp-nome-'+i+'" value="'+esc(p.nome||'')+'" placeholder="Nome" style="flex:1;min-width:0;font-size:12px;padding:7px 9px;">'+
+      '<input class="fi" id="sp-val-'+i+'" value="'+(p.valor?fmtN(p.valor):'')+'" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)" style="width:88px;font-size:12px;padding:7px 9px;text-align:right;">'+
+      '<button class="del" onclick="spDel('+i+')" title="Remover">×</button>'+
+    '</div>';
+  });
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px;margin:8px 0;"><button class="btn-add" style="flex:1;font-size:12px;padding:9px;" onclick="spAdd()">+ Pessoa</button><button class="btn-add" style="flex:1;font-size:12px;padding:9px;border-color:#60a5fa;color:#60a5fa;" onclick="spIgual()">÷ Dividir igual</button></div>';
+  h+='<div style="font-size:12px;font-weight:700;text-align:center;margin:8px 0;color:'+(Math.abs(dif)<0.01?'#22c55e':'#f59e0b')+';">Soma '+fmt(soma)+' · '+(Math.abs(dif)<0.01?'confere ✔':(dif>0?'faltam '+fmt(dif):'excedeu '+fmt(-dif)))+'</div>';
+  h+='<button class="btn-add" style="background:var(--accent);color:#fff;border:none;" onclick="spSave()">✓ Salvar divisão</button>';
+  b.innerHTML=h;
+}
 function exportViagemPDF(destId){
   var dest=ITEMS.find(function(x){return x.id===destId;});if(!dest)return;
   var cidades=viagemCidades(destId);
@@ -1072,13 +1116,13 @@ function exportViagemPDF(destId){
   setTimeout(function(){win.print();},500);
 }
 var LOCAIS_RESERVA=['Booking','Hotels.com','Airbnb','Decolar','Trip.com','Expedia','Latam','Gol','Azul','Smiles','Copa Airlines','Rent a Car','Localiza','Outro'];
-function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg,local:o.local||''};}
-function vgSetObs(fim,pg,local){return JSON.stringify({fim:fim||'',pg:!!pg,local:local||''});}
+function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg,local:o.local||'',split:Array.isArray(o.split)?o.split:[]};}
+function vgSetObs(fim,pg,local,split){return JSON.stringify({fim:fim||'',pg:!!pg,local:local||'',split:Array.isArray(split)?split:[]});}
 function vgTipoChange(){var s=document.getElementById('vg-tipo'),n=document.getElementById('vg-tipo-novo');if(!s||!n)return;if(s.value==='__novo__'){n.style.display='block';n.focus();}else n.style.display='none';}
 function vgShowAdd(){var f=document.getElementById('vg-addform'),b=document.getElementById('vg-add-btn');if(f)f.style.display='block';if(b)b.style.display='none';if(f&&f.scrollIntoView)f.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function vgHideAdd(){var f=document.getElementById('vg-addform'),b=document.getElementById('vg-add-btn');if(f)f.style.display='none';if(b)b.style.display='block';}
 function vgLocalChange(sid,nid){var s=document.getElementById(sid),n=document.getElementById(nid);if(!s||!n)return;if(s.value==='Outro'){n.style.display='block';n.focus();}else n.style.display='none';}
-function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg,info.local)},function(){render();});}
+function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg,info.local,info.split)},function(){render();});}
 function addViagemGasto(destId){
   var tsel=document.getElementById('vg-tipo');var tipo=tsel?tsel.value:'';
   if(tipo==='__novo__')tipo=((document.getElementById('vg-tipo-novo')||{value:''}).value||'').trim();
@@ -1091,7 +1135,7 @@ function addViagemGasto(destId){
   if(!brl&&!usd){toast('Informe o valor (R$ ou US$)',true);return;}
   var cidEl=document.getElementById('vg-cidade');var meta=(cidEl&&cidEl.value)?cidEl.value:destId;
   var lsel=document.getElementById('vg-local');var local=lsel?lsel.value:'';if(local==='Outro')local=((document.getElementById('vg-local-novo')||{value:''}).value||'').trim();
-  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:meta,obs:vgSetObs(fim,false,local)},function(){render();toast('Gasto adicionado!');});
+  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:meta,obs:vgSetObs(fim,false,local,[])},function(){render();toast('Gasto adicionado!');});
 }
 
 // ── Remover ────────────────────────────────────────────
@@ -1152,7 +1196,7 @@ function saveEditItem(id){
   var m=document.getElementById('ed-meta');if(m)obj.meta=parseBRL(m.value);
   var c=document.getElementById('ed-cat');if(c)obj.categoria=(c.value||'').trim();
   var d=document.getElementById('ed-data');if(d&&d.value)obj.data=d.value;
-  if(it.tipo==='viagem_gasto'){var vi2=vgInfo(it);var fimEl=document.getElementById('ed-fim');var locEl=document.getElementById('ed-local');var loc=locEl?locEl.value:vi2.local;if(loc==='Outro')loc=((document.getElementById('ed-local-novo')||{value:''}).value||'').trim();obj.obs=vgSetObs(fimEl?fimEl.value:vi2.fim,vi2.pg,loc);}
+  if(it.tipo==='viagem_gasto'){var vi2=vgInfo(it);var fimEl=document.getElementById('ed-fim');var locEl=document.getElementById('ed-local');var loc=locEl?locEl.value:vi2.local;if(loc==='Outro')loc=((document.getElementById('ed-local-novo')||{value:''}).value||'').trim();obj.obs=vgSetObs(fimEl?fimEl.value:vi2.fim,vi2.pg,loc,vi2.split);}
   editingId=null;
   updItem(id,obj,function(){render();toast('Atualizado!');});
 }
