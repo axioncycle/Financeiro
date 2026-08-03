@@ -680,10 +680,16 @@ function viewCofrinhos(){
     var atual=cofrinhoAtual(c),rLiq=cofrinhoRendLiq(c),rBruto=cofrinhoRend(c),ir=cofrinhoIR(c),iof=cofrinhoIOF(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),du=diasUteis(c.data), irPct=(irAliquota(diasDesde(c.data))*100), prod=rfProduto(c), isento=rfIsento(c);
     var pct=meta>0?Math.min(100,atual/meta*100):0;
     h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+' <span style="font-size:9px;color:#60a5fa;font-weight:700;background:rgba(96,165,250,.15);border-radius:8px;padding:1px 6px;">'+esc(prod)+'</span></div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div><button class="del" style="color:#22c55e;font-size:18px;" onclick="cfNovoAporte('+c.id+')" title="Novo aporte">＋</button><button class="del" style="color:#ef4444;font-size:22px;" onclick="cfNovaRetirada('+c.id+')" title="Retirada">−</button>'+itemActions(c)+'</div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><div style="flex:1;min-width:0;"><div class="nm">'+esc(c.nome||'—')+'</div><div style="margin-top:3px;"><span style="font-size:9px;color:#60a5fa;font-weight:700;background:rgba(96,165,250,.15);border-radius:8px;padding:2px 7px;">'+esc(prod)+'</span></div></div><div class="vl" style="color:#60a5fa;white-space:nowrap;flex-shrink:0;">'+fmt(atual)+'</div></div>'+
       '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(rLiq)+' líq</span> · '+(prod==='Poupança'?'poupança':pctCdi+'% CDI')+(c.data?' · '+(prod==='Poupança'?mesesCompletos(c.data)+' meses':du+' dias úteis'):' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
       (c.data&&rBruto>0?'<div class="sb" style="color:var(--text3);">bruto +'+fmt(rBruto)+(isento?' · isento de IR/IOF':(iof>0?' − IOF '+fmt(iof):'')+' − IR '+irPct.toFixed(1)+'% ('+fmt(ir)+')')+' · desde '+fmtData(c.data)+'</div>':'')+
       (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
+      '<div style="display:flex;justify-content:flex-end;flex-wrap:wrap;gap:2px;margin-top:8px;border-top:1px solid var(--border);padding-top:6px;">'+
+        '<button onclick="cfNovoAporte('+c.id+')" style="background:none;border:none;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">＋ Aporte</button>'+
+        '<button onclick="cfNovaRetirada('+c.id+')" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">− Retirada</button>'+
+        '<button onclick="editItem('+c.id+')" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">✎ Editar</button>'+
+        '<button onclick="rmItem('+c.id+')" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">× Apagar</button>'+
+      '</div>'+
     '</div>';});
   var prodOpts=PRODUTOS_RF.map(function(p){return '<option value="'+p+'">'+p+'</option>';}).join('');
   h+='<div class="add-box"><label class="fl">Nome da renda fixa</label><input class="fi" id="cf-nome" placeholder="Ex: Reserva, Viagem...">'+
