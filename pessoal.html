@@ -694,6 +694,57 @@ function irHoje(){selYear=_n.getFullYear();selMonth=_n.getMonth()+1;render();}
 function updViagemOrc(id,val){updItem(id,{valor:parseBRL(val)},function(){render();});}
 function updViagemData(id,val){updItem(id,{data:val||today()},function(){render();});}
 function updViagemDataFim(id,val){updItem(id,{obs:val||''},function(){render();});}
+// ── Seletor de período (calendário) ────────────────────
+var _rp={start:'',end:'',view:null,cb:null,title:''};
+function openRangePicker(title,startVal,endVal,cb){
+  _rp.start=(startVal||'').slice(0,10);_rp.end=(endVal||'').slice(0,10);_rp.cb=cb;_rp.title=title||'Selecione o período';
+  var base=_rp.start?new Date(_rp.start+'T00:00:00'):new Date(today()+'T00:00:00');
+  _rp.view=new Date(base.getFullYear(),base.getMonth(),1);
+  renderRangePicker();document.getElementById('ov').style.display='block';
+}
+function rpShift(n){_rp.view=new Date(_rp.view.getFullYear(),_rp.view.getMonth()+n,1);renderRangePicker();}
+function rpPick(ds){
+  if(!_rp.start||(_rp.start&&_rp.end)){_rp.start=ds;_rp.end='';}
+  else{if(ds<_rp.start){_rp.end=_rp.start;_rp.start=ds;}else _rp.end=ds;}
+  renderRangePicker();
+}
+function rpConfirm(){if(!_rp.start){toast('Toque na data de início',true);return;}var s=_rp.start,e=_rp.end||_rp.start,cb=_rp.cb;closeOv();if(cb)cb(s,e);}
+function renderRangePicker(){
+  var v=_rp.view,y=v.getFullYear(),m=v.getMonth();
+  var startDow=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  var MON=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var nav='style="width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:18px;font-weight:800;cursor:pointer;"';
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div class="ttl" style="margin:0;">'+esc(_rp.title)+'</div><button class="del" onclick="closeOv()">×</button></div>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><button onclick="rpShift(-1)" '+nav+'>‹</button><div style="font-weight:800;font-size:15px;">'+MON[m]+' '+y+'</div><button onclick="rpShift(1)" '+nav+'>›</button></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">'+['D','S','T','Q','Q','S','S'].map(function(d){return '<div style="text-align:center;font-size:10px;color:var(--text3);font-weight:700;">'+d+'</div>';}).join('')+'</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+  for(var i=0;i<startDow;i++)h+='<div></div>';
+  for(var d=1;d<=dim;d++){
+    var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var isS=ds===_rp.start,isE=ds===_rp.end,inR=_rp.start&&_rp.end&&ds>_rp.start&&ds<_rp.end;
+    var bg=(isS||isE)?'var(--accent)':(inR?'rgba(168,85,247,.22)':'transparent');
+    var col=(isS||isE)?'#fff':'var(--text)';
+    h+='<div onclick="rpPick(\''+ds+'\')" style="text-align:center;padding:10px 0;border-radius:9px;font-size:14px;cursor:pointer;background:'+bg+';color:'+col+';font-weight:'+((isS||isE)?'800':'500')+';">'+d+'</div>';
+  }
+  h+='</div>';
+  var sel=_rp.start?(fmtData(_rp.start)+(_rp.end&&_rp.end!==_rp.start?' → '+fmtData(_rp.end):(_rp.end?'':' · toque na data de fim'))):'Toque na data de início';
+  h+='<div style="text-align:center;font-size:13px;color:var(--accent);font-weight:800;margin:12px 0;">'+sel+'</div>';
+  h+='<button class="btn-add" style="background:var(--accent);color:#fff;border:none;" onclick="rpConfirm()">✓ Confirmar período</button>';
+  document.getElementById('ov-body').innerHTML=h;
+}
+function vgPickAddPeriod(){
+  var ini=(document.getElementById('vg-ini')||{value:''}).value,fim=(document.getElementById('vg-fim')||{value:''}).value;
+  openRangePicker('Período do gasto',ini,fim,function(s,e){
+    var i=document.getElementById('vg-ini'),f=document.getElementById('vg-fim'),b=document.getElementById('vg-per-btn');
+    if(i)i.value=s;if(f)f.value=(e&&e!==s?e:'');if(b)b.textContent='📅 '+fmtData(s)+(e&&e!==s?' → '+fmtData(e):'');
+  });
+}
+function vgPickDestPeriod(id){
+  var d=ITEMS.find(function(x){return x.id===id;});if(!d)return;
+  openRangePicker('Período da viagem',(d.data||'').slice(0,10),(d.obs||'').slice(0,10),function(s,e){
+    updItem(id,{data:s,obs:(e&&e!==s?e:'')},function(){render();});
+  });
+}
 function renderOrcamento(){
   var el=document.getElementById('pg-orc');
   var mk=selMk();
@@ -813,24 +864,39 @@ function viagemSection(mk){
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><div style="font-size:14px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" style="color:var(--accent);font-size:15px;" onclick="renViagemDest('+dest.id+')" title="Editar nome">✎</button><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
   h+='<div style="background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:10px;">'+
     '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">🗓️ Período da viagem</div>'+
-    '<div class="row"><div><label class="fl">Início</label><input class="fi" type="date" value="'+iniS+'" onchange="updViagemData('+dest.id+',this.value)"></div>'+
-    '<div><label class="fl">Fim</label><input class="fi" type="date" value="'+fimS+'" onchange="updViagemDataFim('+dest.id+',this.value)"></div></div>'+
-    (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">🗓️ '+cd+(iniS?' · '+fmtData(iniS)+(fimS?' a '+fmtData(fimS):''):'')+'</div>':'')+
+    '<button type="button" class="fi" onclick="vgPickDestPeriod('+dest.id+')" style="text-align:left;cursor:pointer;color:var(--text);font-weight:700;">📅 '+(iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período')+'</button>'+
+    (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">'+cd+'</div>':'')+
   '</div>';
   if(!gastos.length)h+='<div class="empty">Nenhum gasto lançado</div>';
   gastos.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){
     if(editingId===g.id){h+=editorBox(g);return;}
-    var info=vgInfo(g);var per=fmtData(g.data)+(info.fim?' a '+fmtData(info.fim):'');var usd=+g.qtd||0;
-    h+='<div class="li" style="border-left-color:'+(info.pg?'#22c55e':'var(--accent)')+';align-items:center;">'+
-      '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:19px;height:19px;accent-color:#22c55e;flex-shrink:0;margin-right:8px;cursor:pointer;">'+
-      '<div style="flex:1;min-width:0;"><div class="nm">'+esc(g.categoria||g.nome||'—')+(g.nome&&g.nome!==g.categoria?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(g.nome)+'</span>':'')+'</div><div class="sb">'+per+(info.pg?' · <span style="color:#22c55e;font-weight:700;">PG</span>':'')+'</div></div>'+
-      '<div style="text-align:right;flex-shrink:0;"><div class="vl ac">'+fmt(g.valor)+'</div>'+(usd>0?'<div style="font-size:10px;color:#22c55e;">US$ '+fmtN(usd)+'</div>':'')+'</div>'+itemActions(g)+'</div>';});
+    var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');var usd=+g.qtd||0;var accent=info.pg?'#22c55e':'var(--accent)';
+    h+='<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:12px;padding:11px 12px;margin-bottom:8px;">'+
+      '<div style="display:flex;align-items:flex-start;gap:10px;">'+
+        '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:20px;height:20px;accent-color:#22c55e;flex-shrink:0;margin-top:1px;cursor:pointer;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:14px;font-weight:800;color:var(--text);line-height:1.25;">'+esc(g.categoria||g.nome||'—')+(info.pg?' <span style="font-size:9px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.15);border-radius:6px;padding:1px 6px;vertical-align:middle;">PAGO</span>':'')+'</div>'+
+          (g.nome&&g.nome!==g.categoria?'<div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3;">'+esc(g.nome)+'</div>':'')+
+          '<div style="font-size:11px;color:var(--text3);margin-top:5px;">📅 '+per+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;flex-shrink:0;">'+
+          '<div style="font-size:15px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
+          (usd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;white-space:nowrap;margin-top:1px;">US$ '+fmtN(usd)+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:flex-end;gap:4px;margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">'+
+        '<button onclick="editItem('+g.id+')" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">✎ Editar</button>'+
+        '<button onclick="rmItem('+g.id+')" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">× Remover</button>'+
+      '</div>'+
+    '</div>';});
   var tipos=['✈️ Passagem aérea','🏨 Hotel','🚗 Aluguel de carro','🍽️ Alimentação','🎟️ Passeios','🛡️ Seguro','💳 Outros'];
   h+='<div class="add-box"><label class="fl">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
      '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
      '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor R$</label><input class="fi" id="vg-brl" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Valor US$</label><input class="fi" id="vg-usd" inputmode="decimal" placeholder="0.00"></div></div>'+
-     '<div class="row" style="margin-top:8px;"><div><label class="fl">Data início</label><input class="fi" id="vg-ini" type="date" value="'+today()+'"></div><div><label class="fl">Data fim</label><input class="fi" id="vg-fim" type="date"></div></div>'+
+     '<label class="fl" style="margin-top:8px;">Período</label>'+
+     '<input type="hidden" id="vg-ini" value="'+today()+'"><input type="hidden" id="vg-fim" value="">'+
+     '<button type="button" class="fi" id="vg-per-btn" onclick="vgPickAddPeriod()" style="text-align:left;cursor:pointer;color:var(--text);">📅 Escolher período da viagem</button>'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addViagemGasto('+dest.id+')">+ Adicionar gasto</button></div>';
   h+='</div>';
   return h+'</div>';
