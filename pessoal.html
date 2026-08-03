@@ -878,10 +878,10 @@ function viagemDests(){return byTipo('viagem_dest');}
 function viagemGastos(destId){return byTipo('viagem_gasto').filter(function(x){return String(x.meta)===String(destId);});}
 function viagemCidades(destId){return byTipo('viagem_cidade').filter(function(x){return String(x.meta)===String(destId);}).sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});}
 function setViagemSel(id){viagemSel=id;render();}
-var vgCollapsed={};
-function vgToggleCard(id){vgCollapsed[id]=!vgCollapsed[id];render();}
+var vgExpanded={}; // padrão minimizado; só expande o que o usuário abrir
+function vgToggleCard(id){vgExpanded[id]=!vgExpanded[id];render();}
 function vgGastoCard(g){
-  var col=!!vgCollapsed[g.id];
+  var col=!vgExpanded[g.id];
   var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');var usd=+g.qtd||0;var accent=info.pg?'#22c55e':'var(--accent)';
   var loc=info.local?'<span style="font-size:9px;font-weight:700;color:var(--accent);background:rgba(168,85,247,.16);border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle;white-space:nowrap;">'+esc(info.local)+'</span>':'';
   return '<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:11px;padding:9px 11px;margin-bottom:7px;">'+
