@@ -803,28 +803,25 @@ function viagemSection(mk){
   var dest=dests.find(function(d){return String(d.id)===String(viagemSel);})||dests[0];
   var gastos=viagemGastos(dest.id);
   var tot=gastos.reduce(function(s,g){return s+(+g.valor||0);},0);
-  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><div style="font-size:14px;font-weight:800;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:8px;align-items:center;"><span style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</span><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
-  // Orçamento x realizado + data + contagem regressiva
-  var orc=+dest.valor||0;
-  var restante=orc-tot;
-  var pctUsed=orc>0?Math.min(100,tot/orc*100):0;
+  var totUsd=gastos.reduce(function(s,g){return s+(+g.qtd||0);},0);
   var cd='';
   if(dest.data){var _dv=new Date(dest.data.slice(0,10)+'T00:00:00');var _t0=new Date(today()+'T00:00:00');var days=Math.round((_dv-_t0)/86400000);cd=days>0?('faltam '+days+' dia'+(days>1?'s':'')):(days===0?'é hoje! 🎉':('há '+Math.abs(days)+' dia'+(Math.abs(days)>1?'s':''))); }
-  h+='<div style="background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:10px;">'+
-    '<div class="row"><div><label class="fl">Orçamento (R$)</label><input class="fi" value="'+(orc?fmtN(orc):'')+'" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)" onchange="updViagemOrc('+dest.id+',this.value)"></div>'+
-    '<div><label class="fl">Data da viagem</label><input class="fi" type="date" value="'+((dest.data||'').slice(0,10))+'" onchange="updViagemData('+dest.id+',this.value)"></div></div>'+
-    (orc>0?'<div style="margin-top:8px;"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--text3);">Realizado '+fmt(tot)+' de '+fmt(orc)+'</span><span style="font-weight:700;color:'+(restante>=0?'#22c55e':'#ef4444')+';">'+(restante>=0?'resta '+fmt(restante):'excedeu '+fmt(-restante))+'</span></div>'+
-      '<div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;"><div style="height:100%;width:'+pctUsed.toFixed(0)+'%;background:'+(tot>orc?'#ef4444':'var(--accent)')+';border-radius:4px;"></div></div></div>':'')+
-    (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">🗓️ '+cd+'</div>':'')+
-  '</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><div style="font-size:14px;font-weight:800;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:8px;align-items:center;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border-radius:10px;padding:8px 10px;margin-bottom:10px;"><span style="font-size:11px;color:var(--text3);font-weight:600;">🗓️ Data da viagem</span><input class="fi" type="date" value="'+((dest.data||'').slice(0,10))+'" onchange="updViagemData('+dest.id+',this.value)" style="width:150px;">'+(cd?'<span style="font-size:11px;color:var(--accent);font-weight:700;">'+cd+'</span>':'')+'</div>';
   if(!gastos.length)h+='<div class="empty">Nenhum gasto lançado</div>';
   gastos.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){
     if(editingId===g.id){h+=editorBox(g);return;}
-    h+='<div class="li" style="border-left-color:var(--accent);"><div style="flex:1;min-width:0;"><div class="nm">'+esc(g.nome||'—')+'</div><div class="sb">'+(g.categoria?esc(g.categoria)+' · ':'')+fmtData(g.data)+'</div></div><div class="vl ac">'+fmt(g.valor)+'</div>'+itemActions(g)+'</div>';});
+    var info=vgInfo(g);var per=fmtData(g.data)+(info.fim?' a '+fmtData(info.fim):'');var usd=+g.qtd||0;
+    h+='<div class="li" style="border-left-color:'+(info.pg?'#22c55e':'var(--accent)')+';align-items:center;">'+
+      '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:19px;height:19px;accent-color:#22c55e;flex-shrink:0;margin-right:8px;cursor:pointer;">'+
+      '<div style="flex:1;min-width:0;"><div class="nm">'+esc(g.categoria||g.nome||'—')+(g.nome&&g.nome!==g.categoria?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(g.nome)+'</span>':'')+'</div><div class="sb">'+per+(info.pg?' · <span style="color:#22c55e;font-weight:700;">PG</span>':'')+'</div></div>'+
+      '<div style="text-align:right;flex-shrink:0;"><div class="vl ac">'+fmt(g.valor)+'</div>'+(usd>0?'<div style="font-size:10px;color:#22c55e;">US$ '+fmtN(usd)+'</div>':'')+'</div>'+itemActions(g)+'</div>';});
   var tipos=['✈️ Passagem aérea','🏨 Hotel','🚗 Aluguel de carro','🍽️ Alimentação','🎟️ Passeios','🛡️ Seguro','💳 Outros'];
-  h+='<div class="add-box"><label class="fl">Tipo de gasto</label><select class="fi" id="vg-tipo">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'</select>'+
+  h+='<div class="add-box"><label class="fl">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
+     '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
      '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
-     '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor</label><input class="fi" id="vg-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Data</label><input class="fi" id="vg-data" type="date" value="'+today()+'"></div></div>'+
+     '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor R$</label><input class="fi" id="vg-brl" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Valor US$</label><input class="fi" id="vg-usd" inputmode="decimal" placeholder="0.00"></div></div>'+
+     '<div class="row" style="margin-top:8px;"><div><label class="fl">Data início</label><input class="fi" id="vg-ini" type="date" value="'+today()+'"></div><div><label class="fl">Data fim</label><input class="fi" id="vg-fim" type="date"></div></div>'+
      '<button class="btn-add" style="margin-top:10px;" onclick="addViagemGasto('+dest.id+')">+ Adicionar gasto</button></div>';
   h+='</div>';
   return h+'</div>';
@@ -839,13 +836,21 @@ function rmViagemDest(id){
   function delGs(k){if(k>=gs.length){delItem(id,function(){viagemSel=null;render();toast('Destino removido');});return;}delItem(gs[k].id,function(){delGs(k+1);});}
   delGs(0);
 }
+function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg};}
+function vgSetObs(fim,pg){return JSON.stringify({fim:fim||'',pg:!!pg});}
+function vgTipoChange(){var s=document.getElementById('vg-tipo'),n=document.getElementById('vg-tipo-novo');if(!s||!n)return;if(s.value==='__novo__'){n.style.display='block';n.focus();}else n.style.display='none';}
+function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg)},function(){render();});}
 function addViagemGasto(destId){
-  var tipo=(document.getElementById('vg-tipo')||{value:''}).value||'Gasto';
+  var tsel=document.getElementById('vg-tipo');var tipo=tsel?tsel.value:'';
+  if(tipo==='__novo__')tipo=((document.getElementById('vg-tipo-novo')||{value:''}).value||'').trim();
+  if(!tipo)tipo='Gasto';
   var desc=((document.getElementById('vg-desc')||{value:''}).value||'').trim();
-  var val=parseBRL(document.getElementById('vg-val').value);
-  var data=(document.getElementById('vg-data')||{value:''}).value||today();
-  if(!val){toast('Informe o valor',true);return;}
-  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:val,data:data,meta:destId},function(){render();toast('Gasto de viagem adicionado!');});
+  var brl=parseBRL(document.getElementById('vg-brl').value);
+  var usd=parseQtd(document.getElementById('vg-usd').value);
+  var ini=(document.getElementById('vg-ini')||{value:''}).value||today();
+  var fim=(document.getElementById('vg-fim')||{value:''}).value||'';
+  if(!brl&&!usd){toast('Informe o valor (R$ ou US$)',true);return;}
+  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:destId,obs:vgSetObs(fim,false)},function(){render();toast('Gasto de viagem adicionado!');});
 }
 
 // ── Remover ────────────────────────────────────────────
@@ -865,6 +870,7 @@ function editorBox(it){
   if(t==='devedor'){h+='<label class="fl" style="margin-top:6px;">Descrição</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'">';}
   if(t==='gasto_extra'||t==='gasto_outro'||t==='cartao_item'||t==='viagem_gasto'){h+='<label class="fl" style="margin-top:6px;">Categoria</label><input class="fi" id="ed-cat" value="'+esc(it.categoria||'')+'"><label class="fl" style="margin-top:6px;">Data</label><input class="fi" id="ed-data" type="date" value="'+((it.data||'').slice(0,10))+'">';}
   if(t==='acao_br'||t==='acao_eua'||t==='cripto'){h+='<label class="fl" style="margin-top:6px;">Quantidade</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'">';}
+  if(t==='viagem_gasto'){h+='<label class="fl" style="margin-top:6px;">Valor US$</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'"><label class="fl" style="margin-top:6px;">Data fim</label><input class="fi" id="ed-fim" type="date" value="'+(vgInfo(it).fim||'')+'">';}
   var moeda=(t==='acao_eua'||t==='cripto'||t==='dolar')?'US$':'R$';
   var vlbl=(t==='acao_br'||t==='acao_eua'||t==='cripto')?'Valor pago ('+moeda+')':(t==='cofrinho'?'Valor aplicado (R$)':'Valor ('+moeda+')');
   h+='<label class="fl" style="margin-top:6px;">'+vlbl+'</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)">';
@@ -883,6 +889,7 @@ function saveEditItem(id){
   var m=document.getElementById('ed-meta');if(m)obj.meta=parseBRL(m.value);
   var c=document.getElementById('ed-cat');if(c)obj.categoria=(c.value||'').trim();
   var d=document.getElementById('ed-data');if(d&&d.value)obj.data=d.value;
+  if(it.tipo==='viagem_gasto'){var fimEl=document.getElementById('ed-fim');obj.obs=vgSetObs(fimEl?fimEl.value:vgInfo(it).fim,vgInfo(it).pg);}
   editingId=null;
   updItem(id,obj,function(){render();toast('Atualizado!');});
 }
