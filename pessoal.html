@@ -745,6 +745,13 @@ function vgPickDestPeriod(id){
     updItem(id,{data:s,obs:(e&&e!==s?e:'')},function(){render();});
   });
 }
+function edPickPeriod(){
+  var ini=(document.getElementById('ed-data')||{value:''}).value,fim=(document.getElementById('ed-fim')||{value:''}).value;
+  openRangePicker('Período do gasto',ini,fim,function(s,e){
+    var i=document.getElementById('ed-data'),f=document.getElementById('ed-fim'),b=document.getElementById('ed-per-btn');
+    if(i)i.value=s;if(f)f.value=(e&&e!==s?e:'');if(b)b.textContent='📅 '+fmtData(s)+(e&&e!==s?' → '+fmtData(e):'');
+  });
+}
 function renderOrcamento(){
   var el=document.getElementById('pg-orc');
   var mk=selMk();
@@ -943,6 +950,24 @@ function cancelEdit(){editingId=null;render();}
 function itemActions(it){return '<button class="del" style="color:var(--accent);font-size:15px;" onclick="editItem('+it.id+')" title="Editar">✎</button><button class="del" onclick="rmItem('+it.id+')" title="Apagar">×</button>';}
 function editorBox(it){
   var t=it.tipo;
+  if(t==='viagem_gasto'){
+    var vi=vgInfo(it);
+    var vtipos=['✈️ Passagem aérea','🏨 Hotel','🚗 Aluguel de carro','🍽️ Alimentação','🎟️ Passeios','🛡️ Seguro','💳 Outros'];
+    var curCat=it.categoria||'';var opts=vtipos.map(function(t2){return '<option'+(t2===curCat?' selected':'')+'>'+t2+'</option>';}).join('');
+    if(vtipos.indexOf(curCat)<0&&curCat)opts='<option selected>'+esc(curCat)+'</option>'+opts;
+    var iniS=(it.data||'').slice(0,10),fimS=vi.fim||'';
+    var perTxt=iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período';
+    return '<div class="li" style="display:block;border-left-color:var(--accent);">'+
+      '<label class="fl">Tipo de gasto</label><select class="fi" id="ed-cat">'+opts+'</select>'+
+      '<label class="fl" style="margin-top:6px;">Descrição</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">'+
+      '<div class="row" style="margin-top:6px;"><div><label class="fl">Valor R$</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)"></div>'+
+      '<div><label class="fl">Valor US$</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'"></div></div>'+
+      '<label class="fl" style="margin-top:6px;">Período</label>'+
+      '<input type="hidden" id="ed-data" value="'+iniS+'"><input type="hidden" id="ed-fim" value="'+fimS+'">'+
+      '<button type="button" class="fi" id="ed-per-btn" onclick="edPickPeriod()" style="text-align:left;cursor:pointer;color:var(--text);font-weight:700;">📅 '+perTxt+'</button>'+
+      '<div class="row" style="margin-top:10px;"><button class="btn-add" onclick="saveEditItem('+it.id+')">✓ Salvar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cancelEdit()">Cancelar</button></div>'+
+    '</div>';
+  }
   var h='<div class="li" style="display:block;border-left-color:var(--accent);">';
   if(t==='dolar'){h+='<label class="fl">Banco</label><select class="fi" id="ed-nome">'+BANCOS.map(function(b){return '<option value="'+b+'"'+(it.nome===b?' selected':'')+'>'+b+'</option>';}).join('')+(BANCOS.indexOf(it.nome)<0&&it.nome?'<option value="'+esc(it.nome)+'" selected>'+esc(it.nome)+'</option>':'')+'</select>';}
   else h+='<label class="fl">Nome</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">';
