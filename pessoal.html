@@ -950,7 +950,8 @@ function viagemSection(mk){
   var tipos=['✈️ Passagem aérea','🏨 Hotel','🚗 Aluguel de carro','🍽️ Alimentação','🎟️ Passeios','🛡️ Seguro','💳 Outros'];
   if(cidades.length){
     var cityOpts=cidades.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome||'Cidade')+'</option>';}).join('');
-    h+='<div class="add-box"><div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Novo gasto</div>'+
+    h+='<button class="btn-add" id="vg-add-btn" onclick="vgShowAdd()" style="margin-top:4px;">+ Adicionar gasto</button>'+
+       '<div class="add-box" id="vg-addform" style="display:none;"><div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Novo gasto</div>'+
        '<label class="fl">Cidade</label><select class="fi" id="vg-cidade">'+cityOpts+'</select>'+
        '<label class="fl" style="margin-top:8px;">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
        '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
@@ -961,7 +962,7 @@ function viagemSection(mk){
        '<label class="fl" style="margin-top:8px;">Período</label>'+
        '<input type="hidden" id="vg-ini" value="'+today()+'"><input type="hidden" id="vg-fim" value="">'+
        '<button type="button" class="fi" id="vg-per-btn" onclick="vgPickAddPeriod()" style="text-align:left;cursor:pointer;color:var(--text);">📅 Escolher período do gasto</button>'+
-       '<button class="btn-add" style="margin-top:10px;" onclick="addViagemGasto('+dest.id+')">+ Adicionar gasto</button></div>';
+       '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-add" style="flex:1;" onclick="addViagemGasto('+dest.id+')">✓ Salvar gasto</button><button class="btn-add" style="width:auto;padding:0 16px;border-color:var(--text3);color:var(--text3);" onclick="vgHideAdd()">Cancelar</button></div></div>';
   } else {
     h+='<div class="empty" style="margin-top:6px;">Adicione uma cidade ao roteiro (+ Cidade) para lançar gastos.</div>';
   }
@@ -1011,6 +1012,8 @@ var LOCAIS_RESERVA=['Booking','Hotels.com','Airbnb','Decolar','Trip.com','Expedi
 function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg,local:o.local||''};}
 function vgSetObs(fim,pg,local){return JSON.stringify({fim:fim||'',pg:!!pg,local:local||''});}
 function vgTipoChange(){var s=document.getElementById('vg-tipo'),n=document.getElementById('vg-tipo-novo');if(!s||!n)return;if(s.value==='__novo__'){n.style.display='block';n.focus();}else n.style.display='none';}
+function vgShowAdd(){var f=document.getElementById('vg-addform'),b=document.getElementById('vg-add-btn');if(f)f.style.display='block';if(b)b.style.display='none';if(f&&f.scrollIntoView)f.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function vgHideAdd(){var f=document.getElementById('vg-addform'),b=document.getElementById('vg-add-btn');if(f)f.style.display='none';if(b)b.style.display='block';}
 function vgLocalChange(sid,nid){var s=document.getElementById(sid),n=document.getElementById(nid);if(!s||!n)return;if(s.value==='Outro'){n.style.display='block';n.focus();}else n.style.display='none';}
 function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg,info.local)},function(){render();});}
 function addViagemGasto(destId){
