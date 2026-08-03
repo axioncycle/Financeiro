@@ -937,7 +937,7 @@ function viagemSection(mk){
     h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
         '<div style="min-width:0;"><div style="font-size:14px;font-weight:800;">📍 '+esc(ci.nome||'—')+'</div>'+
-        '<button type="button" onclick="vgPickCidadePeriod('+ci.id+')" style="background:none;border:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:3px 0 0;text-align:left;">📅 '+perC+'</button></div>'+
+        '<button type="button" onclick="vgPickCidadePeriod('+ci.id+')" style="background:var(--bg3);border:1px solid var(--accent);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:8px;text-align:left;margin-top:5px;white-space:nowrap;">📅 '+perC+'</button></div>'+
         '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:var(--accent);">'+fmt(ct)+'</div>'+(cu>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;">US$ '+fmtN(cu)+'</div>':'')+'</div>'+
         '<button class="del" style="color:var(--accent);font-size:14px;" onclick="renViagemCidade('+ci.id+')" title="Editar cidade">✎</button>'+
         '<button class="del" onclick="rmViagemCidade('+ci.id+')" title="Apagar cidade">×</button></div>'+
