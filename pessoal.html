@@ -867,7 +867,29 @@ function importSection(mk){
 var viagemSel=null;
 function viagemDests(){return byTipo('viagem_dest');}
 function viagemGastos(destId){return byTipo('viagem_gasto').filter(function(x){return String(x.meta)===String(destId);});}
+function viagemCidades(destId){return byTipo('viagem_cidade').filter(function(x){return String(x.meta)===String(destId);}).sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});}
 function setViagemSel(id){viagemSel=id;render();}
+function vgGastoCard(g){
+  var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');var usd=+g.qtd||0;var accent=info.pg?'#22c55e':'var(--accent)';
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:12px;padding:11px 12px;margin-bottom:8px;">'+
+    '<div style="display:flex;align-items:flex-start;gap:10px;">'+
+      '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:20px;height:20px;accent-color:#22c55e;flex-shrink:0;margin-top:1px;cursor:pointer;">'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:14px;font-weight:800;color:var(--text);line-height:1.25;">'+esc(g.categoria||g.nome||'—')+(info.pg?' <span style="font-size:9px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.15);border-radius:6px;padding:1px 6px;vertical-align:middle;">PAGO</span>':'')+'</div>'+
+        (g.nome&&g.nome!==g.categoria?'<div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3;">'+esc(g.nome)+'</div>':'')+
+        '<div style="font-size:11px;color:var(--text3);margin-top:5px;">📅 '+per+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;">'+
+        '<div style="font-size:15px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
+        (usd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;white-space:nowrap;margin-top:1px;">US$ '+fmtN(usd)+'</div>':'')+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:flex-end;gap:4px;margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">'+
+      '<button onclick="editItem('+g.id+')" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">✎ Editar</button>'+
+      '<button onclick="rmItem('+g.id+')" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">× Remover</button>'+
+    '</div>'+
+  '</div>';
+}
 function viagemSection(mk){
   var dests=viagemDests();
   if((viagemSel==null||!dests.some(function(d){return String(d.id)===String(viagemSel);}))&&dests.length)viagemSel=dests[0].id;
@@ -879,51 +901,63 @@ function viagemSection(mk){
   h+='<div style="display:'+(col?'none':'block')+';margin-top:10px;">';
   h+='<div class="sub" style="margin-bottom:10px;">'+dests.map(function(d){return '<button class="sbn'+(String(viagemSel)===String(d.id)?' on':'')+'" onclick="setViagemSel('+d.id+')">'+esc(d.nome||'Destino')+'</button>';}).join('')+'</div>';
   var dest=dests.find(function(d){return String(d.id)===String(viagemSel);})||dests[0];
-  var gastos=viagemGastos(dest.id);
-  var tot=gastos.reduce(function(s,g){return s+(+g.valor||0);},0);
-  var totUsd=gastos.reduce(function(s,g){return s+(+g.qtd||0);},0);
+  var cidades=viagemCidades(dest.id);
+  var cityIds={};cidades.forEach(function(c){cityIds[String(c.id)]=1;});
+  var allG=byTipo('viagem_gasto').filter(function(g){return String(g.meta)===String(dest.id)||cityIds[String(g.meta)];});
+  var tot=allG.reduce(function(s,g){return s+(+g.valor||0);},0);
+  var totUsd=allG.reduce(function(s,g){return s+(+g.qtd||0);},0);
   var cd='';var iniS=(dest.data||'').slice(0,10),fimS=(dest.obs||'').slice(0,10);
   if(iniS){var _t0=new Date(today()+'T00:00:00');var _di=new Date(iniS+'T00:00:00');var daysI=Math.round((_di-_t0)/86400000);
     if(daysI>0)cd='faltam '+daysI+' dia'+(daysI>1?'s':'');
     else{var _df=fimS?new Date(fimS+'T00:00:00'):_di;var daysF=Math.round((_df-_t0)/86400000);cd=daysF>=0?'em viagem ✈️':('há '+Math.abs(daysF)+' dia'+(Math.abs(daysF)>1?'s':''));}
   }
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><div style="font-size:14px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" style="color:var(--accent);font-size:15px;" onclick="renViagemDest('+dest.id+')" title="Editar nome">✎</button><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
-  h+='<div style="background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:10px;">'+
-    '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">🗓️ Período da viagem</div>'+
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><div style="font-size:14px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" style="color:var(--accent);font-size:15px;" onclick="renViagemDest('+dest.id+')" title="Editar nome">✎</button><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar viagem">×</button></div></div>';
+  h+='<div style="background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:12px;">'+
+    '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">🗓️ Período geral da viagem</div>'+
     '<button type="button" class="fi" onclick="vgPickDestPeriod('+dest.id+')" style="text-align:left;cursor:pointer;color:var(--text);font-weight:700;">📅 '+(iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período')+'</button>'+
     (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">'+cd+'</div>':'')+
   '</div>';
-  if(!gastos.length)h+='<div class="empty">Nenhum gasto lançado</div>';
-  gastos.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){
-    if(editingId===g.id){h+=editorBox(g);return;}
-    var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');var usd=+g.qtd||0;var accent=info.pg?'#22c55e':'var(--accent)';
-    h+='<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:12px;padding:11px 12px;margin-bottom:8px;">'+
-      '<div style="display:flex;align-items:flex-start;gap:10px;">'+
-        '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:20px;height:20px;accent-color:#22c55e;flex-shrink:0;margin-top:1px;cursor:pointer;">'+
-        '<div style="flex:1;min-width:0;">'+
-          '<div style="font-size:14px;font-weight:800;color:var(--text);line-height:1.25;">'+esc(g.categoria||g.nome||'—')+(info.pg?' <span style="font-size:9px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.15);border-radius:6px;padding:1px 6px;vertical-align:middle;">PAGO</span>':'')+'</div>'+
-          (g.nome&&g.nome!==g.categoria?'<div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3;">'+esc(g.nome)+'</div>':'')+
-          '<div style="font-size:11px;color:var(--text3);margin-top:5px;">📅 '+per+'</div>'+
-        '</div>'+
-        '<div style="text-align:right;flex-shrink:0;">'+
-          '<div style="font-size:15px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
-          (usd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;white-space:nowrap;margin-top:1px;">US$ '+fmtN(usd)+'</div>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;justify-content:flex-end;gap:4px;margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">'+
-        '<button onclick="editItem('+g.id+')" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">✎ Editar</button>'+
-        '<button onclick="rmItem('+g.id+')" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">× Remover</button>'+
-      '</div>'+
-    '</div>';});
+  // ── Roteiro de cidades ──
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 8px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">🗺️ Roteiro (cidades)</div><button class="btn-add" style="width:auto;padding:6px 12px;font-size:12px;" onclick="addViagemCidade('+dest.id+')">+ Cidade</button></div>';
+  var legacy=allG.filter(function(g){return String(g.meta)===String(dest.id);});
+  if(legacy.length){
+    h+='<div style="font-size:11px;font-weight:700;color:#f59e0b;margin:4px 0 6px;">📍 Sem cidade</div>';
+    legacy.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){if(editingId===g.id){h+=editorBox(g);return;}h+=vgGastoCard(g);});
+  }
+  cidades.forEach(function(ci){
+    var cg=allG.filter(function(g){return String(g.meta)===String(ci.id);});
+    var ct=cg.reduce(function(s,g){return s+(+g.valor||0);},0),cu=cg.reduce(function(s,g){return s+(+g.qtd||0);},0);
+    var cIni=(ci.data||'').slice(0,10),cFim=(ci.obs||'').slice(0,10);
+    var perC=cIni?fmtData(cIni)+(cFim&&cFim!==cIni?' → '+fmtData(cFim):''):'escolher período';
+    h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+        '<div style="min-width:0;"><div style="font-size:14px;font-weight:800;">📍 '+esc(ci.nome||'—')+'</div>'+
+        '<button type="button" onclick="vgPickCidadePeriod('+ci.id+')" style="background:none;border:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:3px 0 0;text-align:left;">📅 '+perC+'</button></div>'+
+        '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:var(--accent);">'+fmt(ct)+'</div>'+(cu>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;">US$ '+fmtN(cu)+'</div>':'')+'</div>'+
+        '<button class="del" style="color:var(--accent);font-size:14px;" onclick="renViagemCidade('+ci.id+')" title="Editar cidade">✎</button>'+
+        '<button class="del" onclick="rmViagemCidade('+ci.id+')" title="Apagar cidade">×</button></div>'+
+      '</div><div style="margin-top:8px;">';
+    if(!cg.length)h+='<div class="empty" style="padding:8px;">Nenhum gasto nesta cidade</div>';
+    cg.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){if(editingId===g.id){h+=editorBox(g);return;}h+=vgGastoCard(g);});
+    h+='</div></div>';
+  });
+  // ── Adicionar gasto (com seletor de cidade) ──
   var tipos=['✈️ Passagem aérea','🏨 Hotel','🚗 Aluguel de carro','🍽️ Alimentação','🎟️ Passeios','🛡️ Seguro','💳 Outros'];
-  h+='<div class="add-box"><label class="fl">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
-     '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
-     '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
-     '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor R$</label><input class="fi" id="vg-brl" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Valor US$</label><input class="fi" id="vg-usd" inputmode="decimal" placeholder="0.00"></div></div>'+
-     '<label class="fl" style="margin-top:8px;">Período</label>'+
-     '<input type="hidden" id="vg-ini" value="'+today()+'"><input type="hidden" id="vg-fim" value="">'+
-     '<button type="button" class="fi" id="vg-per-btn" onclick="vgPickAddPeriod()" style="text-align:left;cursor:pointer;color:var(--text);">📅 Escolher período da viagem</button>'+
-     '<button class="btn-add" style="margin-top:10px;" onclick="addViagemGasto('+dest.id+')">+ Adicionar gasto</button></div>';
+  if(cidades.length){
+    var cityOpts=cidades.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome||'Cidade')+'</option>';}).join('');
+    h+='<div class="add-box"><div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Novo gasto</div>'+
+       '<label class="fl">Cidade</label><select class="fi" id="vg-cidade">'+cityOpts+'</select>'+
+       '<label class="fl" style="margin-top:8px;">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
+       '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
+       '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
+       '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor R$</label><input class="fi" id="vg-brl" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Valor US$</label><input class="fi" id="vg-usd" inputmode="decimal" placeholder="0.00"></div></div>'+
+       '<label class="fl" style="margin-top:8px;">Período</label>'+
+       '<input type="hidden" id="vg-ini" value="'+today()+'"><input type="hidden" id="vg-fim" value="">'+
+       '<button type="button" class="fi" id="vg-per-btn" onclick="vgPickAddPeriod()" style="text-align:left;cursor:pointer;color:var(--text);">📅 Escolher período do gasto</button>'+
+       '<button class="btn-add" style="margin-top:10px;" onclick="addViagemGasto('+dest.id+')">+ Adicionar gasto</button></div>';
+  } else {
+    h+='<div class="empty" style="margin-top:6px;">Adicione uma cidade ao roteiro (+ Cidade) para lançar gastos.</div>';
+  }
   h+='</div>';
   return h+'</div>';
 }
@@ -937,10 +971,34 @@ function renViagemDest(id){
   updItem(id,{nome:nome},function(){render();toast('Nome atualizado!');});
 }
 function rmViagemDest(id){
-  if(!confirm('Apagar este destino e todos os seus gastos?'))return;
-  var gs=viagemGastos(id);
-  function delGs(k){if(k>=gs.length){delItem(id,function(){viagemSel=null;render();toast('Destino removido');});return;}delItem(gs[k].id,function(){delGs(k+1);});}
-  delGs(0);
+  if(!confirm('Apagar esta viagem, suas cidades e todos os gastos?'))return;
+  var cids=viagemCidades(id);var cidIds={};cids.forEach(function(c){cidIds[String(c.id)]=1;});
+  var gs=byTipo('viagem_gasto').filter(function(g){return String(g.meta)===String(id)||cidIds[String(g.meta)];});
+  var toDel=gs.concat(cids);
+  function delAll(k){if(k>=toDel.length){delItem(id,function(){viagemSel=null;render();toast('Viagem removida');});return;}delItem(toDel[k].id,function(){delAll(k+1);});}
+  delAll(0);
+}
+// ── Cidades do roteiro ──
+function addViagemCidade(destId){
+  var nome=prompt('Cidade (ex: Las Vegas, Los Angeles):');if(nome==null)return;nome=(nome||'').trim();if(!nome){toast('Informe a cidade',true);return;}
+  addItem({tipo:'viagem_cidade',nome:nome,meta:destId,data:today(),obs:''},function(){render();toast('Cidade adicionada! Defina o período.');});
+}
+function renViagemCidade(id){
+  var c=ITEMS.find(function(x){return x.id===id;});if(!c)return;
+  var nome=prompt('Nome da cidade:',c.nome||'');if(nome==null)return;nome=(nome||'').trim();if(!nome){toast('Informe a cidade',true);return;}
+  updItem(id,{nome:nome},function(){render();toast('Cidade atualizada!');});
+}
+function rmViagemCidade(id){
+  if(!confirm('Apagar esta cidade e os gastos dela?'))return;
+  var gs=byTipo('viagem_gasto').filter(function(g){return String(g.meta)===String(id);});
+  function delAll(k){if(k>=gs.length){delItem(id,function(){render();toast('Cidade removida');});return;}delItem(gs[k].id,function(){delAll(k+1);});}
+  delAll(0);
+}
+function vgPickCidadePeriod(id){
+  var c=ITEMS.find(function(x){return x.id===id;});if(!c)return;
+  openRangePicker('Período em '+(c.nome||'cidade'),(c.data||'').slice(0,10),(c.obs||'').slice(0,10),function(s,e){
+    updItem(id,{data:s,obs:(e&&e!==s?e:'')},function(){render();});
+  });
 }
 function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg};}
 function vgSetObs(fim,pg){return JSON.stringify({fim:fim||'',pg:!!pg});}
@@ -956,7 +1014,8 @@ function addViagemGasto(destId){
   var ini=(document.getElementById('vg-ini')||{value:''}).value||today();
   var fim=(document.getElementById('vg-fim')||{value:''}).value||'';
   if(!brl&&!usd){toast('Informe o valor (R$ ou US$)',true);return;}
-  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:destId,obs:vgSetObs(fim,false)},function(){render();toast('Gasto de viagem adicionado!');});
+  var cidEl=document.getElementById('vg-cidade');var meta=(cidEl&&cidEl.value)?cidEl.value:destId;
+  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:meta,obs:vgSetObs(fim,false)},function(){render();toast('Gasto adicionado!');});
 }
 
 // ── Remover ────────────────────────────────────────────
