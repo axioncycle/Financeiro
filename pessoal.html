@@ -806,7 +806,7 @@ function viagemSection(mk){
   var totUsd=gastos.reduce(function(s,g){return s+(+g.qtd||0);},0);
   var cd='';
   if(dest.data){var _dv=new Date(dest.data.slice(0,10)+'T00:00:00');var _t0=new Date(today()+'T00:00:00');var days=Math.round((_dv-_t0)/86400000);cd=days>0?('faltam '+days+' dia'+(days>1?'s':'')):(days===0?'é hoje! 🎉':('há '+Math.abs(days)+' dia'+(Math.abs(days)>1?'s':''))); }
-  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;"><div style="font-size:14px;font-weight:800;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:8px;align-items:center;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><div style="font-size:14px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" style="color:var(--accent);font-size:15px;" onclick="renViagemDest('+dest.id+')" title="Editar nome">✎</button><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar destino">×</button></div></div>';
   h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border-radius:10px;padding:8px 10px;margin-bottom:10px;"><span style="font-size:11px;color:var(--text3);font-weight:600;">🗓️ Data da viagem</span><input class="fi" type="date" value="'+((dest.data||'').slice(0,10))+'" onchange="updViagemData('+dest.id+',this.value)" style="width:150px;">'+(cd?'<span style="font-size:11px;color:var(--accent);font-weight:700;">'+cd+'</span>':'')+'</div>';
   if(!gastos.length)h+='<div class="empty">Nenhum gasto lançado</div>';
   gastos.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){
@@ -829,6 +829,11 @@ function viagemSection(mk){
 function addViagemDest(){
   var nome=prompt('Destino da viagem (ex: Cancún, Nova York):');if(nome==null)return;nome=(nome||'').trim();if(!nome){toast('Informe o destino',true);return;}
   addItem({tipo:'viagem_dest',nome:nome,data:today()},function(){var d=byTipo('viagem_dest');if(d.length)viagemSel=d[d.length-1].id;render();toast('Destino adicionado!');});
+}
+function renViagemDest(id){
+  var d=ITEMS.find(function(x){return x.id===id;});if(!d)return;
+  var nome=prompt('Nome da viagem:',d.nome||'');if(nome==null)return;nome=(nome||'').trim();if(!nome){toast('Informe o nome',true);return;}
+  updItem(id,{nome:nome},function(){render();toast('Nome atualizado!');});
 }
 function rmViagemDest(id){
   if(!confirm('Apagar este destino e todos os seus gastos?'))return;
