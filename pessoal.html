@@ -929,11 +929,22 @@ function viagemSection(mk){
     if(daysI>0)cd='faltam '+daysI+' dia'+(daysI>1?'s':'');
     else{var _df=fimS?new Date(fimS+'T00:00:00'):_di;var daysF=Math.round((_df-_t0)/86400000);cd=daysF>=0?'em viagem ✈️':('há '+Math.abs(daysF)+' dia'+(Math.abs(daysF)>1?'s':''));}
   }
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><div style="font-size:14px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(dest.nome)+'</div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:16px;font-weight:800;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;">US$ '+fmtN(totUsd)+'</div>':'')+'</div><button class="del" style="color:var(--accent);font-size:15px;" onclick="renViagemDest('+dest.id+')" title="Editar nome">✎</button><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar viagem">×</button></div></div>';
-  h+='<div style="background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:12px;">'+
-    '<div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">🗓️ Período geral da viagem</div>'+
-    '<button type="button" class="fi" onclick="vgPickDestPeriod('+dest.id+')" style="text-align:left;cursor:pointer;color:var(--text);font-weight:700;">📅 '+(iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período')+'</button>'+
-    (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">'+cd+'</div>':'')+
+  var splitTot={},splitOrder=[];
+  allG.forEach(function(g){var info=vgInfo(g);(info.split||[]).forEach(function(p){var nm=(p.nome||'').trim();if(!nm)return;if(!splitTot[nm]){splitTot[nm]={total:0,pago:0};splitOrder.push(nm);}splitTot[nm].total+=(+p.valor||0);if(p.pg)splitTot[nm].pago+=(+p.valor||0);});});
+  h+='<div style="background:linear-gradient(135deg,rgba(168,85,247,.20),rgba(96,165,250,.10));border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:12px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+      '<div style="min-width:0;font-size:17px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 '+esc(dest.nome)+'</div>'+
+      '<div style="display:flex;gap:4px;flex-shrink:0;"><button class="del" style="color:var(--accent);font-size:16px;" onclick="renViagemDest('+dest.id+')" title="Editar nome">✎</button><button class="del" onclick="rmViagemDest('+dest.id+')" title="Apagar viagem">×</button></div>'+
+    '</div>'+
+    '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:4px;"><div style="font-size:24px;font-weight:900;color:var(--accent);">'+fmt(tot)+'</div>'+(totUsd>0?'<div style="font-size:15px;font-weight:800;color:#22c55e;">US$ '+fmtN(totUsd)+'</div>':'')+'</div>'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;">'+
+      '<button type="button" onclick="vgPickDestPeriod('+dest.id+')" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:20px;white-space:nowrap;">📅 '+(iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período')+'</button>'+
+      (cd?'<span style="font-size:11px;color:var(--accent);font-weight:800;">'+cd+'</span>':'')+
+    '</div>'+
+    (splitOrder.length?'<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">'+
+      '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">👥 Divisão por pessoa</div>'+
+      splitOrder.map(function(nm){var t2=splitTot[nm];var falta=t2.total-t2.pago;return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px;"><span style="font-weight:700;">'+esc(nm)+'</span><span style="white-space:nowrap;"><b style="color:var(--accent);">'+fmt(t2.total)+'</b>'+(t2.pago>0?' <span style="font-size:10px;color:#22c55e;font-weight:700;">'+(falta<=0.009?'· pago ✔':'· pago '+fmt(t2.pago))+'</span>':'')+'</span></div>';}).join('')+
+    '</div>':'')+
   '</div>';
   h+='<button class="btn-add" onclick="exportViagemPDF('+dest.id+')" style="font-size:12px;padding:9px;margin-bottom:12px;border-color:#ef4444;color:#ef4444;">📄 Exportar PDF da viagem</button>';
   // ── Roteiro de cidades ──
@@ -1074,8 +1085,14 @@ function exportViagemPDF(destId){
   function e2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function rows(list){return list.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).map(function(g){
     var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' a '+fmtData(info.fim):'');var usd=+g.qtd||0;
-    return '<tr'+(info.pg?' class="pg"':'')+'><td>'+e2(g.categoria||'')+'</td><td>'+e2(g.nome||'')+'</td><td>'+e2(info.local||'')+'</td><td class="c">'+per+'</td><td class="num">'+fmt(g.valor)+'</td><td class="num">'+(usd>0?'US$ '+fmtN(usd):'')+'</td><td class="c">'+(info.pg?'✔':'')+'</td></tr>';
+    var tr='<tr'+(info.pg?' class="pg"':'')+'><td>'+e2(g.categoria||'')+'</td><td>'+e2(g.nome||'')+'</td><td>'+e2(info.local||'')+'</td><td class="c">'+per+'</td><td class="num">'+fmt(g.valor)+'</td><td class="num">'+(usd>0?'US$ '+fmtN(usd):'')+'</td><td class="c">'+(info.pg?'✔':'')+'</td></tr>';
+    if(info.split&&info.split.length)tr+='<tr class="sp"><td colspan="7">👥 '+info.split.map(function(p){return e2(p.nome||'—')+' '+fmt(p.valor)+(p.pg?' ✔':'');}).join(' · ')+'</td></tr>';
+    return tr;
   }).join('');}
+  // Totais por pessoa (divisões)
+  var splitTot={},splitOrder=[];
+  allG.forEach(function(g){var info=vgInfo(g);(info.split||[]).forEach(function(p){var nm=(p.nome||'').trim();if(!nm)return;if(!splitTot[nm]){splitTot[nm]={total:0,pago:0};splitOrder.push(nm);}splitTot[nm].total+=(+p.valor||0);if(p.pg)splitTot[nm].pago+=(+p.valor||0);});});
+  var splitHtml=splitOrder.length?'<div class="split"><div class="sh">👥 Divisão por pessoa</div><table><thead><tr><th>Pessoa</th><th class="num">Total</th><th class="num">Pago</th><th class="num">A pagar</th></tr></thead><tbody>'+splitOrder.map(function(nm){var t=splitTot[nm];return '<tr><td>'+e2(nm)+'</td><td class="num">'+fmt(t.total)+'</td><td class="num">'+fmt(t.pago)+'</td><td class="num">'+fmt(t.total-t.pago)+'</td></tr>';}).join('')+'</tbody></table></div>':'';
   function block(nome,per,list,ct,cu){
     return '<div class="city"><div class="chd"><div><span class="cn">📍 '+e2(nome)+'</span>'+(per?' <span class="cp">'+per+'</span>':'')+'</div><div class="ct">'+fmt(ct)+(cu>0?' · US$ '+fmtN(cu):'')+'</div></div>'+
       (list.length?'<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Local</th><th>Período</th><th class="num">R$</th><th class="num">US$</th><th class="c">Pago</th></tr></thead><tbody>'+rows(list)+'</tbody></table>':'<p class="none">Sem gastos</p>')+'</div>';
@@ -1100,11 +1117,14 @@ function exportViagemPDF(destId){
     'th.num,td.num{text-align:right;white-space:nowrap;}th.c,td.c{text-align:center;}'+
     'td{padding:5px 7px;border-bottom:1px solid #eee;font-size:11px;}tr:nth-child(even) td{background:#faf9ff;}tr.pg td{color:#166534;}'+
     '.none{font-size:11px;color:#888;padding:8px 12px;border:1px solid #eee;border-top:none;}'+
+    'tr.sp td{background:#f5f3ff!important;color:#5b21b6;font-size:10px;font-weight:600;border-bottom:1px solid #eee;}'+
+    '.split{margin-bottom:16px;page-break-inside:avoid;}.sh{font-size:12px;font-weight:800;color:#5b21b6;background:#ede9fe;border-radius:8px 8px 0 0;padding:7px 12px;}'+
     '@media print{body{padding:8px;}}'+
     '</style></head><body>'+
     '<h1>✈️ '+e2(dest.nome)+'</h1>'+
     '<div class="sub">Período geral: '+perGeral+' · Gerado em '+dateStr+'</div>'+
     '<div class="tot">Total da viagem: '+fmt(tot)+(totUsd>0?' &nbsp;·&nbsp; US$ '+fmtN(totUsd):'')+'</div>'+
+    splitHtml+
     sections+
     '<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;">'+
     '<button onclick="window.print()" style="background:#5b21b6;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
