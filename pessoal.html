@@ -939,13 +939,14 @@ function viagemSection(mk){
     var cIni=(ci.data||'').slice(0,10),cFim=(ci.obs||'').slice(0,10);
     var perC=cIni?fmtData(cIni)+(cFim&&cFim!==cIni?' → '+fmtData(cFim):''):'escolher período';
     h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
-        '<div style="min-width:0;"><div style="font-size:14px;font-weight:800;">📍 '+esc(ci.nome||'—')+'</div>'+
-        '<button type="button" onclick="vgPickCidadePeriod('+ci.id+')" style="background:var(--bg3);border:1px solid var(--accent);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:8px;text-align:left;margin-top:5px;white-space:nowrap;">📅 '+perC+'</button></div>'+
-        '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:var(--accent);">'+fmt(ct)+'</div>'+(cu>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;">US$ '+fmtN(cu)+'</div>':'')+'</div>'+
-        '<button class="del" style="color:var(--accent);font-size:14px;" onclick="renViagemCidade('+ci.id+')" title="Editar cidade">✎</button>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+        '<div style="flex:1;min-width:0;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 '+esc(ci.nome||'—')+'</div>'+
+        '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;"><div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(ct)+'</div>'+(cu>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;white-space:nowrap;">US$ '+fmtN(cu)+'</div>':'')+'</div>'+
+        '<button class="del" style="color:var(--accent);font-size:15px;" onclick="renViagemCidade('+ci.id+')" title="Editar cidade">✎</button>'+
         '<button class="del" onclick="rmViagemCidade('+ci.id+')" title="Apagar cidade">×</button></div>'+
-      '</div><div style="margin-top:8px;">';
+      '</div>'+
+      '<button type="button" onclick="vgPickCidadePeriod('+ci.id+')" style="background:var(--bg3);border:1px solid var(--accent);color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:5px 12px;border-radius:8px;margin-top:8px;">📅 '+perC+'</button>'+
+      '<div style="margin-top:10px;">';
     if(!cg.length)h+='<div class="empty" style="padding:8px;">Nenhum gasto nesta cidade</div>';
     cg.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).forEach(function(g){if(editingId===g.id){h+=editorBox(g);return;}h+=vgGastoCard(g);});
     h+='</div></div>';
