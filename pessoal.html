@@ -922,6 +922,7 @@ function viagemSection(mk){
     '<button type="button" class="fi" onclick="vgPickDestPeriod('+dest.id+')" style="text-align:left;cursor:pointer;color:var(--text);font-weight:700;">📅 '+(iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período')+'</button>'+
     (cd?'<div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:8px;">'+cd+'</div>':'')+
   '</div>';
+  h+='<button class="btn-add" onclick="exportViagemPDF('+dest.id+')" style="font-size:12px;padding:9px;margin-bottom:12px;border-color:#ef4444;color:#ef4444;">📄 Exportar PDF da viagem</button>';
   // ── Roteiro de cidades ──
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 8px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">🗺️ Roteiro (cidades)</div><button class="btn-add" style="width:auto;padding:6px 12px;font-size:12px;" onclick="addViagemCidade('+dest.id+')">+ Cidade</button></div>';
   var legacy=allG.filter(function(g){return String(g.meta)===String(dest.id);});
@@ -1007,6 +1008,59 @@ function vgPickCidadePeriod(id){
   openRangePicker('Período em '+(c.nome||'cidade'),(c.data||'').slice(0,10),(c.obs||'').slice(0,10),function(s,e){
     updItem(id,{data:s,obs:(e&&e!==s?e:'')},function(){render();});
   });
+}
+function exportViagemPDF(destId){
+  var dest=ITEMS.find(function(x){return x.id===destId;});if(!dest)return;
+  var cidades=viagemCidades(destId);
+  var cityIds={};cidades.forEach(function(c){cityIds[String(c.id)]=1;});
+  var allG=byTipo('viagem_gasto').filter(function(g){return String(g.meta)===String(destId)||cityIds[String(g.meta)];});
+  var tot=allG.reduce(function(s,g){return s+(+g.valor||0);},0),totUsd=allG.reduce(function(s,g){return s+(+g.qtd||0);},0);
+  var iniS=(dest.data||'').slice(0,10),fimS=(dest.obs||'').slice(0,10);
+  var perGeral=iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' a '+fmtData(fimS):''):'—';
+  var dateStr=new Date().toLocaleDateString('pt-BR');
+  function e2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function rows(list){return list.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).map(function(g){
+    var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' a '+fmtData(info.fim):'');var usd=+g.qtd||0;
+    return '<tr'+(info.pg?' class="pg"':'')+'><td>'+e2(g.categoria||'')+'</td><td>'+e2(g.nome||'')+'</td><td>'+e2(info.local||'')+'</td><td class="c">'+per+'</td><td class="num">'+fmt(g.valor)+'</td><td class="num">'+(usd>0?'US$ '+fmtN(usd):'')+'</td><td class="c">'+(info.pg?'✔':'')+'</td></tr>';
+  }).join('');}
+  function block(nome,per,list,ct,cu){
+    return '<div class="city"><div class="chd"><div><span class="cn">📍 '+e2(nome)+'</span>'+(per?' <span class="cp">'+per+'</span>':'')+'</div><div class="ct">'+fmt(ct)+(cu>0?' · US$ '+fmtN(cu):'')+'</div></div>'+
+      (list.length?'<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Local</th><th>Período</th><th class="num">R$</th><th class="num">US$</th><th class="c">Pago</th></tr></thead><tbody>'+rows(list)+'</tbody></table>':'<p class="none">Sem gastos</p>')+'</div>';
+  }
+  var sections='';
+  var legacy=allG.filter(function(g){return String(g.meta)===String(destId);});
+  if(legacy.length)sections+=block('Sem cidade','',legacy,legacy.reduce(function(s,g){return s+(+g.valor||0);},0),legacy.reduce(function(s,g){return s+(+g.qtd||0);},0));
+  cidades.forEach(function(ci){
+    var cg=allG.filter(function(g){return String(g.meta)===String(ci.id);});
+    var cIni=(ci.data||'').slice(0,10),cFim=(ci.obs||'').slice(0,10);
+    var perC=cIni?fmtData(cIni)+(cFim&&cFim!==cIni?' a '+fmtData(cFim):''):'';
+    sections+=block(ci.nome||'Cidade',perC,cg,cg.reduce(function(s,g){return s+(+g.valor||0);},0),cg.reduce(function(s,g){return s+(+g.qtd||0);},0));
+  });
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Viagem '+e2(dest.nome)+'</title><style>'+
+    '*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;color:#111;background:#fff;padding:20px 22px;font-size:12px;}'+
+    'h1{font-size:22px;color:#5b21b6;}.sub{font-size:11px;color:#555;margin:2px 0 10px;}'+
+    '.tot{font-size:15px;font-weight:800;color:#5b21b6;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 14px;margin-bottom:16px;}'+
+    '.city{margin-bottom:18px;page-break-inside:avoid;}'+
+    '.chd{display:flex;justify-content:space-between;align-items:center;background:#1a1a2e;color:#fff;border-radius:8px 8px 0 0;padding:8px 12px;}'+
+    '.cn{font-size:14px;font-weight:800;}.cp{font-size:11px;color:#c4b5fd;margin-left:6px;}.ct{font-size:14px;font-weight:800;}'+
+    'table{width:100%;border-collapse:collapse;}th{background:#ede9fe;color:#4c1d95;font-size:9px;font-weight:700;text-align:left;padding:5px 7px;}'+
+    'th.num,td.num{text-align:right;white-space:nowrap;}th.c,td.c{text-align:center;}'+
+    'td{padding:5px 7px;border-bottom:1px solid #eee;font-size:11px;}tr:nth-child(even) td{background:#faf9ff;}tr.pg td{color:#166534;}'+
+    '.none{font-size:11px;color:#888;padding:8px 12px;border:1px solid #eee;border-top:none;}'+
+    '@media print{body{padding:8px;}}'+
+    '</style></head><body>'+
+    '<h1>✈️ '+e2(dest.nome)+'</h1>'+
+    '<div class="sub">Período geral: '+perGeral+' · Gerado em '+dateStr+'</div>'+
+    '<div class="tot">Total da viagem: '+fmt(tot)+(totUsd>0?' &nbsp;·&nbsp; US$ '+fmtN(totUsd):'')+'</div>'+
+    sections+
+    '<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;">'+
+    '<button onclick="window.print()" style="background:#5b21b6;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
+    '<button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Fechar</button>'+
+    '</div></body></html>';
+  var win=window.open('','_blank');
+  if(!win){toast('Permita pop-ups para exportar o PDF',true);return;}
+  win.document.write(html);win.document.close();win.focus();
+  setTimeout(function(){win.print();},500);
 }
 var LOCAIS_RESERVA=['Booking','Hotels.com','Airbnb','Decolar','Trip.com','Expedia','Latam','Gol','Azul','Smiles','Copa Airlines','Rent a Car','Localiza','Outro'];
 function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg,local:o.local||''};}
