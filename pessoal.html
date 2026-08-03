@@ -877,22 +877,21 @@ function viagemCidades(destId){return byTipo('viagem_cidade').filter(function(x)
 function setViagemSel(id){viagemSel=id;render();}
 function vgGastoCard(g){
   var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');var usd=+g.qtd||0;var accent=info.pg?'#22c55e':'var(--accent)';
-  return '<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:12px;padding:11px 12px;margin-bottom:8px;">'+
-    '<div style="display:flex;align-items:flex-start;gap:10px;">'+
-      '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:20px;height:20px;accent-color:#22c55e;flex-shrink:0;margin-top:1px;cursor:pointer;">'+
+  var loc=info.local?'<span style="font-size:9px;font-weight:700;color:var(--accent);background:rgba(168,85,247,.16);border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle;white-space:nowrap;">'+esc(info.local)+'</span>':'';
+  var pgb=info.pg?'<span style="font-size:8px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.15);border-radius:5px;padding:1px 5px;margin-left:5px;vertical-align:middle;">PG</span>':'';
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:11px;padding:9px 11px;margin-bottom:7px;">'+
+    '<div style="display:flex;align-items:flex-start;gap:9px;">'+
+      '<input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" title="Marcar como pago" style="width:19px;height:19px;accent-color:#22c55e;flex-shrink:0;margin-top:2px;cursor:pointer;">'+
       '<div style="flex:1;min-width:0;">'+
-        '<div style="font-size:14px;font-weight:800;color:var(--text);line-height:1.25;">'+esc(g.categoria||g.nome||'—')+(info.pg?' <span style="font-size:9px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.15);border-radius:6px;padding:1px 6px;vertical-align:middle;">PAGO</span>':'')+'</div>'+
-        (g.nome&&g.nome!==g.categoria?'<div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.3;">'+esc(g.nome)+'</div>':'')+
-        '<div style="font-size:11px;color:var(--text3);margin-top:5px;">📅 '+per+'</div>'+
+        '<div style="font-size:13px;font-weight:800;color:var(--text);line-height:1.25;">'+esc(g.categoria||g.nome||'—')+loc+pgb+'</div>'+
+        (g.nome&&g.nome!==g.categoria?'<div style="font-size:12px;color:var(--text2);margin-top:1px;line-height:1.3;">'+esc(g.nome)+'</div>':'')+
+        '<div style="font-size:10px;color:var(--text3);margin-top:3px;">📅 '+per+'</div>'+
       '</div>'+
       '<div style="text-align:right;flex-shrink:0;">'+
-        '<div style="font-size:15px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
-        (usd>0?'<div style="font-size:11px;color:#22c55e;font-weight:700;white-space:nowrap;margin-top:1px;">US$ '+fmtN(usd)+'</div>':'')+
+        '<div style="font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
+        (usd>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;white-space:nowrap;">US$ '+fmtN(usd)+'</div>':'')+
+        '<div style="margin-top:4px;white-space:nowrap;"><button onclick="editItem('+g.id+')" title="Editar" style="background:none;border:none;color:var(--accent);font-size:15px;cursor:pointer;padding:0 3px;">✎</button><button onclick="rmItem('+g.id+')" title="Apagar" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:0 3px;">×</button></div>'+
       '</div>'+
-    '</div>'+
-    '<div style="display:flex;justify-content:flex-end;gap:4px;margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">'+
-      '<button onclick="editItem('+g.id+')" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">✎ Editar</button>'+
-      '<button onclick="rmItem('+g.id+')" style="background:none;border:none;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:3px 8px;">× Remover</button>'+
     '</div>'+
   '</div>';
 }
@@ -956,6 +955,8 @@ function viagemSection(mk){
        '<label class="fl" style="margin-top:8px;">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
        '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
        '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
+       '<label class="fl" style="margin-top:8px;">Local da reserva</label><select class="fi" id="vg-local" onchange="vgLocalChange(\'vg-local\',\'vg-local-novo\')"><option value="">— selecionar —</option>'+LOCAIS_RESERVA.map(function(l){return '<option>'+l+'</option>';}).join('')+'</select>'+
+       '<input class="fi" id="vg-local-novo" placeholder="Nome do local" style="display:none;margin-top:6px;">'+
        '<div class="row" style="margin-top:8px;"><div><label class="fl">Valor R$</label><input class="fi" id="vg-brl" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div><div><label class="fl">Valor US$</label><input class="fi" id="vg-usd" inputmode="decimal" placeholder="0.00"></div></div>'+
        '<label class="fl" style="margin-top:8px;">Período</label>'+
        '<input type="hidden" id="vg-ini" value="'+today()+'"><input type="hidden" id="vg-fim" value="">'+
@@ -1006,10 +1007,12 @@ function vgPickCidadePeriod(id){
     updItem(id,{data:s,obs:(e&&e!==s?e:'')},function(){render();});
   });
 }
-function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg};}
-function vgSetObs(fim,pg){return JSON.stringify({fim:fim||'',pg:!!pg});}
+var LOCAIS_RESERVA=['Booking','Hotels.com','Airbnb','Decolar','Trip.com','Expedia','Latam','Gol','Azul','Smiles','Copa Airlines','Rent a Car','Localiza','Outro'];
+function vgInfo(g){var o={};try{o=g.obs?JSON.parse(g.obs):{};}catch(e){o={};}return {fim:o.fim||'',pg:!!o.pg,local:o.local||''};}
+function vgSetObs(fim,pg,local){return JSON.stringify({fim:fim||'',pg:!!pg,local:local||''});}
 function vgTipoChange(){var s=document.getElementById('vg-tipo'),n=document.getElementById('vg-tipo-novo');if(!s||!n)return;if(s.value==='__novo__'){n.style.display='block';n.focus();}else n.style.display='none';}
-function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg)},function(){render();});}
+function vgLocalChange(sid,nid){var s=document.getElementById(sid),n=document.getElementById(nid);if(!s||!n)return;if(s.value==='Outro'){n.style.display='block';n.focus();}else n.style.display='none';}
+function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg,info.local)},function(){render();});}
 function addViagemGasto(destId){
   var tsel=document.getElementById('vg-tipo');var tipo=tsel?tsel.value:'';
   if(tipo==='__novo__')tipo=((document.getElementById('vg-tipo-novo')||{value:''}).value||'').trim();
@@ -1021,7 +1024,8 @@ function addViagemGasto(destId){
   var fim=(document.getElementById('vg-fim')||{value:''}).value||'';
   if(!brl&&!usd){toast('Informe o valor (R$ ou US$)',true);return;}
   var cidEl=document.getElementById('vg-cidade');var meta=(cidEl&&cidEl.value)?cidEl.value:destId;
-  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:meta,obs:vgSetObs(fim,false)},function(){render();toast('Gasto adicionado!');});
+  var lsel=document.getElementById('vg-local');var local=lsel?lsel.value:'';if(local==='Outro')local=((document.getElementById('vg-local-novo')||{value:''}).value||'').trim();
+  addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:meta,obs:vgSetObs(fim,false,local)},function(){render();toast('Gasto adicionado!');});
 }
 
 // ── Remover ────────────────────────────────────────────
@@ -1041,9 +1045,13 @@ function editorBox(it){
     if(vtipos.indexOf(curCat)<0&&curCat)opts='<option selected>'+esc(curCat)+'</option>'+opts;
     var iniS=(it.data||'').slice(0,10),fimS=vi.fim||'';
     var perTxt=iniS?fmtData(iniS)+(fimS&&fimS!==iniS?' → '+fmtData(fimS):''):'Escolher período';
+    var curLocal=vi.local||'';var inLoc=LOCAIS_RESERVA.indexOf(curLocal)>=0;
+    var locOpts='<option value="">— selecionar —</option>'+(curLocal&&!inLoc?'<option selected>'+esc(curLocal)+'</option>':'')+LOCAIS_RESERVA.map(function(l){return '<option'+(l===curLocal?' selected':'')+'>'+l+'</option>';}).join('');
     return '<div class="li" style="display:block;border-left-color:var(--accent);">'+
       '<label class="fl">Tipo de gasto</label><select class="fi" id="ed-cat">'+opts+'</select>'+
       '<label class="fl" style="margin-top:6px;">Descrição</label><input class="fi" id="ed-nome" value="'+esc(it.nome||'')+'">'+
+      '<label class="fl" style="margin-top:6px;">Local da reserva</label><select class="fi" id="ed-local" onchange="vgLocalChange(\'ed-local\',\'ed-local-novo\')">'+locOpts+'</select>'+
+      '<input class="fi" id="ed-local-novo" placeholder="Nome do local" style="display:none;margin-top:6px;">'+
       '<div class="row" style="margin-top:6px;"><div><label class="fl">Valor R$</label><input class="fi" id="ed-val" inputmode="decimal" value="'+fmtN(it.valor)+'" oninput="maskBRL(this)"></div>'+
       '<div><label class="fl">Valor US$</label><input class="fi" id="ed-qtd" inputmode="decimal" value="'+(+it.qtd||0)+'"></div></div>'+
       '<label class="fl" style="margin-top:6px;">Período</label>'+
@@ -1078,7 +1086,7 @@ function saveEditItem(id){
   var m=document.getElementById('ed-meta');if(m)obj.meta=parseBRL(m.value);
   var c=document.getElementById('ed-cat');if(c)obj.categoria=(c.value||'').trim();
   var d=document.getElementById('ed-data');if(d&&d.value)obj.data=d.value;
-  if(it.tipo==='viagem_gasto'){var fimEl=document.getElementById('ed-fim');obj.obs=vgSetObs(fimEl?fimEl.value:vgInfo(it).fim,vgInfo(it).pg);}
+  if(it.tipo==='viagem_gasto'){var vi2=vgInfo(it);var fimEl=document.getElementById('ed-fim');var locEl=document.getElementById('ed-local');var loc=locEl?locEl.value:vi2.local;if(loc==='Outro')loc=((document.getElementById('ed-local-novo')||{value:''}).value||'').trim();obj.obs=vgSetObs(fimEl?fimEl.value:vi2.fim,vi2.pg,loc);}
   editingId=null;
   updItem(id,obj,function(){render();toast('Atualizado!');});
 }
