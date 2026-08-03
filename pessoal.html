@@ -203,9 +203,27 @@ function saveAporte(id){
   updItem(id,{qtd:(+a.qtd||0)+q,valor:(+a.valor||0)+v},function(){render();toast('Compra somada à posição!');});
 }
 // Aporte em Renda Fixa (cofrinho) — soma ao valor aplicado
-var cfAporteId=null;
-function cfNovoAporte(id){cfAporteId=id;editingId=null;aporteId=null;render();}
+var cfAporteId=null,cfRetiradaId=null;
+function cfNovoAporte(id){cfAporteId=id;cfRetiradaId=null;editingId=null;aporteId=null;render();}
 function cfCancelAporte(){cfAporteId=null;render();}
+function cfNovaRetirada(id){cfRetiradaId=id;cfAporteId=null;editingId=null;aporteId=null;render();}
+function cfCancelRetirada(){cfRetiradaId=null;render();}
+function cfRetiradaBox(c){
+  return '<div class="li" style="display:block;border-left-color:#ef4444;">'+
+    '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Retirada — '+esc(c.nome||'')+'</div>'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Saldo atual: '+fmt(cofrinhoAtual(c))+' · aplicado '+fmt(c.valor)+'</div>'+
+    '<label class="fl">Valor da retirada (R$)</label><input class="fi" id="cf-rt-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)">'+
+    '<div class="row" style="margin-top:10px;"><button class="btn-add" style="border-color:#ef4444;color:#ef4444;" onclick="cfSaveRetirada('+c.id+')">✓ Retirar</button><button class="btn-add" style="border-color:var(--text3);color:var(--text3);" onclick="cfCancelRetirada()">Cancelar</button></div>'+
+  '</div>';
+}
+function cfSaveRetirada(id){
+  var c=ITEMS.find(function(x){return x.id===id;});if(!c)return;
+  var v=parseBRL(document.getElementById('cf-rt-val').value);
+  if(!v){toast('Informe o valor da retirada',true);return;}
+  var novo=(+c.valor||0)-v;if(novo<0)novo=0;
+  cfRetiradaId=null;
+  updItem(id,{valor:novo},function(){render();toast('Retirada registrada!');});
+}
 function cfAporteBox(c){
   return '<div class="li" style="display:block;border-left-color:#22c55e;">'+
     '<div style="font-size:12px;font-weight:700;margin-bottom:4px;">Novo aporte — '+esc(c.nome||'')+'</div>'+
@@ -658,10 +676,11 @@ function viewCofrinhos(){
   if(!items.length)h+='<div class="empty">Nenhuma aplicação</div>';
   items.forEach(function(c){if(editingId===c.id){h+=editorBox(c);return;}
     if(cfAporteId===c.id){h+=cfAporteBox(c);return;}
+    if(cfRetiradaId===c.id){h+=cfRetiradaBox(c);return;}
     var atual=cofrinhoAtual(c),rLiq=cofrinhoRendLiq(c),rBruto=cofrinhoRend(c),ir=cofrinhoIR(c),iof=cofrinhoIOF(c),meta=+c.meta||0,pctCdi=(+c.qtd||105),du=diasUteis(c.data), irPct=(irAliquota(diasDesde(c.data))*100), prod=rfProduto(c), isento=rfIsento(c);
     var pct=meta>0?Math.min(100,atual/meta*100):0;
     h+='<div class="li" style="display:block;border-left-color:#60a5fa;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+' <span style="font-size:9px;color:#60a5fa;font-weight:700;background:rgba(96,165,250,.15);border-radius:8px;padding:1px 6px;">'+esc(prod)+'</span></div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div><button class="del" style="color:#22c55e;font-size:18px;" onclick="cfNovoAporte('+c.id+')" title="Novo aporte">＋</button>'+itemActions(c)+'</div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;"><div class="nm">'+esc(c.nome||'—')+' <span style="font-size:9px;color:#60a5fa;font-weight:700;background:rgba(96,165,250,.15);border-radius:8px;padding:1px 6px;">'+esc(prod)+'</span></div><div style="display:flex;align-items:center;gap:8px;"><div class="vl" style="color:#60a5fa;">'+fmt(atual)+'</div><button class="del" style="color:#22c55e;font-size:18px;" onclick="cfNovoAporte('+c.id+')" title="Novo aporte">＋</button><button class="del" style="color:#ef4444;font-size:22px;" onclick="cfNovaRetirada('+c.id+')" title="Retirada">−</button>'+itemActions(c)+'</div></div>'+
       '<div class="sb">aplicado '+fmt(c.valor)+' · <span style="color:#22c55e;font-weight:700;">+'+fmt(rLiq)+' líq</span> · '+(prod==='Poupança'?'poupança':pctCdi+'% CDI')+(c.data?' · '+(prod==='Poupança'?mesesCompletos(c.data)+' meses':du+' dias úteis'):' · <span style="color:#f59e0b;">sem data</span>')+'</div>'+
       (c.data&&rBruto>0?'<div class="sb" style="color:var(--text3);">bruto +'+fmt(rBruto)+(isento?' · isento de IR/IOF':(iof>0?' − IOF '+fmt(iof):'')+' − IR '+irPct.toFixed(1)+'% ('+fmt(ir)+')')+' · desde '+fmtData(c.data)+'</div>':'')+
       (meta>0?'<div class="sb">Meta: '+fmt(meta)+' · '+pct.toFixed(0)+'%</div><div class="bar"><div style="width:'+pct.toFixed(1)+'%;background:#60a5fa;"></div></div>':'')+
