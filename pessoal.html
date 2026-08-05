@@ -583,7 +583,8 @@ function addDevedor(){
   addItem({tipo:'devedor',nome:nome,categoria:(document.getElementById('dv-desc').value||'').trim(),valor:parseBRL(document.getElementById('dv-val').value),data:(document.getElementById('dv-data')||{value:''}).value||today()},function(){render();toast('Devedor adicionado!');});
 }
 // ── Reserva em Dólar (bancos com lista de movimentos: entrada US$+R$, retirada) ──
-var dlEntradaId=null,dlRetiradaId=null,dlMovEditId=null,_dolarSeeding=false,_dlMigrating=false;
+var dlEntradaId=null,dlRetiradaId=null,dlMovEditId=null,_dolarSeeding=false,_dlMigrating=false,dlListOpen={};
+function dlToggleList(id){dlListOpen[id]=!dlListOpen[id];render();}
 function dolarBancos(){return byTipo('dolar_banco');}
 function dolarMovs(bankId){return byTipo('dolar_mov').filter(function(m){return String(m.meta)===String(bankId);}).sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});}
 function dlBankStats(bankId){
@@ -603,7 +604,7 @@ function seedDolarBancos(){
 function dlNovaEntrada(id){dlEntradaId=id;dlRetiradaId=null;dlMovEditId=null;editingId=null;render();}
 function dlNovaRetirada(id){dlRetiradaId=id;dlEntradaId=null;dlMovEditId=null;editingId=null;render();}
 function dlCancelMov(){dlEntradaId=null;dlRetiradaId=null;dlMovEditId=null;render();}
-function dlEditMov(id){dlMovEditId=id;dlEntradaId=null;dlRetiradaId=null;render();}
+function dlEditMov(id){var m=ITEMS.find(function(x){return x.id===id;});if(m)dlListOpen[m.meta]=true;dlMovEditId=id;dlEntradaId=null;dlRetiradaId=null;render();}
 function viewDolar(){
   var bancos=dolarBancos();
   if(!bancos.length){seedDolarBancos();return '<div class="card"><div class="ttl">💵 Reserva em Dólar</div><div class="empty">Criando bancos padrão…</div></div>';}
@@ -624,19 +625,24 @@ function viewDolar(){
     '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;"><div style="font-size:22px;font-weight:800;color:#a3e635;">'+fmtUSD(totSaldo)+'</div><div style="font-size:15px;font-weight:800;color:var(--accent);">'+fmt(totAtual)+'</div></div>'+
     '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">média R$ '+fmtN(mediaG)+' · pago '+fmt(totInvest)+' · <span style="color:'+gcol+';font-weight:700;">'+(ganho>=0?'▲ +':'▼ ')+fmt(ganho)+' ('+pctG.toFixed(1)+'%)</span> · dólar hoje R$ '+fmtN(cot)+' <span style="color:var(--accent);cursor:pointer;font-weight:700;" onclick="fetchDolar()">🔄</span></div>';
   bancos.forEach(function(b){
+    if(dlEntradaId===b.id){h+=dlMovBox(b,'entrada');return;}
+    if(dlRetiradaId===b.id){h+=dlMovBox(b,'retirada');return;}
     var st=dlBankStats(b.id);var atual=st.saldoUsd*cot,g=atual-st.saldoBrl,gc=g>=0?'#22c55e':'#ef4444';
+    var movs=dolarMovs(b.id);var lopen=!!dlListOpen[b.id];
     h+='<div class="li" style="display:block;border-left-color:#a3e635;">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
         '<div style="flex:1;min-width:0;"><div class="nm">🏦 '+esc(b.nome||'—')+'</div><div class="sb">'+fmtUSD(st.saldoUsd)+(st.media>0?' · média R$ '+fmtN(st.media):'')+'</div></div>'+
         '<div style="text-align:right;flex-shrink:0;"><div class="vl" style="color:#a3e635;">'+fmt(atual)+'</div>'+(st.saldoBrl>0?'<div style="font-size:10px;color:'+gc+';font-weight:700;">'+(g>=0?'+':'')+fmt(g)+'</div>':'')+'</div>'+
       '</div>';
-    // Lista de movimentos
-    var movs=dolarMovs(b.id);
-    if(movs.length){h+='<div style="margin-top:8px;">';movs.forEach(function(m){
-      if(dlMovEditId===m.id){h+=dlMovEditBox(m);return;}
-      var isRet=m.categoria==='retirada',u=+m.valor||0,r=+m.qtd||0,mr=(!isRet&&u>0)?r/u:0;
-      h+='<div class="li" style="border-left-color:'+(isRet?'#ef4444':'#22c55e')+';padding:6px 9px;background:var(--bg2);border-radius:8px;margin-bottom:5px;"><div style="flex:1;min-width:0;"><div class="nm" style="font-size:12px;">'+(isRet?'↓ Retirada':'↑ Entrada')+' '+fmtUSD(u)+'</div><div class="sb">'+(isRet?'':'pago '+fmt(r)+' · média R$ '+fmtN(mr)+' · ')+fmtData(m.data)+'</div></div><button class="del" style="color:var(--accent);font-size:14px;" onclick="dlEditMov('+m.id+')">✎</button><button class="del" onclick="rmItem('+m.id+')">×</button></div>';
-    });h+='</div>';}
+    // Lista de movimentos (colapsável)
+    if(movs.length){
+      h+='<div onclick="dlToggleList('+b.id+')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;"><span>📋 Movimentos ('+movs.length+')</span><span style="font-size:12px;">'+(lopen?'▴':'▾')+'</span></div>';
+      if(lopen){h+='<div style="margin-top:6px;">';movs.forEach(function(m){
+        if(dlMovEditId===m.id){h+=dlMovEditBox(m);return;}
+        var isRet=m.categoria==='retirada',u=+m.valor||0,r=+m.qtd||0,mr=(!isRet&&u>0)?r/u:0;
+        h+='<div class="li" style="border-left-color:'+(isRet?'#ef4444':'#22c55e')+';padding:6px 9px;background:var(--bg2);border-radius:8px;margin-bottom:5px;"><div style="flex:1;min-width:0;"><div class="nm" style="font-size:12px;">'+(isRet?'↓ Retirada':'↑ Entrada')+' '+fmtUSD(u)+'</div><div class="sb">'+(isRet?'':'pago '+fmt(r)+' · média R$ '+fmtN(mr)+' · ')+fmtData(m.data)+'</div></div><button class="del" style="color:var(--accent);font-size:14px;" onclick="dlEditMov('+m.id+')">✎</button><button class="del" onclick="rmItem('+m.id+')">×</button></div>';
+      });h+='</div>';}
+    }
     h+='<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;flex-wrap:wrap;">'+
         '<button onclick="dlNovaEntrada('+b.id+')" style="background:rgba(34,197,94,.14);border:1px solid #22c55e66;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">+ Entrada</button>'+
         '<button onclick="dlNovaRetirada('+b.id+')" style="background:rgba(239,68,68,.12);border:1px solid #ef444455;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">− Retirada</button>'+
