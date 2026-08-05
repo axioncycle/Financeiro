@@ -578,6 +578,11 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <div><label class="fl">Comissão <span id="sim-com-tg" onclick="simToggle('com')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'com')"></div>
       <div><label class="fl">Frete (R$)</label><input class="fi" id="sim-frete" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
     </div>
+    <div style="margin-top:8px;position:relative;">
+      <label class="fl">🔎 Custo por SKU (opcional) — digite para puxar o custo cadastrado</label>
+      <input class="fi" id="sim-sku-search" placeholder="Digite o SKU..." autocomplete="off" oninput="simSkuSearch(this.value)">
+      <div id="sim-sku-sugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--modal-bg);border:1px solid var(--border);border-radius:8px;z-index:20;max-height:230px;overflow-y:auto;margin-top:2px;box-shadow:0 10px 28px rgba(0,0,0,.35);"></div>
+    </div>
     <div id="sim-result" style="margin-top:12px;"></div>
   </div>
   <!-- Period Filter -->
@@ -8827,6 +8832,31 @@ function calcSimEscala(){
 // ── SIMULAÇÃO DE VENDA (aba Análise) ──────────────────
 var simMode={taxa:'R$',imp:'%',com:'R$'};
 var simLastEdited='';
+var _simSkuMatches=[];
+function simSkuCusto(s){var d=(typeof skcDolarRef==='function')?skcDolarRef():5.4;var f=(typeof skcFator==='function')?skcFator():1;return Math.round((+s.usd||0)*d*f*100)/100;}
+function simSkuSearch(val){
+  var sugg=document.getElementById('sim-sku-sugg');if(!sugg)return;
+  val=(val||'').trim().toLowerCase();
+  if(!val){sugg.style.display='none';return;}
+  var all=(typeof getAllCustoSKUs==='function')?getAllCustoSKUs():[];
+  var m=[];for(var i=0;i<all.length&&m.length<12;i++){var s=all[i];if((s.nome||'').toLowerCase().indexOf(val)>=0||(s.ean||'').toLowerCase().indexOf(val)>=0)m.push(s);}
+  _simSkuMatches=m;
+  if(!m.length){sugg.innerHTML='<div style="padding:9px 11px;font-size:12px;color:var(--text3);">Nenhum SKU encontrado</div>';sugg.style.display='block';return;}
+  sugg.innerHTML=m.map(function(s,i){var c=simSkuCusto(s);return '<div onclick="simSkuPick('+i+')" style="padding:9px 11px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;">'+
+    '<span style="font-size:12px;font-weight:700;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(s.nome)+(s.usd?' <span style="font-size:10px;color:var(--text3);font-weight:400;">$'+fmtN(s.usd)+'</span>':'')+'</span>'+
+    '<span style="font-size:12px;font-weight:800;color:#22c55e;white-space:nowrap;">'+fmt(c)+'</span></div>';}).join('');
+  sugg.style.display='block';
+}
+function simSkuPick(i){
+  var s=_simSkuMatches[i];if(!s)return;
+  var c=simSkuCusto(s);
+  var custoEl=document.getElementById('sim-custo');if(custoEl)custoEl.value=fmtN(c);
+  var searchEl=document.getElementById('sim-sku-search');if(searchEl)searchEl.value=s.nome;
+  var sugg=document.getElementById('sim-sku-sugg');if(sugg)sugg.style.display='none';
+  simLastEdited='custo';
+  simVenda();
+  toast('Custo de "'+s.nome+'": '+fmt(c));
+}
 function simSetEdited(which){simLastEdited=which;simVenda();}
 function simToggle(k){
   simMode[k]=simMode[k]==='%'?'R$':'%';
