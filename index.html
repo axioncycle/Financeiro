@@ -1411,6 +1411,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-top:2px;">Planejamento de Compra</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button onclick="exportContainerInvoiceXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #f59e0b55;background:#f59e0b22;color:#f59e0b;font-size:12px;font-weight:700;cursor:pointer;">🧾 Invoice</button>
         <button onclick="exportSkuRowsXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">📊 Exportar</button>
         <button onclick="openImportSku()" style="padding:7px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">📥 Importar</button>
         <button onclick="addSkuRow()" style="padding:7px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">+ SKU</button>
@@ -7439,6 +7440,121 @@ function exportSkuRowsXls(){
     }
   }catch(e){}
   baixar();
+}
+
+// ── COMMERCIAL INVOICE (Excel) ───────────────────────────────────────────
+// Converte o nome do SKU para a descrição do invoice (marca própria + cor->logo)
+function invConvDesc(nome){
+  var d=String(nome||'').trim();
+  d=d.replace(/\bblacks?\b/ig,'Logo Valve')
+     .replace(/\b(cinza|grey|gray)\b/ig,'Logo Grey')
+     .replace(/\b(branco|white)\b/ig,'Logo White');
+  var pre=/roda\s+axion\s+cycle/i.test(d)?'':'Roda Axion Cycle ';
+  var suf=/marca\s+pr[oó]pria/i.test(d)?'':' (marca própria)';
+  return pre+d+suf;
+}
+function invDateStr(){
+  var t=today().split('-'),y=t[0],mi=+t[1]-1,dd=+t[2];
+  var mo=['January','February','March','April','May','June','July','August','September','October','November','December'][mi];
+  var o=(dd%10===1&&dd!==11)?'st':(dd%10===2&&dd!==12)?'nd':(dd%10===3&&dd!==13)?'rd':'th';
+  return {inv:t[0]+t[1]+t[2],date:mo+' '+dd+o+', '+y};
+}
+// Gera o XLSX do invoice a partir de um modelo de linhas com merges
+function buildInvoiceXlsx(model,cols){
+  var merges=[],sd='';
+  model.forEach(function(row,ri){
+    var cells=row.cells||row;
+    sd+='<row r="'+(ri+1)+'"'+(row.h?' ht="'+row.h+'" customHeight="1"':'')+'>';
+    var ci=0;
+    cells.forEach(function(c){
+      var cs=c.cs||1,ref=_xcolL(ci)+(ri+1),s=c.s?(' s="'+c.s+'"'):'';
+      if(c.f!=null) sd+='<c r="'+ref+'"'+s+'><f>'+_xesc(c.f)+'</f><v>'+(c.v||0)+'</v></c>';
+      else if(c.t==='n') sd+='<c r="'+ref+'"'+s+'><v>'+c.v+'</v></c>';
+      else if(c.v===''||c.v==null) sd+='<c r="'+ref+'"'+s+'/>';
+      else sd+='<c r="'+ref+'"'+s+' t="inlineStr"><is><t xml:space="preserve">'+_xesc(c.v)+'</t></is></c>';
+      if(cs>1) merges.push(ref+':'+_xcolL(ci+cs-1)+(ri+1));
+      ci+=cs;
+    });
+    sd+='</row>';
+  });
+  var colsXml='<cols>'+cols.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'"/>';}).join('')+'</cols>';
+  var mergeXml=merges.length?('<mergeCells count="'+merges.length+'">'+merges.map(function(m){return '<mergeCell ref="'+m+'"/>';}).join('')+'</mergeCells>'):'';
+  var sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+colsXml+'<sheetData>'+sd+'</sheetData>'+mergeXml+'</worksheet>';
+  var ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  var wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Invoice" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  var wbr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+  var fonts='<fonts count="6"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="13"/><name val="Calibri"/></font><font><b/><sz val="16"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFCC0000"/><name val="Calibri"/></font><font><sz val="8"/><name val="Calibri"/></font></fonts>';
+  var fills='<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFC6D9B0"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>';
+  var borders='<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders>';
+  var xfs=[
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>',/*0*/
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf>',/*1 company*/
+    '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf>',/*2 small center*/
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf>',/*3 title*/
+    '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left"/></xf>',/*4 red left*/
+    '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="right"/></xf>',/*5 red right*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left"/></xf>',/*6 left*/
+    '<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',/*7 header*/
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',/*8 banking label*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="top" wrapText="1"/></xf>',/*9 banking text*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',/*10 cell center*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>',/*11 cell left*/
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>',/*12 usd*/
+    '<xf numFmtId="1" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*13 qty*/
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*14 total label*/
+    '<xf numFmtId="164" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>',/*15 total usd*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right"/></xf>'/*16 right*/
+  ].join('');
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;$&quot;\\ #,##0.00"/></numFmts>'+fonts+fills+borders+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="17">'+xfs+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return _xzip([
+    {name:'[Content_Types].xml',data:_xenc(ct)},
+    {name:'_rels/.rels',data:_xenc(rels)},
+    {name:'xl/workbook.xml',data:_xenc(wb)},
+    {name:'xl/_rels/workbook.xml.rels',data:_xenc(wbr)},
+    {name:'xl/styles.xml',data:_xenc(styles)},
+    {name:'xl/worksheets/sheet1.xml',data:_xenc(sheet)}
+  ]);
+}
+function exportContainerInvoiceXls(){
+  var rows=(skuRows||[]).filter(function(r){return r.skuNome&&r.skuNome!=='__manage__'&&(parseInt(r.qty,10)||0)>0;});
+  if(!rows.length){toast('Nenhum SKU com quantidade para exportar',true);return;}
+  var d=invDateStr();
+  function S(v,s,cs){return {v:v,t:'s',s:s,cs:cs};}
+  function N(v,s,cs){return {v:v,t:'n',s:s,cs:cs};}
+  function F(f,v,s){return {f:f,v:v,s:s};}
+  var M=[];
+  M.push([S('Xiamen Sanlian Billiton Technology Co.,Ltd',1,5)]);
+  M.push([S('ADDRESS:No.268,Wuren Road,Xinmin Town Tongan Industrial ,Xiamen City,Fujian, China',2,5)]);
+  M.push([S('Mob:+86-15159289865 Email:adam@slbt-carbon.com',2,5)]);
+  M.push({h:82,cells:[S('Banking information:',8,1),S("BENE'S BANK: Industrial and Commercial Bank of China, Xiamen City Branch\nBANK ADDRESS: ICBC BUILDING,NO.17 HUBIN ROAD NORTH,XIAMEN CHINA\n(SWIFT CODE: ICBKCNBJSMM)\nBENEFICIARY:Xiamen Sanlian Billiton Technology Co.,Ltd\nBENEFICIARY'S A/C NO.: 4100200219100171407\nADDRESS: Room 1606,No 275,Wuren Road,Xinmin Town,Tong'an District,Xiamen",9,4)]});
+  M.push([S('INV.NO. : '+d.inv,4,3),S('ORIGINAL',5,2)]);
+  M.push([S('COMMERCIAL INVOICE',3,5)]);
+  M.push([S('Customer  Name: PDR BIKE SHOP LTDA - 57.022.714/0001-18',6,3),S('Date: '+d.date,16,2)]);
+  M.push([S('ADD:  Setor Sia Q 3C A/E5 S/N Sala 103 Anexo Entrada 34 Sia Brasília DF 71200-035',6,5)]);
+  M.push([S('ATTN:   Edilene Prado         Tel: +55 61 9173-9544',6,5)]);
+  M.push([S('Delivery Terms:',6,3),S('Unit:  USD',16,2)]);
+  M.push([S('We have the pleasure in quoting you the following price:',6,5)]);
+  M.push({h:30,cells:[S('ITEM\nName.',7),S('Description Of Goods',7),S('Quantity\nSET',7),S('Unit Price\nUSD',7),S('Amount\nUSD',7)]});
+  var first=M.length+1;
+  rows.forEach(function(r){
+    var q=parseInt(r.qty,10)||0,u=parseFloat(r.usd)||0,rn=M.length+1;
+    M.push({h:30,cells:[
+      S('Roda de Bicicleta - NCM: 8714.99.90',11),
+      S(invConvDesc(r.skuNome),11),
+      N(q,13),
+      N(Math.round(u*100)/100,12),
+      F('C'+rn+'*D'+rn,Math.round(q*u*100)/100,12)
+    ]});
+  });
+  var last=M.length;
+  M.push([S('Total',14,2),F('SUM(C'+first+':C'+last+')',0,14),S('',14),F('SUM(E'+first+':E'+last+')',0,15)]);
+  M.push([S('',6,4),S('EXPORTER',6)]);
+  M.push([S('DECLARE ALL THE INFORMATION CONTAINED IN THE INVOICE TO BE TRUE AND CORRECT.',6,5)]);
+  var bytes=buildInvoiceXlsx(M,[34,46,11,13,13]);
+  var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var cn=String(impContNome()||'container').replace(/[\/\\]/g,'-');
+  shareOrDownload(blob,'Invoice '+cn+' '+d.inv+'.xlsx','Invoice exportado!');
 }
 
 // ── PAGAMENTOS ────────────────────────────────────────────────────────────
