@@ -1595,9 +1595,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div><label class="fl">Código SKU</label><input class="fi" id="skc-new-codigo" placeholder="Ex: AXC-RB50"></div>
       </div>
       <div class="r2" style="margin-top:8px;">
-        <div><label class="fl">Tamanho da caixa</label><input class="fi" id="skc-new-caixa" placeholder="Ex: 60x60x25 cm"></div>
+        <div><label class="fl">Tamanho da caixa</label><input class="fi" id="skc-new-caixa" placeholder="Ex: 72x20x65 cm" oninput="var c=document.getElementById('skc-new-cub');if(c)c.textContent=skcFmtCub(this.value)||'—';"></div>
         <div><label class="fl">Peso</label><input class="fi" id="skc-new-peso" placeholder="Ex: 1,8 kg"></div>
       </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);">Cubagem (m³): <span id="skc-new-cub" style="color:#1E90FF;font-weight:700;">—</span></div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="btn" style="flex:1;" onclick="skcAddNew()">&#10003; Salvar SKU</button>
         <button class="btn btn-s" onclick="skcToggleAdd()">Cancelar</button>
@@ -7160,8 +7161,9 @@ function skcEditRow(s){
     '<label class="fl" style="margin-top:8px;">Código EAN</label><input class="fi" id="skc-ed-ean" inputmode="numeric" placeholder="Ex: 7891234567890" value="'+esc(s.ean||'')+'">'+
     '<div class="r2" style="margin-top:8px;"><div><label class="fl">NCM</label><input class="fi" id="skc-ed-ncm" inputmode="numeric" placeholder="Ex: 8714.99.90" value="'+esc(s.ncm||'')+'"></div>'+
     '<div><label class="fl">Código SKU</label><input class="fi" id="skc-ed-codigo" placeholder="Ex: AXC-RB50" value="'+esc(s.codigo||'')+'"></div></div>'+
-    '<div class="r2" style="margin-top:8px;"><div><label class="fl">Tamanho da caixa</label><input class="fi" id="skc-ed-caixa" placeholder="Ex: 60x60x25 cm" value="'+esc(s.caixa||'')+'"></div>'+
+    '<div class="r2" style="margin-top:8px;"><div><label class="fl">Tamanho da caixa</label><input class="fi" id="skc-ed-caixa" placeholder="Ex: 72x20x65 cm" value="'+esc(s.caixa||'')+'" oninput="var c=document.getElementById(\'skc-ed-cub\');if(c)c.textContent=skcFmtCub(this.value)||\'—\';"></div>'+
     '<div><label class="fl">Peso</label><input class="fi" id="skc-ed-peso" placeholder="Ex: 1,8 kg" value="'+esc(s.peso||'')+'"></div></div>'+
+    '<div style="margin-top:8px;font-size:11px;color:var(--text3);">Cubagem (m³): <span id="skc-ed-cub" style="color:#1E90FF;font-weight:700;">'+(skcFmtCub(s.caixa)||'—')+'</span></div>'+
     '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn" style="flex:1;" onclick="skcSaveEdit(\''+s.id+'\','+(s.builtin?1:0)+')">✓ Salvar</button>'+
     '<button class="btn btn-s" onclick="skcCancelEdit()">Cancelar</button></div>'+
   '</div>';
@@ -7195,7 +7197,7 @@ function renderSkuCadastro(){
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-size:12px;font-weight:700;color:var(--text);white-space:normal;word-break:break-word;line-height:1.25;">'+esc(s.nome)+'</div>'+
         '<div style="font-size:10px;color:var(--text3);margin-top:2px;"><span style="background:var(--bg3);padding:1px 6px;border-radius:5px;">'+esc(s.cat||'—')+'</span>'+(s.custom?' <span style="color:#a855f7;font-weight:700;">custom</span>':'')+(s.ean?' · <span style="color:var(--text2);">🏷️ '+esc(s.ean)+'</span>':'')+'</div>'+
-        ((s.ncm||s.codigo||s.caixa||s.peso)?'<div style="font-size:9px;color:var(--text3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;">'+(s.codigo?'<span>🔖 '+esc(s.codigo)+'</span>':'')+(s.ncm?'<span>NCM '+esc(s.ncm)+'</span>':'')+(s.caixa?'<span>📦 '+esc(s.caixa)+'</span>':'')+(s.peso?'<span>⚖️ '+esc(s.peso)+'</span>':'')+'</div>':'')+
+        ((s.ncm||s.codigo||s.caixa||s.peso||s.cubagem)?'<div style="font-size:9px;color:var(--text3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;">'+(s.codigo?'<span>🔖 '+esc(s.codigo)+'</span>':'')+(s.ncm?'<span>NCM '+esc(s.ncm)+'</span>':'')+(s.caixa?'<span>📦 '+esc(s.caixa)+'</span>':'')+(s.cubagem>0?'<span>📐 '+skcFmtCub(s.caixa)+'</span>':'')+(s.peso?'<span>⚖️ '+esc(s.peso)+'</span>':'')+'</div>':'')+
       '</div>'+
       '<div style="text-align:right;flex-shrink:0;">'+
         (s.usd>0?'<div style="font-size:13px;font-weight:800;color:#1E90FF;">$ '+fmtN(s.usd)+'</div><div style="font-size:10px;color:#22c55e;">R$ '+fmtN(brl)+'</div>':'<div style="font-size:11px;color:var(--text3);">sem preço</div>')+
@@ -7759,6 +7761,48 @@ function debounceSaveCusto(){
   },600);
 }
 
+// Metadados oficiais dos produtos (EAN, código SKU, NCM, tamanho da caixa) por id do SKU padrão.
+// Preenche apenas campos vazios; cubagem é derivada do tamanho da caixa.
+var SKU_META={
+  2:{ean:'7895702200024',codigo:'ZR50C-25-UD-P',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  3:{ean:'7895702200024',codigo:'ZR50C-25-UD-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  4:{ean:'7895702200024',codigo:'ZR50C-25-UD-B',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  5:{ean:'7895702200031',codigo:'ZR60C-25-UD-P',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  6:{ean:'7895702200031',codigo:'ZR60C-25-UD-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  7:{ean:'7895702200031',codigo:'ZR60C-25-UD-B',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  8:{ean:'7895702200048',codigo:'ZR88C-25-UD-P',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  9:{ean:'7895702200048',codigo:'ZR88C-25-UD-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  10:{ean:'7895702201557',codigo:'SLBT45-50-W',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  11:{ean:'7895702201597',codigo:'ZRFULLWHEELS-C-88-25-UD',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  12:{ean:'7895702201597',codigo:'ZRFULLWHEELS-B-88-25-UD',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  16:{ean:'7895702201595',codigo:'ZRFULLWHEELS-B-25-UD',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  17:{ean:'7895702201595',codigo:'ZRFULLWHEELS-C-25-UD',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  21:{ean:'7895702200062',codigo:'SLBT50-25-D-P',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  22:{ean:'7895702200062',codigo:'SLBT50-25-D-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  23:{ean:'7895702200062',codigo:'SLBT50-25-D-B',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  24:{ean:'7895702200079',codigo:'SLBT60-25-D-P',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  25:{ean:'7895702200079',codigo:'SLBT60-25-D-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  26:{ean:'7895702200079',codigo:'SLBT60-25-D-B',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  27:{ean:'7895702200086',codigo:'SLBT88-25-D-P',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  28:{ean:'7895702200086',codigo:'SLBT88-25-D-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  29:{ean:'7895702201007',codigo:'SLBT55-60-W',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  30:{ean:'7895702201589',codigo:'SLBT-DISC-WHEELS-88-D-C',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  31:{ean:'7895702201589',codigo:'SLBT-DISC-WHEELS-88-D-B',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  33:{ean:'7895702201564',codigo:'SLBT40-DISC-GRAVEL-D',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  34:{ean:'7895702201625',codigo:'SLBT35-DISC-GRAVEL-D',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  35:{ean:'7895702200703',codigo:'SLBT22-32-M',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  38:{ean:'7895702201588',codigo:'SLBT-DISC-WHEELS-B-D',ncm:'8714.99.90',caixa:'72x20x65 cm'},
+  39:{ean:'7895702201588',codigo:'SLBT-DISC-WHEELS-C-D',ncm:'8714.99.90',caixa:'72x20x65 cm'}
+};
+// Cubagem em m³ a partir do tamanho da caixa "AxBxC cm" (ex: 72x20x65 → 0.0936)
+function skcCubagem(caixa){
+  var m=String(caixa||'').match(/(\d+(?:[.,]\d+)?)\D+(\d+(?:[.,]\d+)?)\D+(\d+(?:[.,]\d+)?)/);
+  if(!m)return 0;
+  var a=parseFloat(m[1].replace(',','.')),b=parseFloat(m[2].replace(',','.')),c=parseFloat(m[3].replace(',','.'));
+  if(!(a>0&&b>0&&c>0))return 0;
+  return Math.round((a*b*c/1000000)*10000)/10000;
+}
+function skcFmtCub(caixa){var v=skcCubagem(caixa);return v>0?(v.toFixed(4).replace('.',',')+' m³'):'';}
 function getAllCustoSKUs(){
   var all=[];var i;
   // Built-in SKUs from SKUS array (have id)
@@ -7776,12 +7820,17 @@ function getAllCustoSKUs(){
   for(i=0;i<all.length;i++){
     var o=over[all[i].id];
     if(o){if(o.nome)all[i].nome=o.nome;if(o.cat)all[i].cat=o.cat;if(o.usd)all[i].usd=o.usd;if(o.ean)all[i].ean=o.ean;if(o.ncm)all[i].ncm=o.ncm;if(o.codigo)all[i].codigo=o.codigo;if(o.caixa)all[i].caixa=o.caixa;if(o.peso)all[i].peso=o.peso;}
+    // Preenche apenas campos vazios com os metadados oficiais
+    var meta=SKU_META[all[i].id];
+    if(meta){if(!all[i].ean&&meta.ean)all[i].ean=meta.ean;if(!all[i].codigo&&meta.codigo)all[i].codigo=meta.codigo;if(!all[i].ncm&&meta.ncm)all[i].ncm=meta.ncm;if(!all[i].caixa&&meta.caixa)all[i].caixa=meta.caixa;}
   }
   // Custom SKUs from Supabase
   var custom=sg('ax_v6_cskus',[]);
   for(i=0;i<custom.length;i++){
     all.push({id:custom[i].id,nome:custom[i].nome,cat:custom[i].cat||'',usd:custom[i].usd||0,ean:custom[i].ean||'',ncm:custom[i].ncm||'',codigo:custom[i].codigo||'',caixa:custom[i].caixa||'',peso:custom[i].peso||'',custom:true});
   }
+  // Cubagem derivada do tamanho da caixa
+  for(i=0;i<all.length;i++){all[i].cubagem=skcCubagem(all[i].caixa);}
   return all;
 }
 
