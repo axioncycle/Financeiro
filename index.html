@@ -1590,6 +1590,14 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       </div>
       <label class="fl" style="margin-top:8px;">Código EAN</label>
       <input class="fi" id="skc-new-ean" inputmode="numeric" placeholder="Ex: 7891234567890">
+      <div class="r2" style="margin-top:8px;">
+        <div><label class="fl">NCM</label><input class="fi" id="skc-new-ncm" inputmode="numeric" placeholder="Ex: 8714.99.90"></div>
+        <div><label class="fl">Código SKU</label><input class="fi" id="skc-new-codigo" placeholder="Ex: AXC-RB50"></div>
+      </div>
+      <div class="r2" style="margin-top:8px;">
+        <div><label class="fl">Tamanho da caixa</label><input class="fi" id="skc-new-caixa" placeholder="Ex: 60x60x25 cm"></div>
+        <div><label class="fl">Peso</label><input class="fi" id="skc-new-peso" placeholder="Ex: 1,8 kg"></div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="btn" style="flex:1;" onclick="skcAddNew()">&#10003; Salvar SKU</button>
         <button class="btn btn-s" onclick="skcToggleAdd()">Cancelar</button>
@@ -7139,7 +7147,7 @@ function skcToggleAdd(){
   var f=document.getElementById('skc-addform'),b=document.getElementById('skc-add-btn');
   if(f)f.style.display=skcAddOpen?'block':'none';
   if(b)b.textContent=skcAddOpen?'✕ Fechar':'+ Novo SKU';
-  if(skcAddOpen){skcFillCatSelect('skc-new-cat',skcCat!=='__all__'?skcCat:'');var cn=document.getElementById('skc-new-catnew');if(cn){cn.value='';cn.style.display='none';}var n=document.getElementById('skc-new-nome');if(n){n.value='';n.focus();}var u=document.getElementById('skc-new-usd');if(u)u.value='';var e=document.getElementById('skc-new-ean');if(e)e.value='';}
+  if(skcAddOpen){skcFillCatSelect('skc-new-cat',skcCat!=='__all__'?skcCat:'');var cn=document.getElementById('skc-new-catnew');if(cn){cn.value='';cn.style.display='none';}var n=document.getElementById('skc-new-nome');if(n){n.value='';n.focus();}var u=document.getElementById('skc-new-usd');if(u)u.value='';['skc-new-ean','skc-new-ncm','skc-new-codigo','skc-new-caixa','skc-new-peso'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});}
   renderSkuCadastro();
 }
 function skcEditRow(s){
@@ -7150,6 +7158,10 @@ function skcEditRow(s){
     '<input class="fi" id="skc-ed-catnew" placeholder="Nome da nova categoria" style="display:none;margin-top:6px;"></div>'+
     '<div><label class="fl">Preço USD</label><input class="fi" id="skc-ed-usd" type="number" step="0.01" value="'+(s.usd||'')+'"></div></div>'+
     '<label class="fl" style="margin-top:8px;">Código EAN</label><input class="fi" id="skc-ed-ean" inputmode="numeric" placeholder="Ex: 7891234567890" value="'+esc(s.ean||'')+'">'+
+    '<div class="r2" style="margin-top:8px;"><div><label class="fl">NCM</label><input class="fi" id="skc-ed-ncm" inputmode="numeric" placeholder="Ex: 8714.99.90" value="'+esc(s.ncm||'')+'"></div>'+
+    '<div><label class="fl">Código SKU</label><input class="fi" id="skc-ed-codigo" placeholder="Ex: AXC-RB50" value="'+esc(s.codigo||'')+'"></div></div>'+
+    '<div class="r2" style="margin-top:8px;"><div><label class="fl">Tamanho da caixa</label><input class="fi" id="skc-ed-caixa" placeholder="Ex: 60x60x25 cm" value="'+esc(s.caixa||'')+'"></div>'+
+    '<div><label class="fl">Peso</label><input class="fi" id="skc-ed-peso" placeholder="Ex: 1,8 kg" value="'+esc(s.peso||'')+'"></div></div>'+
     '<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn" style="flex:1;" onclick="skcSaveEdit(\''+s.id+'\','+(s.builtin?1:0)+')">✓ Salvar</button>'+
     '<button class="btn btn-s" onclick="skcCancelEdit()">Cancelar</button></div>'+
   '</div>';
@@ -7183,6 +7195,7 @@ function renderSkuCadastro(){
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-size:12px;font-weight:700;color:var(--text);white-space:normal;word-break:break-word;line-height:1.25;">'+esc(s.nome)+'</div>'+
         '<div style="font-size:10px;color:var(--text3);margin-top:2px;"><span style="background:var(--bg3);padding:1px 6px;border-radius:5px;">'+esc(s.cat||'—')+'</span>'+(s.custom?' <span style="color:#a855f7;font-weight:700;">custom</span>':'')+(s.ean?' · <span style="color:var(--text2);">🏷️ '+esc(s.ean)+'</span>':'')+'</div>'+
+        ((s.ncm||s.codigo||s.caixa||s.peso)?'<div style="font-size:9px;color:var(--text3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;">'+(s.codigo?'<span>🔖 '+esc(s.codigo)+'</span>':'')+(s.ncm?'<span>NCM '+esc(s.ncm)+'</span>':'')+(s.caixa?'<span>📦 '+esc(s.caixa)+'</span>':'')+(s.peso?'<span>⚖️ '+esc(s.peso)+'</span>':'')+'</div>':'')+
       '</div>'+
       '<div style="text-align:right;flex-shrink:0;">'+
         (s.usd>0?'<div style="font-size:13px;font-weight:800;color:#1E90FF;">$ '+fmtN(s.usd)+'</div><div style="font-size:10px;color:#22c55e;">R$ '+fmtN(brl)+'</div>':'<div style="font-size:11px;color:var(--text3);">sem preço</div>')+
@@ -7199,9 +7212,13 @@ function skcSaveEdit(id,builtin){
   var cat=skcResolveCat('skc-ed-cat','skc-ed-catnew');
   var usd=parseFloat(document.getElementById('skc-ed-usd').value)||0;
   var ean=((document.getElementById('skc-ed-ean')||{value:''}).value||'').trim();
+  var ncm=((document.getElementById('skc-ed-ncm')||{value:''}).value||'').trim();
+  var codigo=((document.getElementById('skc-ed-codigo')||{value:''}).value||'').trim();
+  var caixa=((document.getElementById('skc-ed-caixa')||{value:''}).value||'').trim();
+  var peso=((document.getElementById('skc-ed-peso')||{value:''}).value||'').trim();
   if(!nome){toast('Informe o nome',true);return;}
-  if(builtin){var over=loadSkuOver();over[id]={nome:nome,cat:cat,usd:usd,ean:ean,pix:0,custo:0};saveSkuOver(over);}
-  else{var custom=sg('ax_v6_cskus',[]);for(var i=0;i<custom.length;i++){if(String(custom[i].id)===String(id)){custom[i].nome=nome;custom[i].cat=cat;custom[i].usd=usd;custom[i].ean=ean;break;}}dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});}
+  if(builtin){var over=loadSkuOver();over[id]={nome:nome,cat:cat,usd:usd,ean:ean,ncm:ncm,codigo:codigo,caixa:caixa,peso:peso,pix:0,custo:0};saveSkuOver(over);}
+  else{var custom=sg('ax_v6_cskus',[]);for(var i=0;i<custom.length;i++){if(String(custom[i].id)===String(id)){custom[i].nome=nome;custom[i].cat=cat;custom[i].usd=usd;custom[i].ean=ean;custom[i].ncm=ncm;custom[i].codigo=codigo;custom[i].caixa=caixa;custom[i].peso=peso;break;}}dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});}
   skcEditId=null;renderSkuCadastro();if(typeof renderEst==='function')renderEst();renderSkuRows();
   toast('SKU "'+nome+'" atualizado!');
 }
@@ -7210,11 +7227,15 @@ function skcAddNew(){
   var cat=skcResolveCat('skc-new-cat','skc-new-catnew')||'RIM';
   var usd=parseFloat(document.getElementById('skc-new-usd').value)||0;
   var ean=((document.getElementById('skc-new-ean')||{value:''}).value||'').trim();
+  var ncm=((document.getElementById('skc-new-ncm')||{value:''}).value||'').trim();
+  var codigo=((document.getElementById('skc-new-codigo')||{value:''}).value||'').trim();
+  var caixa=((document.getElementById('skc-new-caixa')||{value:''}).value||'').trim();
+  var peso=((document.getElementById('skc-new-peso')||{value:''}).value||'').trim();
   if(!nome){toast('Informe o nome do produto',true);return;}
   if(getAllCustoSKUs().some(function(s){return (s.nome||'').toLowerCase()===nome.toLowerCase();})){toast('Já existe um SKU com esse nome',true);return;}
   var custom=sg('ax_v6_cskus',[]);
   var newId=9000+Date.now()%100000;
-  custom.push({id:newId,nome:nome,cat:cat,usd:usd,ean:ean,custom:true});
+  custom.push({id:newId,nome:nome,cat:cat,usd:usd,ean:ean,ncm:ncm,codigo:codigo,caixa:caixa,peso:peso,custom:true});
   dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
   var cs=loadContainers();for(var ci=0;ci<cs.length;ci++){if(!cs[ci].skus[newId])cs[ci].skus[newId]={custo:0,custoQty:0,un:{}};}
   saveContainers(cs);
@@ -7520,6 +7541,8 @@ function exportContainerInvoiceXls(){
   var rows=(skuRows||[]).filter(function(r){return r.skuNome&&r.skuNome!=='__manage__'&&(parseInt(r.qty,10)||0)>0;});
   if(!rows.length){toast('Nenhum SKU com quantidade para exportar',true);return;}
   var d=invDateStr();
+  var ncmMap={};getAllCustoSKUs().forEach(function(s){if(s.nome)ncmMap[s.nome]=s.ncm||'';});
+  function ncmLabel(nome){var n=ncmMap[nome]||'8714.99.90';return 'Roda de Bicicleta - NCM: '+n;}
   function S(v,s,cs){return {v:v,t:'s',s:s,cs:cs};}
   function N(v,s,cs){return {v:v,t:'n',s:s,cs:cs};}
   function F(f,v,s){return {f:f,v:v,s:s};}
@@ -7540,7 +7563,7 @@ function exportContainerInvoiceXls(){
   rows.forEach(function(r){
     var q=parseInt(r.qty,10)||0,u=parseFloat(r.usd)||0,rn=M.length+1;
     M.push({h:30,cells:[
-      S('Roda de Bicicleta - NCM: 8714.99.90',11),
+      S(ncmLabel(r.skuNome),11),
       S(invConvDesc(r.skuNome),11),
       N(q,13),
       N(Math.round(u*100)/100,12),
@@ -7732,12 +7755,12 @@ function getAllCustoSKUs(){
   var over=(typeof loadSkuOver==='function')?loadSkuOver():{};
   for(i=0;i<all.length;i++){
     var o=over[all[i].id];
-    if(o){if(o.nome)all[i].nome=o.nome;if(o.cat)all[i].cat=o.cat;if(o.usd)all[i].usd=o.usd;if(o.ean)all[i].ean=o.ean;}
+    if(o){if(o.nome)all[i].nome=o.nome;if(o.cat)all[i].cat=o.cat;if(o.usd)all[i].usd=o.usd;if(o.ean)all[i].ean=o.ean;if(o.ncm)all[i].ncm=o.ncm;if(o.codigo)all[i].codigo=o.codigo;if(o.caixa)all[i].caixa=o.caixa;if(o.peso)all[i].peso=o.peso;}
   }
   // Custom SKUs from Supabase
   var custom=sg('ax_v6_cskus',[]);
   for(i=0;i<custom.length;i++){
-    all.push({id:custom[i].id,nome:custom[i].nome,cat:custom[i].cat||'',usd:custom[i].usd||0,ean:custom[i].ean||'',custom:true});
+    all.push({id:custom[i].id,nome:custom[i].nome,cat:custom[i].cat||'',usd:custom[i].usd||0,ean:custom[i].ean||'',ncm:custom[i].ncm||'',codigo:custom[i].codigo||'',caixa:custom[i].caixa||'',peso:custom[i].peso||'',custom:true});
   }
   return all;
 }
