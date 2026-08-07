@@ -1412,7 +1412,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         <button onclick="exportContainerInvoiceXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #f59e0b55;background:#f59e0b22;color:#f59e0b;font-size:12px;font-weight:700;cursor:pointer;">🧾 Invoice</button>
-        <button onclick="exportSkuRowsXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">📊 Exportar</button>
+        <button onclick="exportPackingListXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">📦 Packing List</button>
         <button onclick="openImportSku()" style="padding:7px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">📥 Importar</button>
         <button onclick="addSkuRow()" style="padding:7px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">+ SKU</button>
       </div>
@@ -7482,6 +7482,150 @@ function exportSkuRowsXls(){
   var bytes=buildTableXlsx(headers,out,[40,24,16,13,16,13,11,11,14,13],'Planejamento');
   var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   shareOrDownload(blob,'planejamento_'+String(cont).replace(/[^a-zA-Z0-9]+/g,'_')+'.xlsx','Planilha exportada!');
+}
+
+// ── PACKING LIST (Excel) ─────────────────────────────────────────────────
+function _plDims(caixa){
+  var m=String(caixa||'').match(/(\d+(?:[.,]\d+)?)\D+(\d+(?:[.,]\d+)?)\D+(\d+(?:[.,]\d+)?)/);
+  if(!m)return null;
+  return [parseFloat(m[1].replace(',','.')),parseFloat(m[2].replace(',','.')),parseFloat(m[3].replace(',','.'))];
+}
+function _plPeso(peso){var m=String(peso||'').match(/(\d+(?:[.,]\d+)?)/);return m?parseFloat(m[1].replace(',','.')):0;}
+// Gera XLSX estilizado a partir de um modelo de linhas (suporta merges horizontais, fórmulas e estilos)
+function buildPackingXlsx(model,cols){
+  var merges=[],sd='';
+  model.forEach(function(row,ri){
+    var cells=row.cells||row;
+    sd+='<row r="'+(ri+1)+'"'+(row.h?' ht="'+row.h+'" customHeight="1"':'')+'>';
+    var ci=0;
+    cells.forEach(function(c){
+      if(c==null){ci++;return;}
+      var cs=c.cs||1,ref=_xcolL(ci)+(ri+1),s=(c.s!=null)?(' s="'+c.s+'"'):'';
+      if(c.f!=null) sd+='<c r="'+ref+'"'+s+'><f>'+_xesc(c.f)+'</f><v>'+(c.v||0)+'</v></c>';
+      else if(c.t==='n') sd+='<c r="'+ref+'"'+s+'><v>'+c.v+'</v></c>';
+      else if(c.v===''||c.v==null) sd+='<c r="'+ref+'"'+s+'/>';
+      else sd+='<c r="'+ref+'"'+s+' t="inlineStr"><is><t xml:space="preserve">'+_xesc(c.v)+'</t></is></c>';
+      if(cs>1) merges.push(ref+':'+_xcolL(ci+cs-1)+(ri+1));
+      ci+=cs;
+    });
+    sd+='</row>';
+  });
+  var colsXml='<cols>'+cols.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'"/>';}).join('')+'</cols>';
+  var mergeXml=merges.length?('<mergeCells count="'+merges.length+'">'+merges.map(function(m){return '<mergeCell ref="'+m+'"/>';}).join('')+'</mergeCells>'):'';
+  var sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+colsXml+'<sheetData>'+sd+'</sheetData>'+mergeXml+'</worksheet>';
+  var ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  var wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Packing List" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  var wbr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+  var fonts='<fonts count="4"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="8"/><color rgb="FFB00000"/><name val="Calibri"/></font></fonts>';
+  var fills='<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1A1A2E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills>';
+  var borders='<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders>';
+  var xfs=[
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>',/*0*/
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" wrapText="1"/></xf>',/*1 instr*/
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',/*2 header dark*/
+    '<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',/*3 header input*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>',/*4 text center*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>',/*5 text left*/
+    '<xf numFmtId="1" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*6 int*/
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*7 num2*/
+    '<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>',/*8 usd*/
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left"/></xf>',/*9 label bold*/
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left"/></xf>',/*10 value*/
+    '<xf numFmtId="1" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*11 int comp*/
+    '<xf numFmtId="164" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*12 num2 comp*/
+    '<xf numFmtId="165" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*13 num4 comp*/
+    '<xf numFmtId="166" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>',/*14 usd comp*/
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'/*15 total label*/
+  ].join('');
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="0.0000"/><numFmt numFmtId="166" formatCode="&quot;$&quot;\\ #,##0.00"/></numFmts>'+fonts+fills+borders+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="16">'+xfs+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return _xzip([
+    {name:'[Content_Types].xml',data:_xenc(ct)},
+    {name:'_rels/.rels',data:_xenc(rels)},
+    {name:'xl/workbook.xml',data:_xenc(wb)},
+    {name:'xl/_rels/workbook.xml.rels',data:_xenc(wbr)},
+    {name:'xl/styles.xml',data:_xenc(styles)},
+    {name:'xl/worksheets/sheet1.xml',data:_xenc(sheet)}
+  ]);
+}
+function exportPackingListXls(){
+  var rows=(skuRows||[]).filter(function(r){return r.skuNome&&r.skuNome!=='__manage__'&&(parseInt(r.qty,10)||0)>0;});
+  if(!rows.length){toast('Nenhum SKU com quantidade para exportar',true);return;}
+  var cont=impContNome()||'container';
+  var all=getAllCustoSKUs(),meta={};all.forEach(function(s){if(s.nome)meta[s.nome]=s;});
+  var SUPPLIER='Xiamen Sanlian Billiton Technology Co.,Ltd\nAdd:No.268, Wuren Road,Xinmin Town Tongan Industrial Park,Xiamen City,Fujian,China\nMob:+86-15159289865  Email:adam@slbt-carbon.com';
+  var LINK='https://slbtcarbon.en.alibaba.com/';
+  var CN_NAME='碳纤维+金属,自行车车轮';
+  var EN_NAME='carbon fiber + metal, bicycle wheels';
+  var MATERIAL='碳纤维+金属,自行车车轮\n//\ncarbon fiber + metal, bicycle wheels';
+  function S(v,s,cs){return {v:v,t:'s',s:s,cs:cs};}
+  function N(v,s){return {v:v,t:'n',s:s};}
+  function F(f,s){return {f:f,v:0,s:s};}
+  var M=[];
+  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','SPECIFICATIONS (brand, type, model...)','SIZE (L*W*H)','MATERIAL','PHOTO','PALLET','TOTAL CARTONS','UNIT/CTN','QUANTITY','UNIT PRICE','UNIT','AMOUNT','L (cm)','W (cm)','H (cm)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)','PRODUCT LINK'];
+  // Instruções (topo)
+  M.push({h:28,cells:[S('Only fill in the colored columns (yellow); white/blue columns have formulas. Fill all required info so the shipping mark can be generated.',1,22)]});
+  M.push({h:28,cells:[S('If the boxes are on pallets, enter the items according to the master box on the pallet. Include the measurements and weight of the pallet.',1,22)]});
+  M.push([S('ATTENTION TO LIMIT MEASURES ( HEIGHT: 2,20   WIDTH: 1,90 )',1,22)]);
+  M.push([S('ALL BOXES/CRATES MUST BE REINFORCED AND NEUTRAL PACKING',1,22)]);
+  M.push([S('ORDERLIST — '+cont,1,22)]);
+  // Cabeçalho (linha 6)
+  M.push({h:44,cells:HEADERS.map(function(h){return S(h,2);})});
+  var first=M.length+1;
+  rows.forEach(function(r,idx){
+    var m=meta[r.skuNome]||{};var dims=_plDims(m.caixa)||[0,0,0];var pw=_plPeso(m.peso);
+    var q=parseInt(r.qty,10)||0,u=parseFloat(r.usd)||0,rn=M.length+1;
+    var spec='Brand: Axion Cycle, bicycle wheel. Material: carbon fiber and metal. '+r.skuNome;
+    M.push({h:34,cells:[
+      S('',4),                                   /*A WEN*/
+      S(idx===0?SUPPLIER:'',5),                  /*B supplier*/
+      S(CN_NAME,5),                              /*C cn name*/
+      S(EN_NAME,5),                              /*D en name*/
+      S(spec,5),                                 /*E spec*/
+      S(dims[0]?dims.join('*'):(m.caixa||''),4), /*F size*/
+      S(MATERIAL,5),                             /*G material*/
+      S('',4),                                   /*H photo*/
+      S('',4),                                   /*I pallet*/
+      N(q,6),                                    /*J cartons*/
+      N(1,6),                                    /*K unit/ctn*/
+      F('K'+rn+'*J'+rn,11),                      /*L quantity*/
+      N(Math.round(u*100)/100,8),                /*M unit price*/
+      S('pair',4),                               /*N unit*/
+      F('M'+rn+'*L'+rn,14),                      /*O amount*/
+      N(dims[0]||'',6),                          /*P L*/
+      N(dims[1]||'',6),                          /*Q W*/
+      N(dims[2]||'',6),                          /*R H*/
+      pw>0?N(pw,7):S('',7),                       /*S carton gross weight*/
+      F('((P'+rn+'*Q'+rn+'*R'+rn+')/1000000)*J'+rn,13), /*T total cbm*/
+      F('S'+rn+'*J'+rn,12),                      /*U total gross weight*/
+      S(LINK,5)                                  /*V link*/
+    ]});
+  });
+  var last=M.length;
+  // Linha TOTAL
+  var tot=[];for(var k=0;k<22;k++)tot[k]=null;
+  tot[0]=S('TOTAL:',15);
+  tot[9]=F('SUM(J'+first+':J'+last+')',11);
+  tot[11]=F('SUM(L'+first+':L'+last+')',11);
+  tot[14]=F('SUM(O'+first+':O'+last+')',14);
+  tot[19]=F('SUM(T'+first+':T'+last+')',13);
+  tot[20]=F('SUM(U'+first+':U'+last+')',12);
+  M.push(tot);
+  // Bloco do importador
+  M.push([]);
+  M.push([S('INVOICE NUMBER',9),S('',10)]);
+  M.push([S('IMPORTER',9),S('PDR BIKE SHOP LTDA',10)]);
+  M.push([S('CNPJ',9),S('57.022.714/0001-18',10)]);
+  M.push([S('ADDRESS',9,1),S('SHCES 401 BLOCO B PORTARIA, CRUZEIRO NOVO, BRASÍLIA, DF - 70.650-412',10,6)]);
+  M.push([]);
+  M.push([S('NCM',3),S('DESCRIPTION',3,3)]);
+  M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
+  M.push([S('',4),S('bicycle wheel',5,3)]);
+  M.push([S('',4),S('自行车轮',5,3)]);
+  var cols=[16,34,16,22,40,14,26,10,12,11,9,11,11,8,12,8,8,8,14,12,15,30];
+  var bytes=buildPackingXlsx(M,cols);
+  var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  shareOrDownload(blob,'Packing List '+String(cont).replace(/[\/\\]/g,'-')+'.xlsx','Packing List exportado!');
 }
 
 // ── COMMERCIAL INVOICE (Excel) ───────────────────────────────────────────
