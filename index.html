@@ -1898,9 +1898,9 @@ function saveDespDB(mk,data){
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
     dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:data.financeiro[i].nome,valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
-    if(data.prolabore>0){r2={mes:mk,nome:'Pró-labore',valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
-    // Distribuição de lucros: uma linha por lançamento (data guardada no campo nome)
-    if(data.distribuicaoItems)for(i=0;i<data.distribuicaoItems.length;i++){var _di=data.distribuicaoItems[i];if((+_di.valor||0)!==0){r2={mes:mk,nome:_di.data||'',valor:+_di.valor||0,tipo:'distribuicao'};rows.push(r2);}}
+    if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
+    // Distribuição de lucros: uma linha por lançamento (descrição + data codificadas no campo nome)
+    if(data.distribuicaoItems)for(i=0;i<data.distribuicaoItems.length;i++){var _di=data.distribuicaoItems[i];if((+_di.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_di.desc||''),pdata:_di.data||''}),valor:+_di.valor||0,tipo:'distribuicao'};rows.push(r2);}}
     if(rows.length)dbPost("despesas",rows);});
   },500);
 }
@@ -5119,11 +5119,17 @@ function syncDespesasFromDB(cb){
         // DAS real field
         d[r.mes].das=+r.valor||0;
       } else if(r.tipo==='prolabore'){
+        var _pd=decNomeData(r.nome);
         d[r.mes].prolabore=+r.valor||0;
+        d[r.mes].prolaboreDesc=_pd.nome||'';
+        d[r.mes].prolaboreData=_pd.pdata||'';
       } else if(r.tipo==='distribuicao'){
-        // Distribuição de lucros = lista de lançamentos (data no campo nome). Soma no mês.
+        // Distribuição de lucros = lista de lançamentos (descrição + data no campo nome). Soma no mês.
         if(!d[r.mes].distribuicaoItems) d[r.mes].distribuicaoItems=[];
-        d[r.mes].distribuicaoItems.push({data:(r.nome&&/^\d{4}-\d{2}-\d{2}$/.test(r.nome))?r.nome:'',valor:+r.valor||0});
+        var _raw=r.nome||'',_dd;
+        if(/^\d{4}-\d{2}-\d{2}$/.test(_raw)) _dd={nome:'',pdata:_raw}; // legado: só data
+        else _dd=decNomeData(_raw);
+        d[r.mes].distribuicaoItems.push({data:_dd.pdata||'',desc:_dd.nome||'',valor:+r.valor||0});
         d[r.mes].distribuicao=(d[r.mes].distribuicao||0)+(+r.valor||0);
       } else if(r.tipo==='fixa'){
         // Auto-migrate: old DAS saved as tipo='fixa' → move to das field
@@ -5530,6 +5536,10 @@ function renderRes(){
         '<div style="font-size:9px;color:var(--text3);">Remuneração sócio · para constar, não debita</div></div>'+
         '<input type="text" inputmode="decimal" value="'+(md.prolabore?fmtN(md.prolabore):'')+'" placeholder="0,00" style="width:110px;background:var(--bg3);border:1px solid #f59e0b44;border-radius:6px;padding:6px 8px;color:#f59e0b;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveProlabore(\''+mk+'\',this.value)">'+
         '</div>'+
+      '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
+        '<input type="text" value="'+esc(md.prolaboreDesc||'')+'" placeholder="Descrição" onchange="saveProlaboreDesc(\''+mk+'\',this.value)" style="flex:1;min-width:0;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
+        '<input type="date" value="'+((md.prolaboreData||'').slice(0,10))+'" title="Data de pagamento" onchange="saveProlaboreData(\''+mk+'\',this.value)" style="width:130px;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;flex-shrink:0;">'+
+      '</div>'+
       '<div style="margin-bottom:8px;">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'+
           '<div><div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;">💸 Distribuição de Lucros</div>'+
@@ -5537,16 +5547,22 @@ function renderRes(){
           '<div style="font-size:14px;font-weight:800;color:#a78bfa;">'+fmt(md.distribuicao||0)+'</div>'+
         '</div>'+
         ((md.distribuicaoItems&&md.distribuicaoItems.length)?md.distribuicaoItems.map(function(di,dii){
-          return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">'+
-            '<input type="date" value="'+(di.data||'')+'" style="flex:1;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;" onchange="updDistribData(\''+mk+'\','+dii+',this.value)">'+
-            '<input type="text" inputmode="decimal" value="'+fmtN(di.valor||0)+'" style="width:90px;background:var(--input);border:1px solid #a78bfa44;border-radius:5px;padding:4px 8px;color:#a78bfa;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)updDistribVal(\''+mk+'\','+dii+',this.value)">'+
-            '<button onclick="delDistribItem(\''+mk+'\','+dii+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
+          return '<div style="padding:4px 0;border-bottom:1px solid var(--border);">'+
+            '<input type="text" value="'+esc(di.desc||'')+'" placeholder="Descrição" onchange="updDistribDesc(\''+mk+'\','+dii+',this.value)" style="width:100%;box-sizing:border-box;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;margin-bottom:4px;">'+
+            '<div style="display:flex;align-items:center;gap:6px;">'+
+              '<input type="date" value="'+(di.data||'')+'" style="flex:1;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;" onchange="updDistribData(\''+mk+'\','+dii+',this.value)">'+
+              '<input type="text" inputmode="decimal" value="'+fmtN(di.valor||0)+'" style="width:90px;background:var(--input);border:1px solid #a78bfa44;border-radius:5px;padding:4px 8px;color:#a78bfa;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)updDistribVal(\''+mk+'\','+dii+',this.value)">'+
+              '<button onclick="delDistribItem(\''+mk+'\','+dii+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
+            '</div>'+
           '</div>';
         }).join(''):'<div style="font-size:11px;color:var(--text3);padding:2px 0;">Nenhuma distribuição lançada</div>')+
-        '<div style="display:flex;gap:6px;margin-top:6px;">'+
-          '<input id="dist-data-'+mk+'" type="date" value="'+mk+'-01" style="flex:1;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
-          '<input id="dist-val-'+mk+'" type="text" inputmode="decimal" placeholder="Valor" style="width:90px;font-size:12px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 8px;color:var(--text);text-align:right;outline:none;" oninput="maskBRL(this)">'+
-          '<button onclick="addDistribItem(\''+mk+'\')" style="background:#a78bfa22;border:1px solid #a78bfa44;color:#a78bfa;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;padding:5px 11px;">+</button>'+
+        '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">'+
+          '<input id="dist-desc-'+mk+'" type="text" placeholder="Descrição" style="font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
+          '<div style="display:flex;gap:6px;">'+
+            '<input id="dist-data-'+mk+'" type="date" value="'+mk+'-01" style="flex:1;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
+            '<input id="dist-val-'+mk+'" type="text" inputmode="decimal" placeholder="Valor" style="width:90px;font-size:12px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 8px;color:var(--text);text-align:right;outline:none;" oninput="maskBRL(this)">'+
+            '<button onclick="addDistribItem(\''+mk+'\')" style="background:#a78bfa22;border:1px solid #a78bfa44;color:#a78bfa;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;padding:5px 11px;">+</button>'+
+          '</div>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -5693,12 +5709,12 @@ function aplicarRes(){
   var n=0;
   _ri.rows.forEach(function(r){
     if(!r.dest||r.dest==='descartar')return;
-    var nome=(r.nome||'').trim()||'Gasto';var v=+r.valor||0;n++;
-    if(r.dest==='fixa')md.fixas.push({nome:nome,valor:v});
-    else if(r.dest==='extra')md.extras.push({nome:nome,valor:v});
+    var nome=(r.nome||'').trim()||'Gasto';var v=+r.valor||0;var pd=r.data||'';n++;
+    if(r.dest==='fixa')md.fixas.push({nome:nome,valor:v,pdata:pd});
+    else if(r.dest==='extra')md.extras.push({nome:nome,valor:v,pdata:pd});
     else if(r.dest==='das')md.das=(+md.das||0)+v;
-    else if(r.dest==='prolabore')md.prolabore=(+md.prolabore||0)+v;
-    else if(r.dest==='distrib')md.distribuicaoItems.push({data:r.data||(mk+'-01'),valor:v});
+    else if(r.dest==='prolabore'){md.prolabore=(+md.prolabore||0)+v;if(pd)md.prolaboreData=pd;if(!md.prolaboreDesc)md.prolaboreDesc=nome;}
+    else if(r.dest==='distrib')md.distribuicaoItems.push({data:pd||(mk+'-01'),desc:nome,valor:v});
   });
   if(typeof _sumDistrib==='function')_sumDistrib(md);
   setMDesp(mk,md);saveDespDB(mk,md);
@@ -5732,8 +5748,8 @@ function exportMesXls(mk){
   (md.extras||[]).forEach(function(e){R.push([S('DESPESA EXTRA',1),S(e.nome),S(fd(e.pdata)),M(e.valor)]);});
   (md.financeiro||[]).forEach(function(f){R.push([S('FINANCEIRO',1),S(f.nome),S(''),M(f.valor)]);});
   R.push([S('IMPOSTO',1),S('DAS'+(md.das>0?' (real)':' (estimado)')),S(''),M(das)]);
-  if((+md.prolabore||0)>0)R.push([S('PRÓ-LABORE',1),S('Pró-labore'),S(''),M(md.prolabore)]);
-  (md.distribuicaoItems||[]).forEach(function(di){if((+di.valor||0)!==0)R.push([S('DISTRIBUIÇÃO',1),S('Retirada de lucros'),S(fd(di.data)),M(di.valor)]);});
+  if((+md.prolabore||0)>0)R.push([S('PRÓ-LABORE',1),S(md.prolaboreDesc||'Pró-labore'),S(fd(md.prolaboreData)),M(md.prolabore)]);
+  (md.distribuicaoItems||[]).forEach(function(di){if((+di.valor||0)!==0)R.push([S('DISTRIBUIÇÃO',1),S(di.desc||'Retirada de lucros'),S(fd(di.data)),M(di.valor)]);});
   R.push([]);
   R.push([S('RESULTADO',6),S('Margem de Contribuição',6),S('',6),M(mc,5)]);
   R.push([S('RESULTADO',6),S('EBITDA',6),S('',6),M(ebitda,5)]);
@@ -5886,16 +5902,30 @@ function saveProlabore(mk,val){
   saveDespDB(mk,md);
   renderResDebounced();
 }
+function saveProlaboreDesc(mk,val){
+  var md=getMDesp(mk);
+  md.prolaboreDesc=(val||'').trim();
+  setMDesp(mk,md);saveDespDB(mk,md);
+}
+function saveProlaboreData(mk,val){
+  var md=getMDesp(mk);
+  md.prolaboreData=val||'';
+  setMDesp(mk,md);saveDespDB(mk,md);
+}
 // Distribuição de lucros = lista de lançamentos (data + valor). md.distribuicao = soma do mês.
 function _sumDistrib(md){var s=0,i;if(md.distribuicaoItems)for(i=0;i<md.distribuicaoItems.length;i++)s+=(+md.distribuicaoItems[i].valor||0);md.distribuicao=Math.round(s*100)/100;return md.distribuicao;}
 function addDistribItem(mk){
-  var dEl=document.getElementById('dist-data-'+mk),vEl=document.getElementById('dist-val-'+mk);
-  var data=dEl?dEl.value:'';var val=parseBRL(vEl?vEl.value:'')||0;
+  var dEl=document.getElementById('dist-data-'+mk),vEl=document.getElementById('dist-val-'+mk),deEl=document.getElementById('dist-desc-'+mk);
+  var data=dEl?dEl.value:'';var val=parseBRL(vEl?vEl.value:'')||0;var desc=deEl?(deEl.value||'').trim():'';
   if(!val){toast('Informe o valor da distribuição',true);return;}
   var md=getMDesp(mk);if(!md.distribuicaoItems)md.distribuicaoItems=[];
-  md.distribuicaoItems.push({data:data||(mk+'-01'),valor:val});
+  md.distribuicaoItems.push({data:data||(mk+'-01'),desc:desc,valor:val});
   _sumDistrib(md);setMDesp(mk,md);saveDespDB(mk,md);renderResDebounced();
   toast('Distribuição adicionada!');
+}
+function updDistribDesc(mk,idx,val){
+  var md=getMDesp(mk);if(!md.distribuicaoItems||!md.distribuicaoItems[idx])return;
+  md.distribuicaoItems[idx].desc=(val||'').trim();setMDesp(mk,md);saveDespDB(mk,md);
 }
 function delDistribItem(mk,idx){
   var md=getMDesp(mk);if(!md.distribuicaoItems)return;
