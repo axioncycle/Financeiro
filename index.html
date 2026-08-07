@@ -7560,9 +7560,9 @@ function exportPackingListXls(){
   var MATERIAL='碳纤维+金属,自行车车轮\n//\ncarbon fiber + metal, bicycle wheels';
   function S(v,s,cs){return {v:v,t:'s',s:s,cs:cs};}
   function N(v,s){return {v:v,t:'n',s:s};}
-  function F(f,s){return {f:f,v:0,s:s};}
+  function F(f,s,v){return {f:f,v:(v||0),s:s};}
   var M=[];
-  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','EAN','CÓDIGO SKU','NCM','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','DESCRIÇÃO DO PRODUTO (EN / 中文)','MATERIAL','PHOTO','TOTAL CARTONS','UNIT/CTN','QUANTITY','UNIT PRICE','AMOUNT','COMPRIMENTO (cm)','LARGURA (cm)','ALTURA (cm)','M³ (por caixa)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)'];
+  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','EAN','CÓDIGO SKU','NCM','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','DESCRIÇÃO DO PRODUTO (EN / 中文)','MATERIAL','PHOTO','TOTAL CARTONS','UNIT PRICE','VALOR TOTAL','COMPRIMENTO (cm)','LARGURA (cm)','ALTURA (cm)','M³ (por caixa)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)'];
   var NCOLS=HEADERS.length;
   // Instruções (topo)
   M.push({h:28,cells:[S('Only fill in the colored columns (yellow); white/blue columns have formulas. Fill all required info so the shipping mark can be generated.',1,NCOLS)]});
@@ -7573,9 +7573,15 @@ function exportPackingListXls(){
   // Cabeçalho (linha 6)
   M.push({h:44,cells:HEADERS.map(function(h){return S(h,2);})});
   var first=M.length+1;
+  var sumCart=0,sumVal=0,sumCbm=0,sumGross=0;
   rows.forEach(function(r,idx){
     var m=meta[r.skuNome]||{};var dims=_plDims(m.caixa)||[0,0,0];var pw=_plPeso(m.peso);
     var q=parseInt(r.qty,10)||0,u=parseFloat(r.usd)||0,rn=M.length+1;
+    var m3=Math.round(((dims[0]*dims[1]*dims[2])/1000000)*10000)/10000;
+    var valTot=Math.round(q*u*100)/100;
+    var totCbm=Math.round(m3*q*10000)/10000;
+    var totGross=Math.round(pw*q*100)/100;
+    sumCart+=q;sumVal+=valTot;sumCbm+=totCbm;sumGross+=totGross;
     M.push({h:34,cells:[
       S('',4),                                   /*A WEN*/
       S(m.ean||'',4),                            /*B EAN*/
@@ -7588,28 +7594,25 @@ function exportPackingListXls(){
       S(MATERIAL,5),                             /*I material*/
       S('',4),                                   /*J photo*/
       N(q,6),                                    /*K total cartons (qtd de caixas)*/
-      N(1,6),                                    /*L unit/ctn*/
-      F('L'+rn+'*K'+rn,11),                      /*M quantity*/
-      N(Math.round(u*100)/100,8),                /*N unit price*/
-      F('N'+rn+'*M'+rn,14),                      /*O amount*/
-      N(dims[0]||'',6),                          /*P comprimento*/
-      N(dims[1]||'',6),                          /*Q largura*/
-      N(dims[2]||'',6),                          /*R altura*/
-      F('(P'+rn+'*Q'+rn+'*R'+rn+')/1000000',13), /*S m³ por caixa*/
-      pw>0?N(pw,7):S('',7),                       /*T carton gross weight*/
-      F('S'+rn+'*K'+rn,13),                      /*U total cbm*/
-      F('T'+rn+'*K'+rn,12)                       /*V total gross weight*/
+      N(Math.round(u*100)/100,8),                /*L unit price*/
+      F('K'+rn+'*L'+rn,14,valTot),               /*M valor total = cartons × preço*/
+      N(dims[0]||'',6),                          /*N comprimento*/
+      N(dims[1]||'',6),                          /*O largura*/
+      N(dims[2]||'',6),                          /*P altura*/
+      F('(N'+rn+'*O'+rn+'*P'+rn+')/1000000',13,m3), /*Q m³ por caixa*/
+      pw>0?N(pw,7):S('',7),                       /*R carton gross weight*/
+      F('Q'+rn+'*K'+rn,13,totCbm),               /*S total cbm = m³ × caixas*/
+      F('R'+rn+'*K'+rn,12,totGross)              /*T total gross = peso × caixas*/
     ]});
   });
   var last=M.length;
   // Linha TOTAL
   var tot=[];for(var k=0;k<NCOLS;k++)tot[k]=null;
   tot[0]=S('TOTAL:',15);
-  tot[10]=F('SUM(K'+first+':K'+last+')',11);
-  tot[12]=F('SUM(M'+first+':M'+last+')',11);
-  tot[14]=F('SUM(O'+first+':O'+last+')',14);
-  tot[20]=F('SUM(U'+first+':U'+last+')',13);
-  tot[21]=F('SUM(V'+first+':V'+last+')',12);
+  tot[10]=F('SUM(K'+first+':K'+last+')',11,sumCart);
+  tot[12]=F('SUM(M'+first+':M'+last+')',14,Math.round(sumVal*100)/100);
+  tot[18]=F('SUM(S'+first+':S'+last+')',13,Math.round(sumCbm*10000)/10000);
+  tot[19]=F('SUM(T'+first+':T'+last+')',12,Math.round(sumGross*100)/100);
   M.push(tot);
   // Bloco do importador
   M.push([]);
@@ -7622,7 +7625,7 @@ function exportPackingListXls(){
   M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
   M.push([S('',4),S('bicycle wheel',5,3)]);
   M.push([S('',4),S('自行车轮',5,3)]);
-  var cols=[16,14,16,13,34,16,18,40,24,10,12,9,11,11,12,14,12,12,12,16,12,16];
+  var cols=[16,14,16,13,34,16,18,40,24,10,12,11,14,12,12,12,12,16,12,16];
   var bytes=buildPackingXlsx(M,cols);
   var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   shareOrDownload(blob,'Packing List '+String(cont).replace(/[\/\\]/g,'-')+'.xlsx','Packing List exportado!');
