@@ -7562,48 +7562,47 @@ function exportPackingListXls(){
   function N(v,s){return {v:v,t:'n',s:s};}
   function F(f,s){return {f:f,v:0,s:s};}
   var M=[];
-  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','SPECIFICATIONS (brand, type, model...)','SIZE (L*W*H)','MATERIAL','PHOTO','PALLET','TOTAL CARTONS','UNIT/CTN','QUANTITY','UNIT PRICE','UNIT','AMOUNT','L (cm)','W (cm)','H (cm)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)','PRODUCT LINK'];
+  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','EAN','CÓDIGO SKU','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','DESCRIÇÃO DO PRODUTO (EN / 中文)','MATERIAL','PHOTO','TOTAL CARTONS','UNIT/CTN','QUANTITY','UNIT PRICE','UNIT','AMOUNT','COMPRIMENTO (cm)','LARGURA (cm)','ALTURA (cm)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)'];
+  var NCOLS=HEADERS.length;
   // Instruções (topo)
-  M.push({h:28,cells:[S('Only fill in the colored columns (yellow); white/blue columns have formulas. Fill all required info so the shipping mark can be generated.',1,22)]});
-  M.push({h:28,cells:[S('If the boxes are on pallets, enter the items according to the master box on the pallet. Include the measurements and weight of the pallet.',1,22)]});
-  M.push([S('ATTENTION TO LIMIT MEASURES ( HEIGHT: 2,20   WIDTH: 1,90 )',1,22)]);
-  M.push([S('ALL BOXES/CRATES MUST BE REINFORCED AND NEUTRAL PACKING',1,22)]);
-  M.push([S('ORDERLIST — '+cont,1,22)]);
+  M.push({h:28,cells:[S('Only fill in the colored columns (yellow); white/blue columns have formulas. Fill all required info so the shipping mark can be generated.',1,NCOLS)]});
+  M.push({h:28,cells:[S('If the boxes are on pallets, enter the items according to the master box on the pallet. Include the measurements and weight of the pallet.',1,NCOLS)]});
+  M.push([S('ATTENTION TO LIMIT MEASURES ( HEIGHT: 2,20   WIDTH: 1,90 )',1,NCOLS)]);
+  M.push([S('ALL BOXES/CRATES MUST BE REINFORCED AND NEUTRAL PACKING',1,NCOLS)]);
+  M.push([S('ORDERLIST — '+cont,1,NCOLS)]);
   // Cabeçalho (linha 6)
   M.push({h:44,cells:HEADERS.map(function(h){return S(h,2);})});
   var first=M.length+1;
   rows.forEach(function(r,idx){
     var m=meta[r.skuNome]||{};var dims=_plDims(m.caixa)||[0,0,0];var pw=_plPeso(m.peso);
     var q=parseInt(r.qty,10)||0,u=parseFloat(r.usd)||0,rn=M.length+1;
-    var spec='Brand: Axion Cycle, bicycle wheel. Material: carbon fiber and metal. '+r.skuNome;
     M.push({h:34,cells:[
       S('',4),                                   /*A WEN*/
-      S(idx===0?SUPPLIER:'',5),                  /*B supplier*/
-      S(CN_NAME,5),                              /*C cn name*/
-      S(EN_NAME,5),                              /*D en name*/
-      S(spec,5),                                 /*E spec*/
-      S(dims[0]?dims.join('*'):(m.caixa||''),4), /*F size*/
-      S(MATERIAL,5),                             /*G material*/
-      S('',4),                                   /*H photo*/
-      S('',4),                                   /*I pallet*/
-      N(q,6),                                    /*J cartons*/
+      S(m.ean||'',4),                            /*B EAN*/
+      S(m.codigo||'',4),                         /*C Código SKU*/
+      S(idx===0?SUPPLIER:'',5),                  /*D supplier*/
+      S('自行车轮',4),                            /*E product name CN*/
+      S('bicycle wheel',4),                      /*F product name EN*/
+      S(r.skuNome,5),                            /*G descrição do produto (puxa SKU)*/
+      S(MATERIAL,5),                             /*H material*/
+      S('',4),                                   /*I photo*/
+      N(q,6),                                    /*J total cartons (qtd de caixas)*/
       N(1,6),                                    /*K unit/ctn*/
       F('K'+rn+'*J'+rn,11),                      /*L quantity*/
       N(Math.round(u*100)/100,8),                /*M unit price*/
       S('pair',4),                               /*N unit*/
       F('M'+rn+'*L'+rn,14),                      /*O amount*/
-      N(dims[0]||'',6),                          /*P L*/
-      N(dims[1]||'',6),                          /*Q W*/
-      N(dims[2]||'',6),                          /*R H*/
+      N(dims[0]||'',6),                          /*P comprimento*/
+      N(dims[1]||'',6),                          /*Q largura*/
+      N(dims[2]||'',6),                          /*R altura*/
       pw>0?N(pw,7):S('',7),                       /*S carton gross weight*/
       F('((P'+rn+'*Q'+rn+'*R'+rn+')/1000000)*J'+rn,13), /*T total cbm*/
-      F('S'+rn+'*J'+rn,12),                      /*U total gross weight*/
-      S(LINK,5)                                  /*V link*/
+      F('S'+rn+'*J'+rn,12)                       /*U total gross weight*/
     ]});
   });
   var last=M.length;
   // Linha TOTAL
-  var tot=[];for(var k=0;k<22;k++)tot[k]=null;
+  var tot=[];for(var k=0;k<NCOLS;k++)tot[k]=null;
   tot[0]=S('TOTAL:',15);
   tot[9]=F('SUM(J'+first+':J'+last+')',11);
   tot[11]=F('SUM(L'+first+':L'+last+')',11);
@@ -7622,7 +7621,7 @@ function exportPackingListXls(){
   M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
   M.push([S('',4),S('bicycle wheel',5,3)]);
   M.push([S('',4),S('自行车轮',5,3)]);
-  var cols=[16,34,16,22,40,14,26,10,12,11,9,11,11,8,12,8,8,8,14,12,15,30];
+  var cols=[16,14,16,34,16,18,40,24,10,12,9,11,11,8,12,14,12,12,16,12,16];
   var bytes=buildPackingXlsx(M,cols);
   var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   shareOrDownload(blob,'Packing List '+String(cont).replace(/[\/\\]/g,'-')+'.xlsx','Packing List exportado!');
