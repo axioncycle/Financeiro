@@ -7314,12 +7314,12 @@ function buildTableXlsx(headers,rows,colW,sheetName){
 }
 function skcExportCSV(list,ref,fator){
   function d(v){v=String(v==null?'':v).trim();return v?v:'-';}
-  var headers=['SKU','Código SKU','Categoria','EAN','NCM','Tamanho da caixa','Cubagem (m³)','Peso','Valor USD','Valor BRL'];
+  var headers=['SKU','Código SKU','Categoria','EAN','NCM','Tamanho da caixa','Cubagem (m³)','Peso','Valor USD'];
   var rows=list.map(function(s){
-    var brl=(s.usd||0)*ref*fator;var cub=skcFmtCub(s.caixa);
-    return [d(s.nome),d(s.codigo),d(s.cat),d(s.ean),d(s.ncm),d(s.caixa),cub||'-',d(s.peso),{t:'n',v:Math.round((s.usd||0)*100)/100},{t:'n',v:Math.round(brl*100)/100}];
+    var cub=skcFmtCub(s.caixa);
+    return [d(s.nome),d(s.codigo),d(s.cat),d(s.ean),d(s.ncm),d(s.caixa),cub||'-',d(s.peso),{t:'n',v:Math.round((s.usd||0)*100)/100}];
   });
-  var bytes=buildTableXlsx(headers,rows,[40,24,12,16,13,16,13,11,12,13],'SKUs Axion');
+  var bytes=buildTableXlsx(headers,rows,[40,24,12,16,13,16,13,11,12],'SKUs Axion');
   var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   shareOrDownload(blob,'skus_axion.xlsx','Lista exportada!');
 }
@@ -7329,10 +7329,9 @@ function skcExportPDF(list,ref,fator){
   var rows='',totUsd=0,totBrl=0;
   function d(v){v=String(v==null?'':v).trim();return v?esc(v):'—';}
   list.forEach(function(s){
-    var brl=(s.usd||0)*ref*fator;totUsd+=(s.usd||0);totBrl+=brl;var cub=skcFmtCub(s.caixa);
+    totUsd+=(s.usd||0);var cub=skcFmtCub(s.caixa);
     rows+='<tr><td>'+d(s.nome)+'</td><td>'+d(s.codigo)+'</td><td>'+d(s.cat)+'</td><td>'+d(s.ean)+'</td><td>'+d(s.ncm)+'</td><td>'+d(s.caixa)+'</td><td>'+(cub?esc(cub):'—')+'</td><td>'+d(s.peso)+'</td>'+
-      '<td class="num">'+(s.usd?('$ '+s.usd.toFixed(2)):'—')+'</td>'+
-      '<td class="num">'+(s.usd?('R$ '+brl.toFixed(2).replace('.',',')):'—')+'</td></tr>';
+      '<td class="num">'+(s.usd?('$ '+s.usd.toFixed(2)):'—')+'</td></tr>';
   });
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>SKUs Axion Cycle — '+dateStr+'</title>'+
     '<style>@page{size:A4 landscape;margin:10mm;}*{box-sizing:border-box;margin:0;padding:0;}'+
@@ -7350,9 +7349,9 @@ function skcExportPDF(list,ref,fator){
     '</style></head><body>'+
     '<h1>Lista de SKUs</h1>'+
     '<div class="subtitle">Axion Cycle · '+filtroTxt+' · '+list.length+' itens · Dólar R$ '+fmtN(ref)+' · Fator '+fmtN(fator)+' · Gerado em '+dateStr+'</div>'+
-    '<table><thead><tr><th>SKU</th><th>Código SKU</th><th>Categoria</th><th>EAN</th><th>NCM</th><th>Tam. caixa</th><th>Cubagem</th><th>Peso</th><th class="num">USD</th><th class="num">BRL</th></tr></thead>'+
+    '<table><thead><tr><th>SKU</th><th>Código SKU</th><th>Categoria</th><th>EAN</th><th>NCM</th><th>Tam. caixa</th><th>Cubagem</th><th>Peso</th><th class="num">USD</th></tr></thead>'+
     '<tbody>'+rows+'</tbody>'+
-    '<tfoot><tr><td colspan="8">TOTAL ('+list.length+' SKUs)</td><td class="num">$ '+totUsd.toFixed(2)+'</td><td class="num">R$ '+totBrl.toFixed(2).replace('.',',')+'</td></tr></tfoot>'+
+    '<tfoot><tr><td colspan="8">TOTAL ('+list.length+' SKUs)</td><td class="num">$ '+totUsd.toFixed(2)+'</td></tr></tfoot>'+
     '</table>'+
     '<div style="position:fixed;bottom:20px;right:20px;display:flex;gap:8px;">'+
     '<button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
