@@ -67,6 +67,15 @@ header.hero{position:relative;padding:30px 20px 24px;border-bottom:1px solid var
 .trust{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}
 .trust .b{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border2);padding:8px 13px;border-radius:999px;font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
 .trust .b svg{width:15px;height:15px;color:var(--blue)}
+.b2b{margin-top:26px;background:linear-gradient(135deg,rgba(47,155,255,.12),rgba(47,155,255,.03));border:1px solid var(--border2);border-left:3px solid var(--blue);border-radius:16px;padding:22px 24px;max-width:820px}
+.b2b-tag{display:inline-flex;align-items:center;gap:7px;font-size:.7rem;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--blue);background:rgba(47,155,255,.1);border:1px solid var(--border2);padding:6px 12px;border-radius:999px}
+.b2b-tag svg{width:15px;height:15px}
+.b2b-h{font-size:clamp(1.15rem,2.6vw,1.6rem);font-weight:900;letter-spacing:-.3px;margin-top:13px;line-height:1.12}
+.b2b-p{color:var(--text2);font-size:.95rem;line-height:1.55;margin-top:9px;max-width:680px}
+.b2b-p strong{color:var(--text);font-weight:800}
+.b2b-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.b2b-chips .bz{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border2);padding:8px 13px;border-radius:999px;font-size:.73rem;font-weight:700;color:var(--text)}
+.b2b-chips .bz svg{width:15px;height:15px;color:var(--blue)}
 
 /* ============================ FILTER ============================ */
 .filterbar{position:sticky;top:0;z-index:40;background:rgba(5,8,13,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:11px 20px}
@@ -140,7 +149,10 @@ main{max-width:1180px;margin:0 auto;padding:8px 20px 40px}
 .soon-pill{font-size:.5em;vertical-align:middle;background:linear-gradient(145deg,#f0cf5c,#c99a34);color:#2a1e05;padding:4px 11px;border-radius:999px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
 .body{padding:15px 16px 16px;display:flex;flex-direction:column;flex:1}
 .body h3{font-size:1.02rem;font-weight:800;letter-spacing:-.2px;margin-bottom:4px}
-.summ{font-size:.82rem;color:var(--text2);margin-bottom:12px;flex:1}
+.summ{font-size:.82rem;color:var(--text2);margin-bottom:12px}
+.biz{display:flex;gap:8px;align-items:flex-start;background:linear-gradient(135deg,rgba(47,155,255,.1),rgba(47,155,255,.02));border:1px solid var(--border2);border-left:2px solid var(--blue);border-radius:9px;padding:9px 11px;margin-bottom:13px;font-size:.76rem;line-height:1.4;font-weight:600;color:var(--text)}
+.biz svg{width:15px;height:15px;color:var(--blue);flex:0 0 auto;margin-top:1px}
+.m-biz{font-size:.82rem;margin-bottom:16px}
 .swatches{display:flex;gap:7px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
 .sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--border2), inset 0 0 0 1.5px rgba(0,0,0,.35);cursor:pointer;transition:.15s;position:relative}
 .sw:hover{transform:scale(1.12)}
@@ -230,6 +242,18 @@ footer b{color:var(--text2)}
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Garantia oficial 2 anos</span>
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h13v8H3zM16 10h4l1 3v2h-5"/><circle cx="6.5" cy="17" r="1.6"/><circle cx="17.5" cy="17" r="1.6"/></svg>Entrega para todo o Brasil</span>
       <span class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg>Clincher + Tubeless Ready</span>
+    </div>
+    <div class="b2b">
+      <div class="b2b-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9zM9 20v-6h6v6"/></svg>Para lojistas &amp; revendedores</div>
+      <h2 class="b2b-h">Leve a Axion Cycle para dentro da sua loja.</h2>
+      <p class="b2b-p">Rodas de carbono com margem de revenda saudável, alto giro e ticket elevado. Produto certificado, garantia de fábrica e pronta entrega — você fecha a venda, a Axion entrega a performance. <strong>Você ganha, nós ganhamos, estamos juntos.</strong></p>
+      <div class="b2b-chips">
+        <span class="bz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Margem de revenda atrativa</span>
+        <span class="bz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></svg>Alto giro e ticket elevado</span>
+        <span class="bz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Certificação INMETRO</span>
+        <span class="bz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Garantia de fábrica</span>
+        <span class="bz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h13v8H3zM16 10h4l1 3v2h-5"/><circle cx="6.5" cy="17" r="1.6"/><circle cx="17.5" cy="17" r="1.6"/></svg>Pronta entrega</span>
+      </div>
     </div>
   </div>
 </header>
@@ -360,6 +384,24 @@ var PRODUCTS = [
   summ:"Roda de carbono para mountain bike: rígida, leve e tubeless para trilha e cross-country.",
   variants:[{color:"BLACK",img:"1NL2K64bs2DkbKw4p7G4qVFGkj6ZfK-Ez"}]}
 ];
+
+// Frase B2B (para o lojista / revendedor) por modelo
+var B2B = {
+ "Rim Brake 50mm":"Porta de entrada no carbono: preço-âncora que vende fácil e traz cliente novo para a loja.",
+ "Rim Brake 60mm":"O aero mais procurado — ticket alto e cliente que já chega decidido a comprar.",
+ "Rim Brake 60/88mm":"Set de prova para o cliente competitivo: exclusividade que diferencia a sua vitrine.",
+ "Rim Brake Fechada com 88mm (opcional 60mm)":"Item de desejo de triatletas — margem premium e alto valor agregado.",
+ "Rim Brake Wave Ceramic 45/50mm":"Rolamento cerâmico é argumento de venda pronto: agrega valor e fecha o pedido.",
+ "Rim Brake 3-Spoke":"Lançamento para gerar expectativa e atrair o público de performance à sua loja.",
+ "Disc Brake 50mm":"A disc mais versátil: serve na maioria das bikes modernas e praticamente se vende sozinha.",
+ "Disc Brake 60mm":"Aero + disco: o combo que o ciclista de performance quer — e paga bem por ele.",
+ "Disc Brake 60/88mm":"Set de alto ticket para provas: margem cheia e exclusividade na sua vitrine.",
+ "Disc Brake Fechada com 88mm (opcional 60mm)":"Produto premium de contra-relógio que valoriza a loja e o pedido.",
+ "Disc Brake Wave Ceramic 55/60mm":"Cerâmica + Wave: uma história de venda pronta para o cliente de alto padrão.",
+ "Disc Brake 3-Spoke":"Novidade para criar buzz e puxar o público de triathlon para a sua loja.",
+ "Gravel 45mm":"Surfe na onda do gravel: categoria em alta e cliente disposto a investir.",
+ "MTB Carbon":"Carbono para MTB/XC: público fiel, giro constante e margem saudável."
+};
 
 /* =========================================================================
    FICHA TÉCNICA COMPLETA / COMPATIBILIDADE / GATILHOS
@@ -660,6 +702,7 @@ function card(p,gi){
     + '<div class="body">'
       + '<h3>'+p.name+'</h3>'
       + '<p class="summ">'+p.summ+'</p>'
+      + (B2B[p.name]?'<div class="biz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9zM9 20v-6h6v6"/></svg><span>'+B2B[p.name]+'</span></div>':'')
       + '<div class="swatches">'+swatchHTML(p,gi,vIdx)+'<span class="sw-name">'+swl+'</span></div>'
       + '<div class="mini-specs"><span class="ms"><b>'+(isDisc(p)?"Disc":"Rim")+'</b> brake</span><span class="ms">Tubeless <b>Ready</b></span><span class="ms">9–12<b>v</b></span>'+(p.ceramic?'<span class="ms ms-gold">Rolamento <b>cerâmico</b></span>':'')+'</div>'
       + '<div class="cta">'
@@ -762,6 +805,7 @@ function buildModal(gi,vIdx){
         + '<div class="m-line">'+(p.sec==="RIM"?"Rim Brake":p.sec==="DISC"?"Disc Brake":p.sec==="GRAVEL"?"Gravel":"MTB")+' · '+p.line+'</div>'
         + '<h2>'+p.name+(p.soon?' <span class="soon-pill">Em breve</span>':'')+'</h2>'
         + '<p class="m-summ">'+p.summ+'</p>'
+        + (B2B[p.name]?'<div class="biz m-biz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1.5-5h15L21 9M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9zM9 20v-6h6v6"/></svg><span>'+B2B[p.name]+'</span></div>':'')
         + '<div class="m-sw">'+sw+'</div>'
         + '<div class="m-swname">Cor: <b style="color:var(--text)">'+COLORS[v.color].label+'</b>'+(p.variants.length>1?' · '+p.variants.length+' cores disponíveis':'')+'</div>'
         + '<div class="triggers">'+trig.slice(0,4).map(function(t){return '<span class="trigger">'+spark+t+'</span>'}).join('')+'</div>'
