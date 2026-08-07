@@ -7562,7 +7562,7 @@ function exportPackingListXls(){
   function N(v,s){return {v:v,t:'n',s:s};}
   function F(f,s){return {f:f,v:0,s:s};}
   var M=[];
-  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','EAN','CÓDIGO SKU','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','DESCRIÇÃO DO PRODUTO (EN / 中文)','MATERIAL','PHOTO','TOTAL CARTONS','UNIT/CTN','QUANTITY','UNIT PRICE','UNIT','AMOUNT','COMPRIMENTO (cm)','LARGURA (cm)','ALTURA (cm)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)'];
+  var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','EAN','CÓDIGO SKU','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','DESCRIÇÃO DO PRODUTO (EN / 中文)','MATERIAL','PHOTO','TOTAL CARTONS','UNIT/CTN','QUANTITY','UNIT PRICE','AMOUNT','COMPRIMENTO (cm)','LARGURA (cm)','ALTURA (cm)','M³ (por caixa)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)'];
   var NCOLS=HEADERS.length;
   // Instruções (topo)
   M.push({h:28,cells:[S('Only fill in the colored columns (yellow); white/blue columns have formulas. Fill all required info so the shipping mark can be generated.',1,NCOLS)]});
@@ -7590,13 +7590,13 @@ function exportPackingListXls(){
       N(1,6),                                    /*K unit/ctn*/
       F('K'+rn+'*J'+rn,11),                      /*L quantity*/
       N(Math.round(u*100)/100,8),                /*M unit price*/
-      S('pair',4),                               /*N unit*/
-      F('M'+rn+'*L'+rn,14),                      /*O amount*/
-      N(dims[0]||'',6),                          /*P comprimento*/
-      N(dims[1]||'',6),                          /*Q largura*/
-      N(dims[2]||'',6),                          /*R altura*/
+      F('M'+rn+'*L'+rn,14),                      /*N amount*/
+      N(dims[0]||'',6),                          /*O comprimento*/
+      N(dims[1]||'',6),                          /*P largura*/
+      N(dims[2]||'',6),                          /*Q altura*/
+      F('(O'+rn+'*P'+rn+'*Q'+rn+')/1000000',13), /*R m³ por caixa*/
       pw>0?N(pw,7):S('',7),                       /*S carton gross weight*/
-      F('((P'+rn+'*Q'+rn+'*R'+rn+')/1000000)*J'+rn,13), /*T total cbm*/
+      F('R'+rn+'*J'+rn,13),                      /*T total cbm*/
       F('S'+rn+'*J'+rn,12)                       /*U total gross weight*/
     ]});
   });
@@ -7606,7 +7606,7 @@ function exportPackingListXls(){
   tot[0]=S('TOTAL:',15);
   tot[9]=F('SUM(J'+first+':J'+last+')',11);
   tot[11]=F('SUM(L'+first+':L'+last+')',11);
-  tot[14]=F('SUM(O'+first+':O'+last+')',14);
+  tot[13]=F('SUM(N'+first+':N'+last+')',14);
   tot[19]=F('SUM(T'+first+':T'+last+')',13);
   tot[20]=F('SUM(U'+first+':U'+last+')',12);
   M.push(tot);
@@ -7621,7 +7621,7 @@ function exportPackingListXls(){
   M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
   M.push([S('',4),S('bicycle wheel',5,3)]);
   M.push([S('',4),S('自行车轮',5,3)]);
-  var cols=[16,14,16,34,16,18,40,24,10,12,9,11,11,8,12,14,12,12,16,12,16];
+  var cols=[16,14,16,34,16,18,40,24,10,12,9,11,11,12,14,12,12,12,16,12,16];
   var bytes=buildPackingXlsx(M,cols);
   var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   shareOrDownload(blob,'Packing List '+String(cont).replace(/[\/\\]/g,'-')+'.xlsx','Packing List exportado!');
