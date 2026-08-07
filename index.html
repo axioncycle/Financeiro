@@ -7282,8 +7282,9 @@ function skcExport(fmt){
 function skcExportCSV(list,ref,fator){
   function cell(v){v=String(v==null?'':v);return /[";\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
   function num(n){return (Math.round((n||0)*100)/100).toFixed(2).replace('.',',');}
-  var lines=['SKU;Categoria;EAN;Valor USD;Valor BRL'];
-  list.forEach(function(s){var brl=(s.usd||0)*ref*fator;lines.push(cell(s.nome)+';'+cell(s.cat||'')+';'+cell(s.ean||'')+';'+num(s.usd)+';'+num(brl));});
+  function d(v){v=String(v==null?'':v).trim();return v?v:'-';}
+  var lines=['SKU;Código SKU;Categoria;EAN;NCM;Tamanho da caixa;Cubagem (m³);Peso;Valor USD;Valor BRL'];
+  list.forEach(function(s){var brl=(s.usd||0)*ref*fator;var cub=skcFmtCub(s.caixa);lines.push(cell(d(s.nome))+';'+cell(d(s.codigo))+';'+cell(d(s.cat))+';'+cell(d(s.ean))+';'+cell(d(s.ncm))+';'+cell(d(s.caixa))+';'+cell(cub||'-')+';'+cell(d(s.peso))+';'+num(s.usd)+';'+num(brl));});
   var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   shareOrDownload(blob,'skus_axion.csv','Lista exportada!');
 }
@@ -7291,21 +7292,22 @@ function skcExportPDF(list,ref,fator){
   var dateStr=new Date().toLocaleDateString('pt-BR');
   var filtroTxt=(skcCat==='__all__'?'Todas as categorias':'Categoria: '+skcCat);
   var rows='',totUsd=0,totBrl=0;
+  function d(v){v=String(v==null?'':v).trim();return v?esc(v):'—';}
   list.forEach(function(s){
-    var brl=(s.usd||0)*ref*fator;totUsd+=(s.usd||0);totBrl+=brl;
-    rows+='<tr><td>'+esc(s.nome)+'</td><td>'+esc(s.cat||'—')+'</td><td>'+esc(s.ean||'—')+'</td>'+
+    var brl=(s.usd||0)*ref*fator;totUsd+=(s.usd||0);totBrl+=brl;var cub=skcFmtCub(s.caixa);
+    rows+='<tr><td>'+d(s.nome)+'</td><td>'+d(s.codigo)+'</td><td>'+d(s.cat)+'</td><td>'+d(s.ean)+'</td><td>'+d(s.ncm)+'</td><td>'+d(s.caixa)+'</td><td>'+(cub?esc(cub):'—')+'</td><td>'+d(s.peso)+'</td>'+
       '<td class="num">'+(s.usd?('$ '+s.usd.toFixed(2)):'—')+'</td>'+
       '<td class="num">'+(s.usd?('R$ '+brl.toFixed(2).replace('.',',')):'—')+'</td></tr>';
   });
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>SKUs Axion Cycle — '+dateStr+'</title>'+
-    '<style>*{box-sizing:border-box;margin:0;padding:0;}'+
+    '<style>@page{size:A4 landscape;margin:10mm;}*{box-sizing:border-box;margin:0;padding:0;}'+
     'body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:20px 24px;}'+
     'h1{font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:2px;}'+
     '.subtitle{font-size:11px;color:#555;margin-bottom:16px;}'+
     'table{width:100%;border-collapse:collapse;}'+
-    'th{background:#1a1a2e;color:#fff;font-size:10px;font-weight:700;padding:6px 8px;text-align:left;}'+
+    'th{background:#1a1a2e;color:#fff;font-size:9px;font-weight:700;padding:5px 6px;text-align:left;}'+
     'th.num{text-align:right;}'+
-    'td{padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:11px;}'+
+    'td{padding:5px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;}'+
     'td.num{text-align:right;font-weight:600;color:#374151;white-space:nowrap;}'+
     'tr:nth-child(even) td{background:#f8fafc;}'+
     'tfoot td{background:#eff6ff;color:#1d4ed8;font-weight:800;border-top:2px solid #e2e8f0;}'+
@@ -7313,9 +7315,9 @@ function skcExportPDF(list,ref,fator){
     '</style></head><body>'+
     '<h1>Lista de SKUs</h1>'+
     '<div class="subtitle">Axion Cycle · '+filtroTxt+' · '+list.length+' itens · Dólar R$ '+fmtN(ref)+' · Fator '+fmtN(fator)+' · Gerado em '+dateStr+'</div>'+
-    '<table><thead><tr><th>SKU</th><th>Categoria</th><th>EAN</th><th class="num">USD</th><th class="num">BRL</th></tr></thead>'+
+    '<table><thead><tr><th>SKU</th><th>Código SKU</th><th>Categoria</th><th>EAN</th><th>NCM</th><th>Tam. caixa</th><th>Cubagem</th><th>Peso</th><th class="num">USD</th><th class="num">BRL</th></tr></thead>'+
     '<tbody>'+rows+'</tbody>'+
-    '<tfoot><tr><td colspan="3">TOTAL ('+list.length+' SKUs)</td><td class="num">$ '+totUsd.toFixed(2)+'</td><td class="num">R$ '+totBrl.toFixed(2).replace('.',',')+'</td></tr></tfoot>'+
+    '<tfoot><tr><td colspan="8">TOTAL ('+list.length+' SKUs)</td><td class="num">$ '+totUsd.toFixed(2)+'</td><td class="num">R$ '+totBrl.toFixed(2).replace('.',',')+'</td></tr></tfoot>'+
     '</table>'+
     '<div style="position:fixed;bottom:20px;right:20px;display:flex;gap:8px;">'+
     '<button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
