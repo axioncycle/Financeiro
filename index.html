@@ -7517,7 +7517,7 @@ function buildPackingXlsx(model,cols){
   var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
   var wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Packing List" sheetId="1" r:id="rId1"/></sheets></workbook>';
   var wbr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
-  var fonts='<fonts count="4"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="8"/><color rgb="FFB00000"/><name val="Calibri"/></font></fonts>';
+  var fonts='<fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="8"/><color rgb="FFB00000"/><name val="Calibri"/></font><font><b/><sz val="18"/><name val="Calibri"/></font></fonts>';
   var fills='<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1A1A2E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills>';
   var borders='<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders>';
   var xfs=[
@@ -7536,9 +7536,10 @@ function buildPackingXlsx(model,cols){
     '<xf numFmtId="164" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*12 num2 comp*/
     '<xf numFmtId="165" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*13 num4 comp*/
     '<xf numFmtId="166" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>',/*14 usd comp*/
-    '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'/*15 total label*/
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>',/*15 total label*/
+    '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'/*16 título*/
   ].join('');
-  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="0.0000"/><numFmt numFmtId="166" formatCode="&quot;$&quot;\\ #,##0.00"/></numFmts>'+fonts+fills+borders+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="16">'+xfs+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="0.0000"/><numFmt numFmtId="166" formatCode="&quot;$&quot;\\ #,##0.00"/></numFmts>'+fonts+fills+borders+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="17">'+xfs+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
   return _xzip([
     {name:'[Content_Types].xml',data:_xenc(ct)},
     {name:'_rels/.rels',data:_xenc(rels)},
@@ -7564,13 +7565,11 @@ function exportPackingListXls(){
   var M=[];
   var HEADERS=['WAREHOUSE ENTRY NUMBER (WEN)','EAN','CÓDIGO SKU','NCM','SUPPLIER INFO','PRODUCT NAME (中文)','PRODUCT NAME (ENGLISH)','DESCRIÇÃO DO PRODUTO (EN / 中文)','MATERIAL','PHOTO','TOTAL CARTONS','UNIT PRICE','VALOR TOTAL','COMPRIMENTO (cm)','LARGURA (cm)','ALTURA (cm)','M³ (por caixa)','CARTON GROSS WEIGHT (kg)','TOTAL CBM','TOTAL GROSS WEIGHT (kg)'];
   var NCOLS=HEADERS.length;
-  // Instruções (topo)
-  M.push({h:28,cells:[S('Only fill in the colored columns (yellow); white/blue columns have formulas. Fill all required info so the shipping mark can be generated.',1,NCOLS)]});
-  M.push({h:28,cells:[S('If the boxes are on pallets, enter the items according to the master box on the pallet. Include the measurements and weight of the pallet.',1,NCOLS)]});
-  M.push([S('ATTENTION TO LIMIT MEASURES ( HEIGHT: 2,20   WIDTH: 1,90 )',1,NCOLS)]);
-  M.push([S('ALL BOXES/CRATES MUST BE REINFORCED AND NEUTRAL PACKING',1,NCOLS)]);
-  M.push([S('ORDERLIST — '+cont,1,NCOLS)]);
-  // Cabeçalho (linha 6)
+  // Título
+  M.push({h:30,cells:[S('PACKING LIST',16,NCOLS)]});
+  M.push([S('ORDERLIST — '+cont,0,NCOLS)]);
+  M.push([]);
+  // Cabeçalho
   M.push({h:44,cells:HEADERS.map(function(h){return S(h,2);})});
   var first=M.length+1;
   var sumCart=0,sumVal=0,sumCbm=0,sumGross=0;
@@ -7619,7 +7618,7 @@ function exportPackingListXls(){
   M.push([S('INVOICE NUMBER',9),S('',10)]);
   M.push([S('IMPORTER',9),S('PDR BIKE SHOP LTDA',10)]);
   M.push([S('CNPJ',9),S('57.022.714/0001-18',10)]);
-  M.push([S('ADDRESS',9,1),S('SHCES 401 BLOCO B PORTARIA, CRUZEIRO NOVO, BRASÍLIA, DF - 70.650-412',10,6)]);
+  M.push([S('ADDRESS',9,1),S('Setor Sia Q 3C A/E5 S/N Sala 103 Anexo Entrada 34 Sia Brasília DF 71200-035',10,6)]);
   M.push([]);
   M.push([S('NCM',3),S('DESCRIPTION',3,3)]);
   M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
