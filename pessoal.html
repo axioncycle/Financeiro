@@ -944,6 +944,7 @@ function vgGastoCard(g){
         '<div style="font-size:14px;font-weight:800;color:var(--accent);white-space:nowrap;">'+fmt(g.valor)+'</div>'+
         (usd>0?'<div style="font-size:10px;color:#22c55e;font-weight:700;white-space:nowrap;">US$ '+fmtN(usd)+'</div>':'')+
       '</div>'+
+      '<button onclick="vgToggleRes('+g.id+')" title="'+(info.res?'Reservado ✓':'Marcar como reservado')+'" style="background:'+(info.res?'#60a5fa':'var(--bg2)')+';border:1px solid '+(info.res?'#60a5fa':'var(--border)')+';color:'+(info.res?'#fff':'var(--text3)')+';font-size:14px;font-weight:800;cursor:pointer;width:30px;height:30px;border-radius:8px;flex-shrink:0;line-height:1;">✓</button>'+
       '<button onclick="vgToggleCard('+g.id+')" title="'+(col?'Expandir':'Minimizar')+'" style="background:var(--bg2);border:1px solid var(--border);color:var(--text2);font-size:13px;font-weight:800;cursor:pointer;width:30px;height:30px;border-radius:8px;flex-shrink:0;line-height:1;">'+(col?'▾':'▴')+'</button>'+
     '</div>'+
     (col?'':
@@ -961,10 +962,7 @@ function vgGastoCard(g){
         '</div>'+
       '</div>':'')+
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
-        '<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;">'+
-          '<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.res?'#60a5fa':'var(--text2)')+';cursor:pointer;"><input type="checkbox" '+(info.res?'checked':'')+' onchange="vgToggleRes('+g.id+')" style="width:19px;height:19px;accent-color:#60a5fa;cursor:pointer;">'+(info.res?'Reservado':'Reservar')+'</label>'+
-          '<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>'+
-        '</div>'+
+        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;flex-shrink:0;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>'+
         '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'+
           '<button onclick="openSplit('+g.id+')" title="Dividir pagamento" style="background:rgba(96,165,250,.14);border:1px solid #60a5fa66;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">👥 Dividir</button>'+
           '<button onclick="editItem('+g.id+')" title="Editar" style="background:rgba(168,85,247,.12);border:1px solid var(--accent);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">✎</button>'+
