@@ -927,6 +927,8 @@ var viagemSel=null;
 function viagemDests(){return byTipo('viagem_dest');}
 function viagemGastos(destId){return byTipo('viagem_gasto').filter(function(x){return String(x.meta)===String(destId);});}
 function viagemCidades(destId){return byTipo('viagem_cidade').filter(function(x){return String(x.meta)===String(destId);}).sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});}
+// Nº de dias do período de uma cidade (início→fim, inclusivo; mínimo 1)
+function cidDias(c){var s=(c.data||'').slice(0,10),e=(c.obs||'').slice(0,10);if(!s)return 1;if(!e||e===s)return 1;var d=Math.round((new Date(e+'T00:00:00')-new Date(s+'T00:00:00'))/86400000)+1;return d>0?d:1;}
 function setViagemSel(id){viagemSel=id;render();}
 var vgExpanded={}; // padrão minimizado; só expande o que o usuário abrir
 function vgToggleCard(id){vgExpanded[id]=!vgExpanded[id];render();}
@@ -1039,10 +1041,11 @@ function viagemSection(mk){
   // ── Adicionar gasto (com seletor de cidade) ──
   var tipos=['✈️ Passagem aérea','🏨 Hotel','🚗 Aluguel de carro','🍽️ Alimentação','🎟️ Passeios','🛡️ Seguro','💳 Outros'];
   if(cidades.length){
-    var cityOpts=cidades.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome||'Cidade')+'</option>';}).join('');
+    var cityOpts=cidades.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome||'Cidade')+' ('+cidDias(c)+'d)</option>';}).join('')+'<option value="__todas__">🌎 Todas as cidades (valor por dia)</option>';
     h+='<button class="btn-add" id="vg-add-btn" onclick="vgShowAdd()" style="margin-top:4px;">+ Adicionar gasto</button>'+
        '<div class="add-box" id="vg-addform" style="display:none;"><div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Novo gasto</div>'+
-       '<label class="fl">Cidade</label><select class="fi" id="vg-cidade">'+cityOpts+'</select>'+
+       '<label class="fl">Cidade</label><select class="fi" id="vg-cidade" onchange="vgCidadeChange()">'+cityOpts+'</select>'+
+       '<div id="vg-todas-hint" style="display:none;font-size:10px;color:#60a5fa;margin-top:4px;">🌎 Valor lançado <b>por dia</b> em cada cidade (× nº de dias do período de cada uma).</div>'+
        '<label class="fl" style="margin-top:8px;">Tipo de gasto</label><select class="fi" id="vg-tipo" onchange="vgTipoChange()">'+tipos.map(function(t){return '<option>'+t+'</option>';}).join('')+'<option value="__novo__">➕ Novo tipo...</option></select>'+
        '<input class="fi" id="vg-tipo-novo" placeholder="Nome do novo tipo" style="display:none;margin-top:6px;">'+
        '<label class="fl" style="margin-top:8px;">Descrição (opcional)</label><input class="fi" id="vg-desc" placeholder="Ex: Latam ida/volta">'+
@@ -1245,6 +1248,7 @@ function vgDelPasseio(id,idx){
   var soma=_vgSumItems(items);
   updItem(id,{valor:soma,obs:vgSetObs(info.fim,info.pg,info.local,info.split,items,info.res)},function(){render();});
 }
+function vgCidadeChange(){var s=document.getElementById('vg-cidade');var h=document.getElementById('vg-todas-hint');if(h)h.style.display=(s&&s.value==='__todas__')?'block':'none';}
 function addViagemGasto(destId){
   var tsel=document.getElementById('vg-tipo');var tipo=tsel?tsel.value:'';
   if(tipo==='__novo__')tipo=((document.getElementById('vg-tipo-novo')||{value:''}).value||'').trim();
@@ -1258,6 +1262,21 @@ function addViagemGasto(destId){
   var cidEl=document.getElementById('vg-cidade');var meta=(cidEl&&cidEl.value)?cidEl.value:destId;
   var lsel=document.getElementById('vg-local');var local=lsel?lsel.value:'';if(local==='Outro')local=((document.getElementById('vg-local-novo')||{value:''}).value||'').trim();
   var split=vgReadSplit();
+  // Todas as cidades: lança o valor POR DIA em cada cidade (× nº de dias do período)
+  if(meta==='__todas__'){
+    var cids=viagemCidades(destId);
+    if(!cids.length){toast('Nenhuma cidade no roteiro',true);return;}
+    var perDia=(brl>0?('R$ '+fmtN(brl)):('US$ '+fmtN(usd)))+'/dia';
+    var n=0;
+    (function loop(k){
+      if(k>=cids.length){render();toast(n+' gasto(s) lançados por dia!');if(typeof vgHideAdd==='function')vgHideAdd();return;}
+      var c=cids[k];var dias=cidDias(c);var cIni=(c.data||'').slice(0,10)||ini;var cFim=(c.obs||'').slice(0,10);
+      var vbrl=Math.round(brl*dias*100)/100;var vusd=Math.round(usd*dias*100)/100;
+      var nm=(desc||tipo)+' — '+perDia+' × '+dias+'d';
+      addItem({tipo:'viagem_gasto',nome:nm,categoria:tipo,valor:vbrl,qtd:vusd,data:cIni,meta:c.id,obs:vgSetObs((cFim&&cFim!==cIni?cFim:''),false,local,[],[],false)},function(){n++;loop(k+1);});
+    })(0);
+    return;
+  }
   addItem({tipo:'viagem_gasto',nome:desc||tipo,categoria:tipo,valor:brl,qtd:usd,data:ini,meta:meta,obs:vgSetObs(fim,false,local,split)},function(){render();toast('Gasto adicionado!');});
 }
 
