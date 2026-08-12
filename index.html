@@ -832,6 +832,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
 <!-- VENDAS -->
 <div class="pg" id="pg-vend">
+  <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <div style="min-width:0;"><div style="font-size:14px;font-weight:800;">🧾 Orçamento</div><div style="font-size:11px;color:var(--text3);margin-top:1px;">Gere um PDF de orçamento para o cliente</div></div>
+    <button onclick="openOrcamento()" style="background:linear-gradient(135deg,#c9a227,#a8801f);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;">Gerar Orçamento</button>
+  </div>
   <div class="card">
     <div class="stitle" style="margin-top:0">Nova Venda</div>
     <div class="fg"><label class="fl">Data</label><input class="fi" id="v-data" type="date"></div>
@@ -1312,6 +1316,30 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-s" onclick="riVoltar()">← Voltar</button><button class="btn" style="flex:1;" onclick="aplicarRes()">✓ Distribuir</button></div>
     </div>
     <button class="btn btn-s" onclick="closeModal('m-res-import')" style="width:100%;margin-top:10px;">Fechar</button>
+  </div>
+</div>
+<div class="ovl" id="m-orcamento">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="mhdl"></div>
+    <div class="mtitle">🧾 Gerar Orçamento</div>
+    <label class="fl">Nome do cliente</label>
+    <input class="fi" id="orc-cli" placeholder="Ex: Bruno Rabelo">
+    <label class="fl" style="margin-top:8px;">CPF/CNPJ (opcional)</label>
+    <input class="fi" id="orc-doc" inputmode="numeric" placeholder="Ex: 000.000.000-00">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Itens do orçamento</div>
+    <div id="orc-itens"></div>
+    <button onclick="orcAddItem()" class="btn btn-s" style="margin-top:4px;">+ Adicionar item</button>
+    <label class="fl" style="margin-top:14px;">Forma de pagamento</label>
+    <select class="fs" id="orc-pag" onchange="orcRender()">
+      <option value="ambos">PIX (5% desc.) ou parcelado 12x</option>
+      <option value="pix">Só PIX à vista (5% desconto)</option>
+      <option value="parc">Só parcelado em até 12x sem juros</option>
+    </select>
+    <div id="orc-total" style="margin-top:12px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn" style="flex:1;" onclick="gerarOrcamentoPDF()">📄 Gerar PDF</button>
+      <button class="btn btn-s" onclick="closeModal('m-orcamento')">Fechar</button>
+    </div>
   </div>
 </div>
 <div class="ovl" id="m-edit-cont">
@@ -8076,6 +8104,95 @@ function getAllCustoSKUs(){
   return all;
 }
 
+// ── ORÇAMENTO (PDF para o cliente) ───────────────────────────────────────
+var _orc={itens:[]};
+function orcPriceById(id){for(var i=0;i<SKUS.length;i++){if(String(SKUS[i].id)===String(id))return SKUS[i].pix||0;}return 0;}
+function orcSkuName(id){var all=getAllCustoSKUs();for(var i=0;i<all.length;i++){if(String(all[i].id)===String(id))return all[i].nome;}return '';}
+function orcSkuOptions(sel){var all=getAllCustoSKUs();var o='<option value="">Selecionar SKU...</option>';all.forEach(function(s){o+='<option value="'+s.id+'"'+(String(s.id)===String(sel)?' selected':'')+'>'+esc(s.nome)+'</option>';});return o;}
+function openOrcamento(){_orc={itens:[{skuId:'',nome:'',qty:1,valor:0}]};var c=document.getElementById('orc-cli');if(c)c.value='';var d=document.getElementById('orc-doc');if(d)d.value='';var p=document.getElementById('orc-pag');if(p)p.value='ambos';orcRender();openModal('m-orcamento');}
+function orcAddItem(){_orc.itens.push({skuId:'',nome:'',qty:1,valor:0});orcRender();}
+function orcRemItem(i){_orc.itens.splice(i,1);if(!_orc.itens.length)_orc.itens.push({skuId:'',nome:'',qty:1,valor:0});orcRender();}
+function orcSetSku(i,id){var it=_orc.itens[i];if(!it)return;it.skuId=id;it.nome=orcSkuName(id);if(!(+it.valor>0)){var p=orcPriceById(id);if(p>0)it.valor=p;}orcRender();}
+function orcSetQty(i,v){if(_orc.itens[i])_orc.itens[i].qty=Math.max(1,parseInt(v,10)||1);orcRender();}
+function orcSetVal(i,v){if(_orc.itens[i])_orc.itens[i].valor=parseBRL(v)||0;orcRender();}
+function orcTotal(){return _orc.itens.reduce(function(s,it){return s+((+it.qty||0)*(+it.valor||0));},0);}
+function orcRender(){
+  var el=document.getElementById('orc-itens');if(!el)return;
+  el.innerHTML=_orc.itens.map(function(it,i){
+    return '<div style="display:flex;gap:5px;align-items:center;margin-bottom:6px;">'+
+      '<select class="fs" onchange="orcSetSku('+i+',this.value)" style="flex:1;min-width:0;font-size:12px;padding:6px;">'+orcSkuOptions(it.skuId)+'</select>'+
+      '<input type="number" min="1" value="'+it.qty+'" onchange="orcSetQty('+i+',this.value)" title="Qtd" style="width:46px;text-align:center;font-size:12px;padding:6px 3px;background:var(--input);border:1px solid var(--input-border);border-radius:6px;color:var(--text);">'+
+      '<input type="text" inputmode="decimal" value="'+(it.valor?fmtN(it.valor):'')+'" placeholder="R$" oninput="maskBRL(this)" onchange="orcSetVal('+i+',this.value)" title="Valor unitário" style="width:88px;text-align:right;font-size:12px;padding:6px;background:var(--input);border:1px solid var(--input-border);border-radius:6px;color:var(--text);">'+
+      '<button onclick="orcRemItem('+i+')" title="Remover" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;">×</button>'+
+    '</div>';
+  }).join('');
+  var tot=orcTotal();var pag=(document.getElementById('orc-pag')||{value:'ambos'}).value;
+  var pix=tot*0.95,parc=tot/12;
+  var lines='<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;"><span>Total</span><span style="color:#c9a227;">'+fmt(tot)+'</span></div>';
+  if(pag==='pix'||pag==='ambos')lines+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-top:3px;"><span>PIX à vista (5% desc.)</span><span style="color:#22c55e;font-weight:700;">'+fmt(pix)+'</span></div>';
+  if(pag==='parc'||pag==='ambos')lines+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-top:3px;"><span>Parcelado 12x sem juros</span><span style="font-weight:700;">12x de '+fmt(parc)+'</span></div>';
+  var t=document.getElementById('orc-total');if(t)t.innerHTML='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">'+lines+'</div>';
+}
+function gerarOrcamentoPDF(){
+  var cli=((document.getElementById('orc-cli')||{value:''}).value||'').trim();
+  var docn=((document.getElementById('orc-doc')||{value:''}).value||'').trim();
+  var itens=_orc.itens.filter(function(it){return (+it.qty||0)*(+it.valor||0)>0&&it.nome;});
+  if(!cli){toast('Informe o nome do cliente',true);return;}
+  if(!itens.length){toast('Adicione ao menos um item com SKU e valor',true);return;}
+  var pag=(document.getElementById('orc-pag')||{value:'ambos'}).value;
+  var tot=itens.reduce(function(s,it){return s+it.qty*it.valor;},0);
+  var pix=tot*0.95,parc=tot/12;
+  function pad(n){return String(n).padStart(2,'0');}
+  var now=new Date();var dd=pad(now.getDate()),mm=pad(now.getMonth()+1),yy=now.getFullYear();
+  var dataStr=dd+'/'+mm+'/'+yy;var num='ORC-'+yy+mm+dd+'-BR';
+  var vD=new Date(now.getTime()+7*86400000);var valStr=pad(vD.getDate())+'/'+pad(vD.getMonth()+1)+'/'+vD.getFullYear();
+  function e2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  var pagTxt=(pag==='pix')?('PIX à vista ('+fmt(pix)+') — 5% de desconto')
+    :(pag==='parc')?('Cartão de crédito parcelado em até 12x sem juros (12x de '+fmt(parc)+')')
+    :('PIX à vista ('+fmt(pix)+') com 5% de desconto ou cartão de crédito parcelado em até 12x sem juros');
+  var rows=itens.map(function(it,i){return '<tr><td class="c">'+(i+1)+'</td><td>'+e2(it.nome)+'</td><td class="c">'+it.qty+'</td><td class="num">'+fmt(it.valor)+'</td><td class="num">'+fmt(it.qty*it.valor)+'</td></tr>';}).join('');
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Orçamento '+num+'</title><style>'+
+    '@page{size:A4;margin:14mm;}*{box-sizing:border-box;margin:0;padding:0;}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#1a2332;font-size:12px;padding:8px 12px;}'+
+    '.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;}'+
+    '.brand{font-size:30px;font-weight:900;color:#16233c;letter-spacing:.5px;}'+
+    '.brand-sub{font-size:11px;color:#b98f2e;margin-top:5px;}'+
+    '.meta{text-align:right;font-size:11px;color:#555;line-height:1.7;white-space:nowrap;}.meta b{color:#16233c;}'+
+    '.rule{border:none;border-top:2px solid #b98f2e;margin:14px 0;}'+
+    '.parties{display:flex;justify-content:space-between;gap:24px;margin:4px 0 14px;}'+
+    '.party{font-size:11px;line-height:1.6;flex:1;}.party .lb{font-size:11px;font-weight:800;color:#16233c;letter-spacing:1.5px;margin-bottom:5px;}.party b{color:#16233c;}'+
+    'table{width:100%;border-collapse:collapse;margin-top:4px;}'+
+    'thead th{background:#16233c;color:#fff;font-size:11px;font-weight:700;padding:9px 10px;text-align:left;}'+
+    'th.c,td.c{text-align:center;}th.num,td.num{text-align:right;white-space:nowrap;}'+
+    'tbody td{padding:11px 10px;border-bottom:1px solid #e6e6e6;font-size:12px;vertical-align:top;}'+
+    '.totrow{display:flex;justify-content:flex-end;align-items:baseline;gap:16px;margin:16px 4px 0;}'+
+    '.totrow .lb{font-size:14px;font-weight:800;color:#16233c;letter-spacing:1.5px;}.totrow .vl{font-size:23px;font-weight:900;color:#b98f2e;}'+
+    '.cond{margin-top:24px;}.cond h3{font-size:12px;font-weight:800;color:#16233c;letter-spacing:1.5px;margin-bottom:12px;}'+
+    '.cond .row{display:flex;gap:10px;font-size:11px;margin-bottom:9px;align-items:flex-start;}.cond .row .k{width:150px;font-weight:800;color:#16233c;flex-shrink:0;}'+
+    '.foot{margin-top:32px;border-top:1px solid #ddd;padding-top:10px;font-size:10px;color:#888;}'+
+    '.btns{position:fixed;bottom:16px;right:16px;display:flex;gap:8px;}@media print{.btns{display:none;}}'+
+    '</style></head><body>'+
+    '<div class="head"><div><div class="brand">AXION CYCLE</div><div class="brand-sub">Rodas de carbono de alta performance</div></div>'+
+      '<div class="meta">Orçamento Nº <b>'+num+'</b><br>Data: <b>'+dataStr+'</b><br>Válido até: <b>'+valStr+'</b></div></div>'+
+    '<hr class="rule">'+
+    '<div class="parties"><div class="party"><div class="lb">DE</div><b>PDR BIKE SHOP</b> (Axion Cycle)<br>CNPJ: 57.022.714/0001-18<br>E-mail: pdrbikeshop@gmail.com</div>'+
+      '<div class="party"><div class="lb">PARA</div><b>'+e2(cli)+'</b><br>'+(docn?e2(docn):'Cliente')+'</div></div>'+
+    '<table><thead><tr><th class="c">Item</th><th>Descrição</th><th class="c">Qtd.</th><th class="num">Valor unit.</th><th class="num">Total</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="totrow"><span class="lb">TOTAL</span><span class="vl">'+fmt(tot)+'</span></div>'+
+    '<div class="cond"><h3>CONDIÇÕES</h3>'+
+      '<div class="row"><div class="k">Forma de pagamento:</div><div>'+pagTxt+'</div></div>'+
+      '<div class="row"><div class="k">Prazo de entrega:</div><div>A combinar após confirmação do pagamento</div></div>'+
+      '<div class="row"><div class="k">Garantia:</div><div>2 anos contra defeitos de fabricação</div></div>'+
+      '<div class="row"><div class="k">Validade do orçamento:</div><div>'+valStr+' (7 dias)</div></div></div>'+
+    '<div class="foot">AXION CYCLE — PDR BIKE SHOP · CNPJ 57.022.714/0001-18 · pdrbikeshop@gmail.com</div>'+
+    '<div class="btns"><button onclick="window.print()" style="background:#16233c;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button></div>'+
+    '</body></html>';
+  var win=window.open('','_blank');if(!win){toast('Permita pop-ups para gerar o PDF',true);return;}
+  win.document.write(html);win.document.close();
+  setTimeout(function(){try{win.print();}catch(e){}},700);
+  closeModal('m-orcamento');
+  toast('Orçamento gerado!');
+}
 function buildSkuOptions(selected){
   var all=getAllCustoSKUs();
   var opts='<option value="">Selecionar SKU...</option>';
