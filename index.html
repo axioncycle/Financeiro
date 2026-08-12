@@ -573,7 +573,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><label class="fl">Preço de Venda (R$)</label><input class="fi" id="sim-preco" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('venda')"></div>
       <div><label class="fl">Custo (R$)</label><input class="fi" id="sim-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('custo')"></div>
-      <div><label class="fl">Taxa <span id="sim-taxa-tg" onclick="simToggle('taxa')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'taxa')"></div>
+      <div><label class="fl">Taxa <span id="sim-taxa-tg" onclick="simToggle('taxa')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'taxa')"><select class="fs" id="sim-taxa-pag" onchange="simSetTaxaPag(this.value)" style="margin-top:4px;font-size:11px;padding:5px 6px;width:100%;"></select></div>
       <div><label class="fl">Imposto <span id="sim-imp-tg" onclick="simToggle('imp')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(%)</span></label><input class="fi" id="sim-imp" inputmode="decimal" placeholder="0" oninput="simInput(this,'imp')"></div>
       <div><label class="fl">Comissão <span id="sim-com-tg" onclick="simToggle('com')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'com')"></div>
       <div><label class="fl">Frete (R$)</label><input class="fi" id="sim-frete" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
@@ -9273,8 +9273,25 @@ function simToggle(k){
 }
 function maskBRLval(v){var n=parseBRL(v)||0;return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function simInput(el,k){if(simMode[k]==='R$'){maskBRL(el);}else{el.value=el.value.replace(/[^0-9.,]/g,'');}simVenda();}
+// Preenche o select de formas de pagamento da simulação com a tabela de taxas da aba Vendas (PAG_TAXA)
+function simFillPag(){
+  var s=document.getElementById('sim-taxa-pag');if(!s||s.options.length)return;
+  var h='<option value="">💳 Puxar taxa da forma de pagamento…</option>';
+  for(var k in PAG_TAXA){h+='<option value="'+esc(k)+'">'+esc(k)+' — '+(PAG_TAXA[k]).toFixed(2).replace('.',',')+'%</option>';}
+  s.innerHTML=h;
+}
+// Ao escolher a forma de pagamento, joga a % da tabela no campo Taxa (modo %)
+function simSetTaxaPag(v){
+  if(!v)return;
+  var pct=(PAG_TAXA[v]!==undefined)?PAG_TAXA[v]:0;
+  simMode.taxa='%';
+  var tg=document.getElementById('sim-taxa-tg');if(tg)tg.textContent='(%)';
+  var inp=document.getElementById('sim-taxa');if(inp)inp.value=String(pct).replace('.',',');
+  simVenda();
+}
 function simVenda(){
   var el=document.getElementById('sim-result');if(!el)return;
+  simFillPag();
   function gv(id){var e=document.getElementById(id);return e?e.value:'';}
   function simVal(k,preco){var raw=gv('sim-'+k)||'0';if(simMode[k]==='%'){return preco*(parseFloat(raw)||0)/100;}return parseBRL(raw)||0;}
   var frete=parseBRL(gv('sim-frete')||'0')||0;
