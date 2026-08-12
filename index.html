@@ -1917,18 +1917,16 @@ function saveContainersDB(cs){
 }
 function loadLocaisDB(cb){dbGet("locais","order=id").then(function(r){if(!Array.isArray(r)||!r.length){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));return;}cb(r.map(function(x){return x.nome;}));}).catch(function(){cb(sg("ax_v6_locais",["Brasilia","Full","Alphaville","Ribeirao Preto"]));});}
 var _saveDespTimers={};
-// Data de pagamento + banco das despesas — codificados no nome: "nome@@YYYY-MM-DD@@Banco" (sem alterar o schema)
-function encNomeData(it){var n=(it&&it.nome)||'';var d=(it&&it.pdata)||'';var b=(it&&it.banco)||'';if(!d&&!b)return n;return n+'@@'+d+'@@'+b;}
-function decNomeData(raw){var s=String(raw||'');if(s.indexOf('@@')<0)return {nome:s,pdata:'',banco:''};var p=s.split('@@');var nome=p[0]||'';var d=p[1]||'';var b=p[2]||'';if(!/^\d{4}-\d{2}-\d{2}$/.test(d))d='';return {nome:nome,pdata:d,banco:b};}
+// Data de pagamento + banco (+ rend. bruto p/ financeiro) codificados no nome: "nome@@YYYY-MM-DD@@Banco@@Bruto" (sem alterar o schema)
+function encNomeData(it){var n=(it&&it.nome)||'';var d=(it&&it.pdata)||'';var b=(it&&it.banco)||'';var g=(it&&it.bruto!=null&&it.bruto!=='')?String(it.bruto):'';if(g!=='')return n+'@@'+d+'@@'+b+'@@'+g;if(b)return n+'@@'+d+'@@'+b;if(d)return n+'@@'+d;return n;}
+function decNomeData(raw){var s=String(raw||'');if(s.indexOf('@@')<0)return {nome:s,pdata:'',banco:'',bruto:''};var p=s.split('@@');var nome=p[0]||'';var d=p[1]||'';var b=p[2]||'';var g=p[3]||'';if(!/^\d{4}-\d{2}-\d{2}$/.test(d))d='';return {nome:nome,pdata:d,banco:b,bruto:g};}
 function saveDespDB(mk,data){
   DB_DESP[mk]=data;
   // Debounce per-month to avoid DELETE+POST race condition
   if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
-    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){r2={mes:mk,nome:encNomeData(data.financeiro[i]),valor:data.financeiro[i].valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
-    if((+data.rendBruto||0)!==0){r2={mes:mk,nome:'',valor:+data.rendBruto||0,tipo:'rendbruto'};rows.push(r2);}
-    if((+data.rendLiq||0)!==0){r2={mes:mk,nome:'',valor:+data.rendLiq||0,tipo:'rendliq'};rows.push(r2);}
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
     if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
     // Distribuição de lucros: uma linha por lançamento (descrição + data codificadas no campo nome)
     if(data.distribuicaoItems)for(i=0;i<data.distribuicaoItems.length;i++){var _di=data.distribuicaoItems[i];if((+_di.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_di.desc||''),pdata:_di.data||''}),valor:+_di.valor||0,tipo:'distribuicao'};rows.push(r2);}}
@@ -5149,10 +5147,6 @@ function syncDespesasFromDB(cb){
       if(r.tipo==='das'){
         // DAS real field
         d[r.mes].das=+r.valor||0;
-      } else if(r.tipo==='rendbruto'){
-        d[r.mes].rendBruto=+r.valor||0;
-      } else if(r.tipo==='rendliq'){
-        d[r.mes].rendLiq=+r.valor||0;
       } else if(r.tipo==='prolabore'){
         var _pd=decNomeData(r.nome);
         d[r.mes].prolabore=+r.valor||0;
@@ -5176,7 +5170,7 @@ function syncDespesasFromDB(cb){
         }
       } else if(r.tipo==='financeiro'){
         if(!d[r.mes].financeiro)d[r.mes].financeiro=[];
-        var _fnd=decNomeData(r.nome);d[r.mes].financeiro.push({nome:_fnd.nome,valor:+r.valor||0,banco:_fnd.banco});
+        var _fnd=decNomeData(r.nome);d[r.mes].financeiro.push({nome:_fnd.nome,valor:+r.valor||0,banco:_fnd.banco,rendBruto:parseFloat(_fnd.bruto)||0});
       } else {
         var _ed=decNomeData(r.nome);d[r.mes].extras.push({nome:_ed.nome,valor:+r.valor||0,pdata:_ed.pdata,banco:_ed.banco});
       }
@@ -5423,7 +5417,8 @@ function renderRes(){
     // Pró-labore e distribuição de lucros NÃO debitam o resultado — são apenas para constar
     for(k=0;k<md.extras.length;k++) totE+=parseFloat(md.extras[k].valor)||0;
 
-    if(md.financeiro) for(k=0;k<md.financeiro.length;k++) totFin+=parseFloat(md.financeiro[k].valor)||0;
+    var totBruto=0;
+    if(md.financeiro) for(k=0;k<md.financeiro.length;k++){totFin+=parseFloat(md.financeiro[k].valor)||0;totBruto+=parseFloat(md.financeiro[k].rendBruto)||0;}
     var margContribM=lsi-totE;
     var ebitdaM=margContribM-totF;
     var ebitFinM=ebitdaM+totFin;
@@ -5536,41 +5531,34 @@ function renderRes(){
         '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div class="rsec" style="display:none;margin-top:8px;">'+
-      ((mk>=RES_PAG_FROM)?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">'+
-        '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;">'+
-          '<div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">📈 Rendimento bruto</div>'+
-          '<input type="text" inputmode="decimal" value="'+(md.rendBruto?fmtN(md.rendBruto):'')+'" placeholder="0,00" style="width:100%;box-sizing:border-box;margin-top:3px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 7px;color:#22c55e;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveRendBruto(\''+mk+'\',this.value)">'+
-        '</div>'+
-        '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;">'+
-          '<div style="font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">💰 Rendimento líquido</div>'+
-          '<input type="text" inputmode="decimal" value="'+(md.rendLiq?fmtN(md.rendLiq):'')+'" placeholder="0,00" style="width:100%;box-sizing:border-box;margin-top:3px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 7px;color:#22c55e;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveRendLiq(\''+mk+'\',this.value)">'+
-        '</div>'+
-      '</div>':'')+
       (md.financeiro&&md.financeiro.length?md.financeiro.map(function(f,fi){
-        var isPos=f.valor>=0;
-        return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px;">'+
+        return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 9px;margin-bottom:6px;">'+
           '<div style="display:flex;align-items:center;gap:6px;">'+
-            '<input type="text" value="'+esc(f.nome)+'" placeholder="Descrição" style="flex:1;min-width:0;font-size:12px;font-weight:600;background:transparent;border:none;color:var(--text);outline:none;padding:2px 0;" onchange="updFinanceiroNome(\''+mk+'\','+fi+',this.value)">'+
-            '<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(f.valor)||0))+'" placeholder="0,00" style="width:90px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 8px;color:'+(isPos?'#22c55e':'#ef4444')+';font-size:12px;text-align:right;outline:none;flex-shrink:0;" oninput="maskBRL(this)" onchange="updFinanceiroVal(\''+mk+'\','+fi+',this.value)">'+
+            '<input type="text" value="'+esc(f.nome)+'" placeholder="Descrição do investimento" style="flex:1;min-width:0;font-size:12px;font-weight:600;background:transparent;border:none;color:var(--text);outline:none;padding:2px 0;" onchange="updFinanceiroNome(\''+mk+'\','+fi+',this.value)">'+
             '<button onclick="delFinanceiro(\''+mk+'\','+fi+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;" title="Remover">×</button>'+
           '</div>'+
-          ((mk>=RES_PAG_FROM)?'<div style="margin-top:5px;"><input type="text" value="'+esc(f.banco||'')+'" placeholder="🏦 Banco" style="width:100%;box-sizing:border-box;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:3px 6px;color:var(--text2);font-size:10px;outline:none;" onchange="updFinanceiroBanco(\''+mk+'\','+fi+',this.value)"></div>':'')+
-          '</div>';
-      }).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhum lançamento</div>')+
-      '<div style="display:flex;gap:4px;margin-top:6px;">'+
-        '<select id="ft'+i+'" class="fs" style="width:90px;font-size:11px;padding:6px 6px;"><option value="entrada">+ Entrada</option><option value="saida">− Saída</option></select>'+
-        '<input id="fn'+i+'" class="fi" type="text" placeholder="Descrição" style="flex:1;font-size:12px;padding:7px 10px;">'+
-        '<input id="fv'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Valor" oninput="maskBRL(this)" style="width:70px;font-size:12px;padding:7px 8px;">'+
-        '<select id="fm'+i+'" class="fi" style="width:65px;font-size:11px;" title="Repetir por quantos meses">'+
-          '<option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>'+
-          '<option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>'+
-          '<option value="7">7x</option><option value="8">8x</option><option value="9">9x</option>'+
-          '<option value="10">10x</option><option value="11">11x</option><option value="12">12x</option>'+
-          '<option value="99">∞</option>'+
-        '</select>'+
-        '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 10px;cursor:pointer;">+</button>'+
+          '<input type="text" value="'+esc(f.banco||'')+'" placeholder="🏦 Banco" style="width:100%;box-sizing:border-box;margin-top:5px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text2);font-size:11px;outline:none;" onchange="updFinanceiroBanco(\''+mk+'\','+fi+',this.value)">'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:5px;">'+
+            '<div><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">📈 Rend. bruto</div><input type="text" inputmode="decimal" value="'+(f.rendBruto?fmtN(f.rendBruto):'')+'" placeholder="0,00" style="width:100%;box-sizing:border-box;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFinanceiroBruto(\''+mk+'\','+fi+',this.value)"></div>'+
+            '<div><div style="font-size:8px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">💰 Rend. líquido</div><input type="text" inputmode="decimal" value="'+(f.valor?fmtN(f.valor):'')+'" placeholder="0,00" style="width:100%;box-sizing:border-box;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:#22c55e;font-weight:700;font-size:12px;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="updFinanceiroLiq(\''+mk+'\','+fi+',this.value)"></div>'+
+          '</div>'+
+        '</div>';
+      }).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhum investimento lançado</div>')+
+      '<div style="background:var(--bg3);border:1px dashed var(--border);border-radius:8px;padding:8px 9px;margin-top:6px;">'+
+        '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">+ Novo investimento</div>'+
+        '<input id="fn'+i+'" class="fi" type="text" placeholder="Descrição do investimento" style="font-size:12px;padding:7px 9px;width:100%;box-sizing:border-box;">'+
+        '<input id="fb'+i+'" class="fi" type="text" placeholder="🏦 Banco" style="font-size:12px;padding:7px 9px;width:100%;box-sizing:border-box;margin-top:5px;">'+
+        '<div style="display:flex;gap:6px;margin-top:5px;">'+
+          '<input id="fg'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Rend. bruto" oninput="maskBRL(this)" style="flex:1;min-width:0;font-size:12px;padding:7px 8px;">'+
+          '<input id="fv'+i+'" class="fi" type="text" inputmode="decimal" placeholder="Rend. líquido" oninput="maskBRL(this)" style="flex:1;min-width:0;font-size:12px;padding:7px 8px;">'+
+          '<select id="fm'+i+'" class="fi" style="width:56px;font-size:11px;flex-shrink:0;" title="Repetir por quantos meses"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option><option value="99">∞</option></select>'+
+          '<button onclick="addFinanceiro(\''+mk+'\','+i+')" style="background:#f59e0b;border:none;border-radius:8px;color:#000;font-size:16px;font-weight:700;padding:0 11px;cursor:pointer;flex-shrink:0;">+</button>'+
+        '</div>'+
       '</div>'+
-      (totFin!==0?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Saldo Financeiro</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>':'')+
+      ((md.financeiro&&md.financeiro.length)?'<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px;">'+
+        '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;"><span style="color:var(--text3);">Rend. bruto total</span><span style="font-weight:700;">'+fmt(totBruto)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;font-weight:800;"><span>Rend. líquido total</span><span style="color:'+(totFin>=0?'#22c55e':'#ef4444')+';">'+fmt(totFin)+'</span></div>'+
+      '</div>':'')+
       '</div>'+
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:10px;padding:12px;margin-bottom:10px;">'+
@@ -5814,9 +5802,7 @@ function exportMesXls(mk){
   R.push([S('CUSTOS',1),S('Frete'),S(''),S(''),M(frete)]);
   (md.fixas||[]).forEach(function(f){if(f.nome==='DAS'||f.nome==='das')return;R.push([S('DESPESA FIXA',1),S(f.nome),S(f.banco||''),S(fd(f.pdata)),M(f.valor)]);});
   (md.extras||[]).forEach(function(e){R.push([S('DESPESA EXTRA',1),S(e.nome),S(e.banco||''),S(fd(e.pdata)),M(e.valor)]);});
-  (md.financeiro||[]).forEach(function(f){R.push([S('FINANCEIRO',1),S(f.nome),S(f.banco||''),S(''),M(f.valor)]);});
-  if((+md.rendBruto||0)!==0)R.push([S('FINANCEIRO',1),S('Rendimento bruto'),S(''),S(''),M(md.rendBruto)]);
-  if((+md.rendLiq||0)!==0)R.push([S('FINANCEIRO',1),S('Rendimento líquido'),S(''),S(''),M(md.rendLiq)]);
+  (md.financeiro||[]).forEach(function(f){R.push([S('FINANCEIRO (INVESTIMENTO)',1),S((f.nome||'')+((+f.rendBruto||0)!==0?' — bruto '+fmt(f.rendBruto):'')),S(f.banco||''),S(''),M(f.valor)]);});
   R.push([S('IMPOSTO',1),S('DAS'+(md.das>0?' (real)':' (estimado)')),S(''),S(''),M(das)]);
   if((+md.prolabore||0)>0)R.push([S('PRÓ-LABORE',1),S(md.prolaboreDesc||'Pró-labore'),S(''),S(fd(md.prolaboreData)),M(md.prolabore)]);
   (md.distribuicaoItems||[]).forEach(function(di){if((+di.valor||0)!==0)R.push([S('DISTRIBUIÇÃO',1),S(di.desc||'Retirada de lucros'),S(''),S(fd(di.data)),M(di.valor)]);});
@@ -6021,22 +6007,22 @@ function saveDAS(mk,val){
 
 function addFinanceiro(mk,i){
   var nome=(document.getElementById('fn'+i)||{value:''}).value.trim();
-  var val=parseBRL((document.getElementById('fv'+i)||{value:''}).value);
-  var tipo=document.getElementById('ft'+i)?document.getElementById('ft'+i).value:'entrada';
+  var banco=((document.getElementById('fb'+i)||{value:''}).value||'').trim();
+  var bruto=parseBRL((document.getElementById('fg'+i)||{value:''}).value)||0;
+  var liq=parseBRL((document.getElementById('fv'+i)||{value:''}).value)||0;
   var mesesEl=document.getElementById('fm'+i);
   var numMeses=parseInt(mesesEl?mesesEl.value:1)||1;
-  if(!nome){toast('Informe a descrição',true);return;}
-  var realVal=tipo==='saida'?-Math.abs(val):Math.abs(val);
+  if(!nome){toast('Informe a descrição do investimento',true);return;}
   var parts=mk.split('-');var yr=parseInt(parts[0]),mo=parseInt(parts[1]);
   for(var m=0;m<numMeses;m++){
     var y2=yr,m2=mo+m;
     while(m2>12){m2-=12;y2++;}
     var mkF=y2+'-'+String(m2).padStart(2,'0');
     var md=getMDesp(mkF);if(!md.financeiro)md.financeiro=[];
-    md.financeiro.push({nome:nome,valor:realVal});
+    md.financeiro.push({nome:nome,banco:banco,rendBruto:bruto,valor:liq});
     setMDesp(mkF,md);saveDespDB(mkF,md);
   }
-  renderRes();toast('Lançamento adicionado em '+(numMeses===99?'∞':numMeses)+'x!');
+  renderRes();toast('Investimento adicionado em '+(numMeses===99?'∞':numMeses)+'x!');
 }
 
 function delFinanceiro(mk,fi){
@@ -6055,9 +6041,8 @@ function updExtraNome(mk,idx,val){var md=getMDesp(mk);if(!md.extras[idx]) return
 function updExtraBanco(mk,idx,val){var md=getMDesp(mk);if(!md.extras[idx]) return;md.extras[idx].banco=(val||'').trim();saveDespDB(mk,md);}
 function updFinanceiroNome(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].nome=val;saveDespDB(mk,md);}
 function updFinanceiroBanco(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].banco=(val||'').trim();saveDespDB(mk,md);}
-function updFinanceiroVal(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].valor=(md.financeiro[idx].valor>=0?1:-1)*parseBRL(val);saveDespDB(mk,md);renderResDebounced();}
-function saveRendBruto(mk,val){var md=getMDesp(mk);md.rendBruto=parseBRL(val)||0;setMDesp(mk,md);saveDespDB(mk,md);}
-function saveRendLiq(mk,val){var md=getMDesp(mk);md.rendLiq=parseBRL(val)||0;setMDesp(mk,md);saveDespDB(mk,md);}
+function updFinanceiroLiq(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].valor=parseBRL(val)||0;saveDespDB(mk,md);renderResDebounced();}
+function updFinanceiroBruto(mk,idx,val){var md=getMDesp(mk);if(!md.financeiro[idx]) return;md.financeiro[idx].rendBruto=parseBRL(val)||0;saveDespDB(mk,md);}
 
 function addFixa(mk){
   var nomeEl=document.getElementById('new-fixa-nome-'+mk);
