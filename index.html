@@ -1928,7 +1928,9 @@ function saveDespDB(mk,data){
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
     dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
-    if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
+    // Pró-labore: uma linha por lançamento (descrição + data codificadas no campo nome)
+    if(data.prolaboreItems&&data.prolaboreItems.length){for(i=0;i<data.prolaboreItems.length;i++){var _pl=data.prolaboreItems[i];if((+_pl.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_pl.desc||'Pró-labore'),pdata:_pl.data||''}),valor:+_pl.valor||0,tipo:'prolabore'};rows.push(r2);}}}
+    else if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
     // Distribuição de lucros: uma linha por lançamento (descrição + data codificadas no campo nome)
     if(data.distribuicaoItems)for(i=0;i<data.distribuicaoItems.length;i++){var _di=data.distribuicaoItems[i];if((+_di.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_di.desc||''),pdata:_di.data||''}),valor:+_di.valor||0,tipo:'distribuicao'};rows.push(r2);}}
     if(rows.length)dbPost("despesas",rows);});
@@ -5123,6 +5125,7 @@ function getMDesp(mk){
     if(!DB_DESP[mk].extras) DB_DESP[mk].extras=[];
     if(!DB_DESP[mk].financeiro) DB_DESP[mk].financeiro=[];
     if(DB_DESP[mk].prolabore===undefined) DB_DESP[mk].prolabore=0;
+    if(!DB_DESP[mk].prolaboreItems) DB_DESP[mk].prolaboreItems=[];
     if(DB_DESP[mk].distribuicao===undefined) DB_DESP[mk].distribuicao=0;
     if(!DB_DESP[mk].distribuicaoItems) DB_DESP[mk].distribuicaoItems=[];
     if(DB_DESP[mk].das===undefined) DB_DESP[mk].das=0;
@@ -5139,6 +5142,7 @@ function getMDesp(mk){
   }
   if(!d[mk].financeiro) d[mk].financeiro=[];
   if(d[mk].prolabore===undefined) d[mk].prolabore=0;
+  if(!d[mk].prolaboreItems) d[mk].prolaboreItems=[];
   if(d[mk].distribuicao===undefined) d[mk].distribuicao=0;
   if(!d[mk].distribuicaoItems) d[mk].distribuicaoItems=[];
   if(d[mk].das===undefined) d[mk].das=0;
@@ -5155,11 +5159,13 @@ function syncDespesasFromDB(cb){
       if(r.tipo==='das'){
         // DAS real field
         d[r.mes].das=+r.valor||0;
+      } else if(r.tipo==='rendbruto'||r.tipo==='rendliq'){
+        // tipos obsoletos — ignora (não polui extras)
       } else if(r.tipo==='prolabore'){
+        if(!d[r.mes].prolaboreItems) d[r.mes].prolaboreItems=[];
         var _pd=decNomeData(r.nome);
-        d[r.mes].prolabore=+r.valor||0;
-        d[r.mes].prolaboreDesc=_pd.nome||'';
-        d[r.mes].prolaboreData=_pd.pdata||'';
+        d[r.mes].prolaboreItems.push({desc:_pd.nome||'',data:_pd.pdata||'',valor:+r.valor||0});
+        d[r.mes].prolabore=(d[r.mes].prolabore||0)+(+r.valor||0);
       } else if(r.tipo==='distribuicao'){
         // Distribuição de lucros = lista de lançamentos (descrição + data no campo nome). Soma no mês.
         if(!d[r.mes].distribuicaoItems) d[r.mes].distribuicaoItems=[];
@@ -5589,11 +5595,25 @@ function renderRes(){
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
         '<div><div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore</div>'+
         '<div style="font-size:9px;color:var(--text3);">Remuneração sócio · para constar, não debita</div></div>'+
-        '<input type="text" inputmode="decimal" value="'+(md.prolabore?fmtN(md.prolabore):'')+'" placeholder="0,00" style="width:110px;background:var(--bg3);border:1px solid #f59e0b44;border-radius:6px;padding:6px 8px;color:#f59e0b;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveProlabore(\''+mk+'\',this.value)">'+
+        '<div style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(md.prolabore||0)+'</div>'+
         '</div>'+
-      '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
-        '<input type="text" value="'+esc(md.prolaboreDesc||'')+'" placeholder="Descrição" onchange="saveProlaboreDesc(\''+mk+'\',this.value)" style="flex:1;min-width:0;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
-        '<input type="date" value="'+((md.prolaboreData||'').slice(0,10))+'" title="Data de pagamento" onchange="saveProlaboreData(\''+mk+'\',this.value)" style="width:130px;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;flex-shrink:0;">'+
+      ((md.prolaboreItems&&md.prolaboreItems.length)?md.prolaboreItems.map(function(pl,pli){
+        return '<div style="padding:4px 0;border-bottom:1px solid var(--border);">'+
+          '<input type="text" value="'+esc(pl.desc||'')+'" placeholder="Descrição" onchange="updProlaboreDesc(\''+mk+'\','+pli+',this.value)" style="width:100%;box-sizing:border-box;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;margin-bottom:4px;">'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            '<input type="date" value="'+(pl.data||'')+'" onchange="updProlaboreData(\''+mk+'\','+pli+',this.value)" style="flex:1;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;">'+
+            '<input type="text" inputmode="decimal" value="'+fmtN(pl.valor||0)+'" style="width:90px;background:var(--input);border:1px solid #f59e0b44;border-radius:5px;padding:4px 8px;color:#f59e0b;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)updProlaboreVal(\''+mk+'\','+pli+',this.value)">'+
+            '<button onclick="delProlaboreItem(\''+mk+'\','+pli+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
+          '</div>'+
+        '</div>';
+      }).join(''):'<div style="font-size:11px;color:var(--text3);padding:2px 0;">Nenhum pró-labore lançado</div>')+
+      '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;margin-bottom:8px;">'+
+        '<input id="pl-desc-'+mk+'" type="text" placeholder="Descrição" style="font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
+        '<div style="display:flex;gap:6px;">'+
+          '<input id="pl-data-'+mk+'" type="date" value="'+mk+'-05" style="flex:1;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 6px;color:var(--text);outline:none;">'+
+          '<input id="pl-val-'+mk+'" type="text" inputmode="decimal" placeholder="Valor" style="width:90px;font-size:12px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 8px;color:var(--text);text-align:right;outline:none;" oninput="maskBRL(this)">'+
+          '<button onclick="addProlaboreItem(\''+mk+'\')" style="background:#f59e0b22;border:1px solid #f59e0b44;color:#f59e0b;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;padding:5px 11px;">+</button>'+
+        '</div>'+
       '</div>'+
       '<div style="margin-bottom:8px;">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'+
@@ -5777,10 +5797,11 @@ function aplicarRes(){
     if(r.dest==='fixa')md.fixas.push({nome:nome,valor:v,pdata:pd,banco:banco});
     else if(r.dest==='extra')md.extras.push({nome:nome,valor:v,pdata:pd,banco:banco});
     else if(r.dest==='das')md.das=(+md.das||0)+v;
-    else if(r.dest==='prolabore'){md.prolabore=(+md.prolabore||0)+v;if(pd)md.prolaboreData=pd;if(!md.prolaboreDesc)md.prolaboreDesc=nome;}
+    else if(r.dest==='prolabore'){if(!md.prolaboreItems)md.prolaboreItems=[];md.prolaboreItems.push({data:pd||(mk+'-05'),desc:nome,valor:v});}
     else if(r.dest==='distrib')md.distribuicaoItems.push({data:pd||(mk+'-01'),desc:nome,valor:v});
   });
   if(typeof _sumDistrib==='function')_sumDistrib(md);
+  if(typeof _sumProlabore==='function')_sumProlabore(md);
   setMDesp(mk,md);saveDespDB(mk,md);
   closeModal('m-res-import');renderRes();
   toast(n+' gasto(s) importado(s) em '+mlabel(mk)+'!');
@@ -5812,7 +5833,8 @@ function exportMesXls(mk){
   (md.extras||[]).forEach(function(e){R.push([S('DESPESA EXTRA',1),S(e.nome),S(e.banco||''),S(fd(e.pdata)),M(e.valor)]);});
   (md.financeiro||[]).forEach(function(f){R.push([S('FINANCEIRO (INVESTIMENTO)',1),S((f.nome||'')+((+f.rendBruto||0)!==0?' — bruto '+fmt(f.rendBruto):'')),S(f.banco||''),S(''),M(f.valor)]);});
   R.push([S('IMPOSTO',1),S('DAS'+(md.das>0?' (real)':' (estimado)')),S(''),S(''),M(das)]);
-  if((+md.prolabore||0)>0)R.push([S('PRÓ-LABORE',1),S(md.prolaboreDesc||'Pró-labore'),S(''),S(fd(md.prolaboreData)),M(md.prolabore)]);
+  if(md.prolaboreItems&&md.prolaboreItems.length){md.prolaboreItems.forEach(function(pl){if((+pl.valor||0)!==0)R.push([S('PRÓ-LABORE',1),S(pl.desc||'Pró-labore'),S(''),S(fd(pl.data)),M(pl.valor)]);});}
+  else if((+md.prolabore||0)>0)R.push([S('PRÓ-LABORE',1),S(md.prolaboreDesc||'Pró-labore'),S(''),S(fd(md.prolaboreData)),M(md.prolabore)]);
   (md.distribuicaoItems||[]).forEach(function(di){if((+di.valor||0)!==0)R.push([S('DISTRIBUIÇÃO',1),S(di.desc||'Retirada de lucros'),S(''),S(fd(di.data)),M(di.valor)]);});
   R.push([]);
   R.push([S('RESULTADO',6),S('Margem de Contribuição',6),S('',6),S('',6),M(mc,5)]);
@@ -5959,23 +5981,25 @@ function exportResPDF(dre){
   win.document.write(html);win.document.close();win.focus();
   setTimeout(function(){win.print();},600);
 }
-function saveProlabore(mk,val){
-  var md=getMDesp(mk);
-  md.prolabore=parseBRL(val);
-  setMDesp(mk,md);
-  saveDespDB(mk,md);
-  renderResDebounced();
+// Pró-labore = lista de lançamentos (descrição + data + valor). md.prolabore = soma do mês.
+function _sumProlabore(md){var s=0,i;if(md.prolaboreItems)for(i=0;i<md.prolaboreItems.length;i++)s+=(+md.prolaboreItems[i].valor||0);md.prolabore=Math.round(s*100)/100;return md.prolabore;}
+function addProlaboreItem(mk){
+  var dEl=document.getElementById('pl-data-'+mk),vEl=document.getElementById('pl-val-'+mk),deEl=document.getElementById('pl-desc-'+mk);
+  var data=dEl?dEl.value:'';var val=parseBRL(vEl?vEl.value:'')||0;var desc=deEl?(deEl.value||'').trim():'';
+  if(!val){toast('Informe o valor do pró-labore',true);return;}
+  var md=getMDesp(mk);if(!md.prolaboreItems)md.prolaboreItems=[];
+  md.prolaboreItems.push({data:data||(mk+'-05'),desc:desc,valor:val});
+  _sumProlabore(md);setMDesp(mk,md);saveDespDB(mk,md);renderResDebounced();
+  toast('Pró-labore adicionado!');
 }
-function saveProlaboreDesc(mk,val){
-  var md=getMDesp(mk);
-  md.prolaboreDesc=(val||'').trim();
-  setMDesp(mk,md);saveDespDB(mk,md);
+function delProlaboreItem(mk,idx){
+  var md=getMDesp(mk);if(!md.prolaboreItems)return;
+  md.prolaboreItems.splice(idx,1);_sumProlabore(md);setMDesp(mk,md);saveDespDB(mk,md);renderResDebounced();
+  toast('Pró-labore removido');
 }
-function saveProlaboreData(mk,val){
-  var md=getMDesp(mk);
-  md.prolaboreData=val||'';
-  setMDesp(mk,md);saveDespDB(mk,md);
-}
+function updProlaboreDesc(mk,idx,val){var md=getMDesp(mk);if(!md.prolaboreItems||!md.prolaboreItems[idx])return;md.prolaboreItems[idx].desc=(val||'').trim();setMDesp(mk,md);saveDespDB(mk,md);}
+function updProlaboreData(mk,idx,val){var md=getMDesp(mk);if(!md.prolaboreItems||!md.prolaboreItems[idx])return;md.prolaboreItems[idx].data=val;setMDesp(mk,md);saveDespDB(mk,md);}
+function updProlaboreVal(mk,idx,val){var md=getMDesp(mk);if(!md.prolaboreItems||!md.prolaboreItems[idx])return;md.prolaboreItems[idx].valor=parseBRL(val)||0;_sumProlabore(md);setMDesp(mk,md);saveDespDB(mk,md);renderResDebounced();}
 // Distribuição de lucros = lista de lançamentos (data + valor). md.distribuicao = soma do mês.
 function _sumDistrib(md){var s=0,i;if(md.distribuicaoItems)for(i=0;i<md.distribuicaoItems.length;i++)s+=(+md.distribuicaoItems[i].valor||0);md.distribuicao=Math.round(s*100)/100;return md.distribuicao;}
 function addDistribItem(mk){
