@@ -5217,6 +5217,12 @@ function loadDespesasFromDB(mk,cb){
 }
 
 function renderRes(){
+  // Não reconstrói enquanto o usuário edita um campo dentro da lista (evita perder o valor digitado)
+  var _ae=document.activeElement;
+  if(_ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(_ae.tagName)){
+    var _host=document.getElementById('res-meses');
+    if(_host&&_host.contains(_ae)){renderResDebounced();return;}
+  }
   var vendas=loadVendas();
   var mset={},i;
   for(i=0;i<vendas.length;i++) mset[mkey(vendas[i].date)]=1;
