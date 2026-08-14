@@ -222,7 +222,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 /* ── MODALS ── */
 .ovl{position:fixed;inset:0;background:var(--overlay);z-index:100;display:none;align-items:flex-end;justify-content:center;}
 .ovl.on{display:flex;}
-.modal{background:var(--modal-bg);border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:90vh;overflow-y:auto;border-top:1px solid var(--border2,#334155);box-shadow:0 -8px 40px rgba(0,0,10,0.5);}
+.modal{background:var(--modal-bg);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:960px;max-height:90vh;overflow-y:auto;border-top:1px solid var(--border2,#334155);box-shadow:0 -8px 40px rgba(0,0,10,0.5);}
 .mhdl{width:36px;height:4px;background:var(--border2,#334155);border-radius:2px;margin:0 auto 16px;}.mhdl:not(:empty){width:auto;height:auto;background:none;border-radius:0;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:800;color:var(--text);}
 .mtitle{font-size:17px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px;}
 
@@ -5702,13 +5702,37 @@ function ensurePdfJsRes(cb){
 function pdfToTextRes(buf,pwd){
   return pdfjsLib.getDocument({data:buf,password:pwd||''}).promise.then(function(pdf){
     var texto='';
+    var reVal=/R\$\s*-?\s*\d/;
+    var reDate=/\b\d{2}[-/]\d{2}[-/]\d{4}\b/;
+    var skipHdr=/(mercado\s*pago|extrato de conta|cpf\/cnpj|ag[eê]ncia|conta\b|per[ií]odo|saldo inicial|saldo final|entradas\b|sa[ií]das\b|detalhe dos moviment|id da opera|^data\b|^descri[cç][aã]o\b|^valor\b|^saldo\b|p[aá]gina|bike shop)/i;
     function pagina(p){
       if(p>pdf.numPages)return Promise.resolve(texto);
       return pdf.getPage(p).then(function(pg){return pg.getTextContent();}).then(function(tc){
-        var linhas={};
-        tc.items.forEach(function(it){if(!it.str)return;var y=Math.round(it.transform[5]);(linhas[y]=linhas[y]||[]).push({x:it.transform[4],s:it.str});});
-        Object.keys(linhas).map(Number).sort(function(a,b){return b-a;}).forEach(function(y){
-          texto+=linhas[y].sort(function(a,b){return a.x-b.x;}).map(function(o){return o.s;}).join(' ')+'\n';
+        // 1) agrupa itens em linhas por Y
+        var map={};
+        tc.items.forEach(function(it){if(!it.str||!it.str.trim())return;var y=Math.round(it.transform[5]);(map[y]=map[y]||[]).push({x:it.transform[4],s:it.str});});
+        var lines=Object.keys(map).map(Number).sort(function(a,b){return b-a;}).map(function(y){
+          return {y:y,text:map[y].sort(function(a,b){return a.x-b.x;}).map(function(o){return o.s;}).join(' ').trim()};
+        });
+        // 2) linhas que têm valor R$ = âncoras de cada movimento
+        var valueLines=lines.filter(function(l){return reVal.test(l.text);});
+        // 3) fragmentos de descrição (sem R$, sem cabeçalho) vão para a linha-âncora mais próxima em Y
+        lines.forEach(function(l){
+          if(reVal.test(l.text))return;               // é linha de valor
+          if(reDate.test(l.text))return;              // tem data própria — mantém como linha
+          if(!/[A-Za-zÀ-ú]/.test(l.text))return;      // sem letras
+          if(skipHdr.test(l.text))return;             // cabeçalho — ignora
+          if(!valueLines.length)return;
+          var best=null,bd=1e9;
+          valueLines.forEach(function(v){var d=Math.abs(v.y-l.y);if(d<bd){bd=d;best=v;}});
+          if(best){best._frags=best._frags||[];best._frags.push({y:l.y,s:l.text});l._merged=true;}
+        });
+        // 4) monta o texto: cada linha-âncora recebe seus fragmentos (ordenados de cima p/ baixo)
+        lines.forEach(function(l){
+          if(l._merged)return;
+          var t=l.text;
+          if(l._frags){l._frags.sort(function(a,b){return b.y-a.y;});t=t+' '+l._frags.map(function(f){return f.s;}).join(' ');}
+          texto+=t+'\n';
         });
         return pagina(p+1);
       });
