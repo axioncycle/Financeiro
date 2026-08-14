@@ -179,7 +179,66 @@ function recarregar(){
 function getDolar(){var c=ITEMS.find(function(x){return x.tipo==='config'&&x.nome==='dolar_rate';});return c&&+c.valor?+c.valor:5.40;}
 // ── Cotações de ações ao vivo (Yahoo via proxy) ────────
 var QUOTE_URL='https://financeiro-ten-kappa.vercel.app/api/quote';
+var CHART_URL='https://financeiro-ten-kappa.vercel.app/api/chart';
 var _prices={};
+// ── Gráfico 1 ano do ativo ───────────────────────────────────────────────
+function openAcaoChart(id){
+  var a=ITEMS.find(function(x){return x.id===id;});if(!a)return;
+  var sym=yahooSym(a);var tk=tickerOf(a);
+  var ov=document.getElementById('ov');var b=document.getElementById('ov-body');
+  b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><button class="del" onclick="closeOv()">×</button></div>'+
+    '<div style="text-align:center;padding:30px 10px;color:var(--text3);font-size:13px;">Carregando gráfico de 1 ano…</div>';
+  ov.style.display='block';
+  fetch(CHART_URL+'?symbol='+encodeURIComponent(sym)+'&range=1y')
+    .then(function(r){return r.json();})
+    .then(function(j){renderAcaoChart(a,j);})
+    .catch(function(){var b2=document.getElementById('ov-body');if(b2)b2.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><button class="del" onclick="closeOv()">×</button></div><div style="text-align:center;padding:24px;color:#ef4444;font-size:13px;">Não consegui carregar o gráfico agora. Tente novamente.</div>';});
+}
+function renderAcaoChart(a,j){
+  var b=document.getElementById('ov-body');if(!b)return;
+  var tk=tickerOf(a);var moeda=(a.tipo==='acao_br')?'R$':'US$';
+  var pts=(j&&j.points)||[];
+  var head='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><button class="del" onclick="closeOv()">×</button></div>';
+  if(!pts.length){b.innerHTML=head+'<div style="text-align:center;padding:24px;color:#ef4444;font-size:13px;">Sem dados de mercado para este ticker.</div>';return;}
+  var nome=(j&&j.name)||nomeAtivo(a)||'';
+  var W=600,H=230,padL=8,padR=8,padT=14,padB=22;
+  var closes=pts.map(function(p){return p.c;});
+  var min=Math.min.apply(null,closes),max=Math.max.apply(null,closes);
+  var rng=(max-min)||1;var first=closes[0],last=closes[closes.length-1];
+  var chg=last-first,chgP=first?chg/first*100:0;var up=chg>=0;var lc=up?'#22c55e':'#ef4444';
+  function X(i){return padL+(i/(pts.length-1||1))*(W-padL-padR);}
+  function Y(v){return padT+(1-(v-min)/rng)*(H-padT-padB);}
+  var d='',area='';
+  pts.forEach(function(p,i){var x=X(i).toFixed(1),y=Y(p.c).toFixed(1);d+=(i?'L':'M')+x+' '+y+' ';});
+  area='M'+X(0).toFixed(1)+' '+Y(min).toFixed(1)+' '+d.replace(/^M/,'L')+'L'+X(pts.length-1).toFixed(1)+' '+Y(min).toFixed(1)+' Z';
+  // datas dos extremos
+  function dstr(t){var dt=new Date(t*1000);return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+String(dt.getFullYear()).slice(2);}
+  var gid='g'+a.id;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="none" style="display:block;background:var(--bg2);border-radius:10px;">'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+lc+'" stop-opacity="0.28"/><stop offset="1" stop-color="'+lc+'" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+area+'" fill="url(#'+gid+')"/>'+
+    '<path d="'+d.trim()+'" fill="none" stroke="'+lc+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '</svg>';
+  // posição do usuário
+  var info=ganhoInfo(a);var igc=info.g>=0?'#22c55e':'#ef4444';
+  var priceNow=(j&&j.price)||last;
+  var kpis='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Preço atual</div><div style="font-size:13px;font-weight:800;">'+fmtCur(priceNow,moeda)+'</div></div>'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Máx 1 ano</div><div style="font-size:13px;font-weight:800;color:#22c55e;">'+fmtCur(max,moeda)+'</div></div>'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Mín 1 ano</div><div style="font-size:13px;font-weight:800;color:#ef4444;">'+fmtCur(min,moeda)+'</div></div>'+
+  '</div>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Sua posição</div><div style="font-size:12px;font-weight:700;">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+'</div></div>'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Seu ganho</div><div style="font-size:12px;font-weight:800;color:'+igc+';">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'% · '+fmtCur(info.cv,moeda)+'</div></div>'+
+  '</div>';
+  b.innerHTML=head+
+    (nome?'<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+esc(nome)+'</div>':'')+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><div style="font-size:20px;font-weight:900;">'+fmtCur(last,moeda)+'</div>'+
+      '<div style="font-size:13px;font-weight:800;color:'+lc+';">'+(up?'▲ +':'▼ ')+chgP.toFixed(2)+'% <span style="font-size:10px;color:var(--text3);font-weight:600;">1 ano</span></div></div>'+
+    svg+
+    '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px;"><span>'+dstr(pts[0].t)+'</span><span>'+dstr(pts[pts.length-1].t)+'</span></div>'+
+    kpis;
+}
 function tickerOf(a){return ((a.nome||'').split('·')[0].trim().split(/\s+/)[0]||'').toUpperCase();}
 function yahooSym(a){var t=tickerOf(a);return a.tipo==='acao_br'?(t+'.SA'):(a.tipo==='cripto'?(t+'-USD'):t);}
 function precoAtual(a){var q=_prices[yahooSym(a)];return q&&q.price?q.price:0;}
@@ -512,6 +571,7 @@ function viewAcoes(tipo,titulo,col,moeda){
        '<div class="nm">'+esc(a.nome||'—')+(nomeAtivo(a)?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(nomeAtivo(a))+'</span>':'')+'</div>'+
        '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+(a.data?' · 📅 '+fmtData(a.data):'')+'</div></div>'+
        '<div style="text-align:right;"><div class="vl" style="color:'+col+';">'+fmtCur(info.cv,moeda)+'</div>'+(isUSD?'<div style="font-size:10px;color:var(--accent);">'+fmt(info.cv*getDolar())+'</div>':'')+'</div>'+
+       '<button class="del" style="color:#60a5fa;font-size:15px;" onclick="openAcaoChart('+a.id+')" title="Gráfico 1 ano">📈</button>'+
        '<button class="del" style="color:#22c55e;font-size:17px;" onclick="novaCompra('+a.id+')" title="Nova compra">＋</button>'+itemActions(a)+'</div>';});
   h+='<div class="add-box"><label class="fl">Ticker (ex: '+(isUSD?'AAPL, VOO':'PETR4, ITUB4')+')</label><input class="fi" id="ac-nome" placeholder="'+(isUSD?'AAPL':'PETR4')+'">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Quantidade</label><input class="fi" id="ac-qtd" inputmode="decimal" placeholder="0"></div>'+
