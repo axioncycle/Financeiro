@@ -182,23 +182,30 @@ var QUOTE_URL='https://financeiro-ten-kappa.vercel.app/api/quote';
 var CHART_URL='https://financeiro-ten-kappa.vercel.app/api/chart';
 var _prices={};
 // ── Gráfico 1 ano do ativo ───────────────────────────────────────────────
-function openAcaoChart(id){
+function _chartRangeLabel(r){return r==='5y'?'5 anos':'1 ano';}
+function _chartRangeBtns(id,cur){
+  function bt(r,lb){var on=(cur===r);return '<button onclick="openAcaoChart('+id+',\''+r+'\')" style="border:1px solid '+(on?'var(--accent)':'var(--border)')+';background:'+(on?'rgba(139,147,255,.18)':'transparent')+';color:'+(on?'var(--accent)':'var(--text2)')+';font-size:11px;font-weight:700;padding:4px 11px;border-radius:8px;cursor:pointer;">'+lb+'</button>';}
+  return '<div style="display:flex;gap:6px;">'+bt('1y','1A')+bt('5y','5A')+'</div>';
+}
+function openAcaoChart(id,range){
+  range=(range==='5y')?'5y':'1y';
   var a=ITEMS.find(function(x){return x.id===id;});if(!a)return;
   var sym=yahooSym(a);var tk=tickerOf(a);
+  var head='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><div style="display:flex;align-items:center;gap:8px;">'+_chartRangeBtns(id,range)+'<button class="del" onclick="closeOv()">×</button></div></div>';
   var ov=document.getElementById('ov');var b=document.getElementById('ov-body');
-  b.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><button class="del" onclick="closeOv()">×</button></div>'+
-    '<div style="text-align:center;padding:30px 10px;color:var(--text3);font-size:13px;">Carregando gráfico de 1 ano…</div>';
+  b.innerHTML=head+'<div style="text-align:center;padding:30px 10px;color:var(--text3);font-size:13px;">Carregando gráfico de '+_chartRangeLabel(range)+'…</div>';
   ov.style.display='block';
-  fetch(CHART_URL+'?symbol='+encodeURIComponent(sym)+'&range=1y')
+  fetch(CHART_URL+'?symbol='+encodeURIComponent(sym)+'&range='+range)
     .then(function(r){return r.json();})
-    .then(function(j){renderAcaoChart(a,j);})
-    .catch(function(){var b2=document.getElementById('ov-body');if(b2)b2.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><button class="del" onclick="closeOv()">×</button></div><div style="text-align:center;padding:24px;color:#ef4444;font-size:13px;">Não consegui carregar o gráfico agora. Tente novamente.</div>';});
+    .then(function(j){renderAcaoChart(a,j,range);})
+    .catch(function(){var b2=document.getElementById('ov-body');if(b2)b2.innerHTML=head+'<div style="text-align:center;padding:24px;color:#ef4444;font-size:13px;">Não consegui carregar o gráfico agora. Tente novamente.</div>';});
 }
-function renderAcaoChart(a,j){
+function renderAcaoChart(a,j,range){
+  range=(range==='5y')?'5y':'1y';
   var b=document.getElementById('ov-body');if(!b)return;
   var tk=tickerOf(a);var moeda=(a.tipo==='acao_br')?'R$':'US$';
   var pts=(j&&j.points)||[];
-  var head='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><button class="del" onclick="closeOv()">×</button></div>';
+  var head='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;"><div class="ttl" style="margin:0;">📈 '+esc(tk||a.nome)+'</div><div style="display:flex;align-items:center;gap:8px;">'+_chartRangeBtns(a.id,range)+'<button class="del" onclick="closeOv()">×</button></div></div>';
   if(!pts.length){b.innerHTML=head+'<div style="text-align:center;padding:24px;color:#ef4444;font-size:13px;">Sem dados de mercado para este ticker.</div>';return;}
   var nome=(j&&j.name)||nomeAtivo(a)||'';
   var W=600,H=230,padL=8,padR=8,padT=14,padB=22;
@@ -224,8 +231,8 @@ function renderAcaoChart(a,j){
   var priceNow=(j&&j.price)||last;
   var kpis='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">'+
     '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Preço atual</div><div style="font-size:13px;font-weight:800;">'+fmtCur(priceNow,moeda)+'</div></div>'+
-    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Máx 1 ano</div><div style="font-size:13px;font-weight:800;color:#22c55e;">'+fmtCur(max,moeda)+'</div></div>'+
-    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Mín 1 ano</div><div style="font-size:13px;font-weight:800;color:#ef4444;">'+fmtCur(min,moeda)+'</div></div>'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Máx '+_chartRangeLabel(range)+'</div><div style="font-size:13px;font-weight:800;color:#22c55e;">'+fmtCur(max,moeda)+'</div></div>'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Mín '+_chartRangeLabel(range)+'</div><div style="font-size:13px;font-weight:800;color:#ef4444;">'+fmtCur(min,moeda)+'</div></div>'+
   '</div>'+
   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">'+
     '<div style="background:var(--bg3);border-radius:8px;padding:7px 8px;"><div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Sua posição</div><div style="font-size:12px;font-weight:700;">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+'</div></div>'+
@@ -234,7 +241,7 @@ function renderAcaoChart(a,j){
   b.innerHTML=head+
     (nome?'<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">'+esc(nome)+'</div>':'')+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><div style="font-size:20px;font-weight:900;">'+fmtCur(last,moeda)+'</div>'+
-      '<div style="font-size:13px;font-weight:800;color:'+lc+';">'+(up?'▲ +':'▼ ')+chgP.toFixed(2)+'% <span style="font-size:10px;color:var(--text3);font-weight:600;">1 ano</span></div></div>'+
+      '<div style="font-size:13px;font-weight:800;color:'+lc+';">'+(up?'▲ +':'▼ ')+chgP.toFixed(2)+'% <span style="font-size:10px;color:var(--text3);font-weight:600;">'+_chartRangeLabel(range)+'</span></div></div>'+
     svg+
     '<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px;"><span>'+dstr(pts[0].t)+'</span><span>'+dstr(pts[pts.length-1].t)+'</span></div>'+
     kpis;
