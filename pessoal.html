@@ -567,12 +567,19 @@ function viewAcoes(tipo,titulo,col,moeda){
     if(editingId===a.id){h+=editorBox(a);return;}
     if(aporteId===a.id){h+=aporteBox(a,moeda);return;}
     var info=ganhoInfo(a),igc=info.g>=0?'#22c55e':'#ef4444';
-    h+='<div class="li" style="border-left-color:'+col+';"><div style="flex:1;min-width:0;">'+
-       '<div class="nm">'+esc(a.nome||'—')+(nomeAtivo(a)?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(nomeAtivo(a))+'</span>':'')+'</div>'+
-       '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+(a.data?' · 📅 '+fmtData(a.data):'')+'</div></div>'+
-       '<div style="text-align:right;"><div class="vl" style="color:'+col+';">'+fmtCur(info.cv,moeda)+'</div>'+(isUSD?'<div style="font-size:10px;color:var(--accent);">'+fmt(info.cv*getDolar())+'</div>':'')+'</div>'+
-       '<button class="del" style="color:#60a5fa;font-size:15px;" onclick="openAcaoChart('+a.id+')" title="Gráfico 1 ano">📈</button>'+
-       '<button class="del" style="color:#22c55e;font-size:17px;" onclick="novaCompra('+a.id+')" title="Nova compra">＋</button>'+itemActions(a)+'</div>';});
+    h+='<div class="li" style="border-left-color:'+col+';flex-direction:column;align-items:stretch;gap:7px;">'+
+       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
+         '<div style="flex:1;min-width:0;">'+
+           '<div class="nm">'+esc(a.nome||'—')+(nomeAtivo(a)?' <span style="font-size:10px;color:var(--text3);font-weight:400;">· '+esc(nomeAtivo(a))+'</span>':'')+'</div>'+
+           '<div class="sb">'+(+a.qtd||0)+' cotas · pago '+fmtCur(a.valor,moeda)+' · <span style="color:'+igc+';font-weight:700;">'+(info.g>=0?'+':'')+info.pct.toFixed(2)+'%</span>'+(info.live?'':' <span style="color:#f59e0b;">(sem cotação)</span>')+(a.data?' · 📅 '+fmtData(a.data):'')+'</div>'+
+         '</div>'+
+         '<div style="text-align:right;flex-shrink:0;"><div class="vl" style="color:'+col+';">'+fmtCur(info.cv,moeda)+'</div>'+(isUSD?'<div style="font-size:10px;color:var(--accent);">'+fmt(info.cv*getDolar())+'</div>':'')+'</div>'+
+       '</div>'+
+       '<div style="display:flex;justify-content:flex-end;align-items:center;gap:2px;border-top:1px solid var(--border);padding-top:5px;">'+
+         '<button class="del" style="color:#60a5fa;font-size:15px;" onclick="openAcaoChart('+a.id+')" title="Gráfico 1 ano">📈</button>'+
+         '<button class="del" style="color:#22c55e;font-size:17px;" onclick="novaCompra('+a.id+')" title="Nova compra">＋</button>'+itemActions(a)+
+       '</div>'+
+     '</div>';});
   h+='<div class="add-box"><label class="fl">Ticker (ex: '+(isUSD?'AAPL, VOO':'PETR4, ITUB4')+')</label><input class="fi" id="ac-nome" placeholder="'+(isUSD?'AAPL':'PETR4')+'">'+
      '<div class="row" style="margin-top:8px;"><div><label class="fl">Quantidade</label><input class="fi" id="ac-qtd" inputmode="decimal" placeholder="0"></div>'+
      '<div><label class="fl">Valor pago ('+moeda+')</label><input class="fi" id="ac-val" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)"></div></div>'+
