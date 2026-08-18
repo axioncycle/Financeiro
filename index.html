@@ -1051,7 +1051,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
   <div style="display:flex;gap:8px;margin-bottom:8px;">
     <button class="btn btn-o" style="flex:1;" onclick="openNovoContainer()">+ Conteiner</button>
     <button class="btn" style="flex:1;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;" onclick="openEntrada()">+ Entrada</button>
-    <button class="btn" style="flex:1;background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;" onclick="exportEstoquePDF()">Exportar PDF</button>
+    <button class="btn" style="flex:1;background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;" onclick="openExportEstoque()">Exportar PDF</button>
   </div>
   <div style="background:var(--bg2);border:1px solid #1E90FF22;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
     <span style="font-size:14px;">&#128667;</span>
@@ -1343,6 +1343,18 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <button class="btn" style="flex:1;" onclick="gerarOrcamentoPDF()">📄 Gerar PDF</button>
       <button class="btn btn-s" onclick="closeModal('m-orcamento')">Fechar</button>
     </div>
+  </div>
+</div>
+<div class="ovl" id="m-export-est">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="mhdl"></div>
+    <div class="mtitle">📄 Exportar Estoque em PDF</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Escolha o que exportar:</div>
+    <button class="btn" style="width:100%;margin-bottom:8px;background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;" onclick="closeModal('m-export-est');exportEstoquePDF('all')">📦 Tudo (Geral + todos os contêineres)</button>
+    <button class="btn" style="width:100%;margin-bottom:12px;background:#1E90FF18;color:#1E90FF;border:1px solid #1E90FF44;" onclick="closeModal('m-export-est');exportEstoquePDF('geral')">📊 Somente Estoque Geral</button>
+    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Ou um contêiner específico</div>
+    <div id="exp-est-conts" style="display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow-y:auto;"></div>
+    <button class="btn btn-s" style="width:100%;margin-top:12px;" onclick="closeModal('m-export-est')">Fechar</button>
   </div>
 </div>
 <div class="ovl" id="m-edit-cont">
@@ -4847,7 +4859,18 @@ function renderEst(){
   }
 }
 
-function exportEstoquePDF(){
+function openExportEstoque(){
+  var cs=loadContainers().slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  var wrap=document.getElementById('exp-est-conts');
+  if(wrap){
+    if(!cs.length){wrap.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0;">Nenhum contêiner cadastrado</div>';}
+    else{wrap.innerHTML=cs.map(function(c){var dt=c.data?c.data.split('-').reverse().join('/'):'—';return '<button class="btn btn-s" style="width:100%;text-align:left;justify-content:flex-start;" onclick="closeModal(\'m-export-est\');exportEstoquePDF(\''+c.id+'\')">📦 '+esc(c.nome)+' <span style="color:var(--text3);font-weight:400;font-size:11px;margin-left:6px;">'+dt+'</span></button>';}).join('');}
+  }
+  openModal('m-export-est');
+}
+function exportEstoquePDF(scope){
+  scope=scope||'all';
+  var incGeral=(scope==='all'||scope==='geral');
   var today2=new Date();
   var dateStr=today2.toLocaleDateString('pt-BR');
   var cs=loadContainers();
@@ -4883,6 +4906,8 @@ function exportEstoquePDF(){
   var sortedCs=cs.slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   for(var ci=0;ci<sortedCs.length;ci++){
     var cont=sortedCs[ci];
+    if(scope==='geral')break; // só geral, pula contêineres
+    if(scope!=='all'&&String(cont.id)!==String(scope))continue; // contêiner específico
     var rows='';
     var contTotal=0;
     var locTotals={};
@@ -4987,15 +5012,15 @@ function exportEstoquePDF(){
     +'@media print{body{padding:10px;}.cont-section{page-break-inside:avoid;}}'
     +'</style></head><body>'
     +'<h1>Relatório de Estoque</h1>'
-    +'<div class="subtitle">Axion Cycle · Gerado em '+dateStr+'</div>'
+    +'<div class="subtitle">Axion Cycle · '+(scope==='all'?'Geral + todos os contêineres':scope==='geral'?'Somente Estoque Geral':(function(){for(var _k=0;_k<cs.length;_k++){if(String(cs[_k].id)===String(scope))return 'Contêiner: '+cs[_k].nome;}return 'Contêiner';})())+' · Gerado em '+dateStr+'</div>'
     +'<div class="legend">'
     +'<div class="leg"><div class="leg-dot leg-ok"></div>Em estoque</div>'
     +'<div class="leg"><div class="leg-dot leg-alert"></div>Alerta (≤1 un)</div>'
     +'<div class="leg"><div class="leg-dot leg-sold"></div>Zerado / Vendido</div>'
     +'</div>'
-    +'<h2>Estoque Geral</h2>'
-    +'<table><thead><tr><th>Produto</th>'+locHeaders+'<th class="num">Total</th></tr></thead>'
-    +'<tbody>'+geralRows+'</tbody></table>'
+    +(incGeral?('<h2>Estoque Geral</h2>'
+      +'<table><thead><tr><th>Produto</th>'+locHeaders+'<th class="num">Total</th></tr></thead>'
+      +'<tbody>'+geralRows+'</tbody></table>'):'')
     +contSections
     +'<div style="position:fixed;bottom:20px;right:20px;display:flex;gap:8px;">'
     +'<button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);">Salvar como PDF</button>'
