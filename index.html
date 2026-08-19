@@ -7304,6 +7304,20 @@ function skcResolveCat(selId,inpId){
 }
 function skcSetCat(c){skcCat=c;renderSkuCadastro();}
 function skcEdit(id){skcEditId=id;skcAddOpen=false;var f=document.getElementById('skc-addform');if(f)f.style.display='none';renderSkuCadastro();}
+// Adiciona um SKU do cadastro direto no Planejamento de Compra (Bloco 2) do contêiner selecionado
+function skcAddToPlanejamento(id){
+  if(!custoContId){toast('Selecione um contêiner no topo da aba Custos primeiro',true);return;}
+  var all=getAllCustoSKUs(),s=null,i;
+  for(i=0;i<all.length;i++){if(String(all[i].id)===String(id)){s=all[i];break;}}
+  if(!s){toast('SKU não encontrado',true);return;}
+  if(!Array.isArray(skuRows))skuRows=[];
+  var ex=null;for(i=0;i<skuRows.length;i++){if(skuRows[i].skuNome===s.nome){ex=skuRows[i];break;}}
+  if(ex){ex.qty=(parseInt(ex.qty,10)||0)+1;if(!(+ex.usd>0)&&(+s.usd>0))ex.usd=s.usd;}
+  else skuRows.push({skuNome:s.nome,usd:s.usd||0,qty:1,brl:0});
+  renderSkuRows();calcResumo();
+  saveCustoData(custoContId,{pagamentos:pagamentos,skuRows:skuRows});
+  toast('"'+s.nome+'" no planejamento de '+(impContNome()||'contêiner')+(ex?' (qtd +1)':''));
+}
 function skcDuplicate(id){
   var all=getAllCustoSKUs(),s=null,i;
   for(i=0;i<all.length;i++){if(String(all[i].id)===String(id)){s=all[i];break;}}
@@ -7381,6 +7395,7 @@ function renderSkuCadastro(){
       '<div style="text-align:right;flex-shrink:0;">'+
         (s.usd>0?'<div style="font-size:13px;font-weight:800;color:#1E90FF;">$ '+fmtN(s.usd)+'</div><div style="font-size:10px;color:#22c55e;">R$ '+fmtN(brl)+'</div>':'<div style="font-size:11px;color:var(--text3);">sem preço</div>')+
       '</div>'+
+      '<button onclick="skcAddToPlanejamento(\''+s.id+'\')" title="Adicionar ao Planejamento de Compra do contêiner" style="border:none;background:#f59e0b22;color:#f59e0b;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">🛒</button>'+
       '<button onclick="skcEdit(\''+s.id+'\')" title="Editar" style="border:none;background:#1E90FF22;color:#1E90FF;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">✎</button>'+
       '<button onclick="skcDuplicate(\''+s.id+'\')" title="Duplicar" style="border:none;background:#22c55e22;color:#22c55e;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">⧉</button>'+
       (s.custom?'<button onclick="skcDelete(\''+s.id+'\')" title="Apagar" style="border:none;background:#ef444422;color:#ef4444;border-radius:6px;padding:6px 10px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">×</button>':'')+
@@ -8286,6 +8301,11 @@ function renderSkuRows(){
     el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;">Nenhum SKU. Clique em + SKU.</div>';
     return;
   }
+  // datalist compartilhado p/ autocomplete de SKU (digitar e filtrar)
+  var _allSkusDL=getAllCustoSKUs();
+  var dl=document.getElementById('sku-datalist');
+  if(!dl){dl=document.createElement('datalist');dl.id='sku-datalist';document.body.appendChild(dl);}
+  dl.innerHTML=_allSkusDL.map(function(s){return '<option value="'+esc(s.nome)+'"></option>';}).join('');
   var totBRL=calcTotalPago();
   var totUSD=0,i;
   for(i=0;i<skuRows.length;i++){
@@ -8302,15 +8322,16 @@ function renderSkuRows(){
     // Top row: SKU select + delete
     var topRow=document.createElement('div');
     topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px;';
-    var skuSel=document.createElement('select');
-    skuSel.className='fs';skuSel.style.cssText='flex:1;min-width:0;font-size:13px;padding:7px 8px;';
-    skuSel.innerHTML=buildSkuOptions(r.skuNome);
-    skuSel.onchange=(function(idx){return function(){onSkuChange(idx,'sku',this.value);};})(i);
+    var skuInp=document.createElement('input');
+    skuInp.type='text';skuInp.setAttribute('list','sku-datalist');skuInp.setAttribute('autocomplete','off');
+    skuInp.className='fi';skuInp.style.cssText='flex:1;min-width:0;font-size:13px;padding:7px 8px;';
+    skuInp.value=r.skuNome||'';skuInp.placeholder='Digite o SKU...';
+    skuInp.onchange=(function(idx){return function(){onSkuChange(idx,'sku',this.value);};})(i);
     var delBtn=document.createElement('button');
     delBtn.textContent='x';
     delBtn.style.cssText='width:28px;height:28px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
     delBtn.onclick=(function(idx){return function(){removeSkuRow(idx);};})(i);
-    topRow.appendChild(skuSel);topRow.appendChild(delBtn);
+    topRow.appendChild(skuInp);topRow.appendChild(delBtn);
     // Bottom row: USD | QTD | CUSTO BRL
     var botRow=document.createElement('div');
     botRow.style.cssText='display:grid;grid-template-columns:1fr 80px 1fr;gap:6px;align-items:end;';
