@@ -7112,6 +7112,8 @@ function saveCustoData(cid,data){
     dbUpsert('configuracoes',{chave:'pag_desc_'+cid,valor:JSON.stringify(pagDesc)});
     var pagUSD=data.pagamentos.map(function(p){return p.usd||0;});
     dbUpsert('configuracoes',{chave:'pag_usd_'+cid,valor:JSON.stringify(pagUSD)});
+    var pagPago=data.pagamentos.map(function(p){return (p.pago===true?1:(p.pago===false?0:''));});
+    dbUpsert('configuracoes',{chave:'pag_pago_'+cid,valor:JSON.stringify(pagPago)});
     // Save main pagamentos to container_pagamentos table
     dbDel('container_pagamentos','container_id=eq.'+cid).then(function(){
       var rows=[],i,p;
@@ -7222,7 +7224,7 @@ function onCustoContChange(){
       pagamentos=rows.map(function(r){return{data:r.data||"",valor:+r.valor||0,desc:'',usd:0};});
       // Load descriptions and USD values from configuracoes
       var _pagLoadDone=0;
-      function _checkPagLoaded(){_pagLoadDone++;if(_pagLoadDone>=2){renderPagamentos();if(typeof calcResumo==='function')calcResumo();}}
+      function _checkPagLoaded(){_pagLoadDone++;if(_pagLoadDone>=3){renderPagamentos();if(typeof calcResumo==='function')calcResumo();}}
       dbGet('configuracoes','chave=eq.pag_desc_'+custoContId).then(function(dr){
         var descs=[];
         try{descs=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
@@ -7233,6 +7235,12 @@ function onCustoContChange(){
         var usds=[];
         try{usds=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
         for(var di=0;di<pagamentos.length;di++) pagamentos[di].usd=parseFloat(usds[di])||0;
+        _checkPagLoaded();
+      }).catch(function(){_checkPagLoaded();});
+      dbGet('configuracoes','chave=eq.pag_pago_'+custoContId).then(function(dr){
+        var pgs=[];
+        try{pgs=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
+        for(var di=0;di<pagamentos.length;di++){var v=pgs[di];pagamentos[di].pago=(v===1||v===true)?true:((v===0||v===false)?false:undefined);}
         _checkPagLoaded();
       }).catch(function(){_checkPagLoaded();});
       // Update localStorage cache
@@ -8007,6 +8015,9 @@ function onPagChange(i,field,val){
     pagamentos[i].desc=val||'';
   } else if(field==='usd'){
     pagamentos[i].usd=parseFloat(String(val).replace(',','.'))||0;
+  } else if(field==='pago'){
+    pagamentos[i].pago=!!val;
+    renderPagamentos();
   } else {
     pagamentos[i].data=val;
   }
@@ -8014,7 +8025,7 @@ function onPagChange(i,field,val){
   calcResumo();
   // Debounce save to Supabase so edits persist
   var _cid=custoContId;
-  var _pags=pagamentos.slice().map(function(p){return{data:p.data,valor:p.valor,desc:p.desc||'',usd:p.usd||0};});
+  var _pags=pagamentos.slice().map(function(p){return{data:p.data,valor:p.valor,desc:p.desc||'',usd:p.usd||0,pago:p.pago};});
   var _rows=skuRows.slice();
   if(_pagSaveTimer) clearTimeout(_pagSaveTimer);
   _pagSaveTimer=setTimeout(function(){
@@ -8044,11 +8055,11 @@ function renderPagamentos(){
   var i;
   for(i=0;i<pagamentos.length;i++){
     var p=pagamentos[i];
-    // Status pela data: data passada/hoje = Pago (verde), data futura = A pagar (vermelho)
+    // Status: a data sugere o inicial (passado=Pago, futuro=A pagar); depois é manual (clicar no selo)
     var pd=(p.data||'').slice(0,10);
-    var paid=pd&&pd<=_hoje;
-    var accent=!pd?'var(--border)':(paid?'#22c55e':'#ef4444');
-    if(pd){if(paid)_totPago+=(+p.valor||0);else _totFalta+=(+p.valor||0);}else _totPago+=(+p.valor||0);
+    var paid=(p.pago===true||p.pago===false)?p.pago:(!!(pd&&pd<=_hoje));
+    var accent=paid?'#22c55e':'#ef4444';
+    if(paid)_totPago+=(+p.valor||0);else _totFalta+=(+p.valor||0);
     // Card wrapper
     var card=document.createElement('div');
     card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:10px;padding:8px 10px;margin-bottom:8px;';
@@ -8067,9 +8078,12 @@ function renderPagamentos(){
     delBtn.textContent='x';
     delBtn.style.cssText='width:28px;height:28px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
     delBtn.onclick=(function(idx){return function(){removePagamento(idx);};})(i);
-    var pill=document.createElement('span');
-    pill.textContent=!pd?'sem data':(paid?'✓ Pago':'● A pagar');
-    pill.style.cssText='font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;'+(!pd?'background:var(--bg3);color:var(--text3);':paid?'background:rgba(34,197,94,.16);color:#22c55e;':'background:rgba(239,68,68,.16);color:#ef4444;');
+    var pill=document.createElement('button');
+    pill.type='button';
+    pill.textContent=paid?'✓ Pago':'● A pagar';
+    pill.title='Clique para alternar Pago / A pagar';
+    pill.style.cssText='font-size:10px;font-weight:800;padding:5px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;cursor:pointer;border:1px solid '+(paid?'rgba(34,197,94,.45)':'rgba(239,68,68,.45)')+';'+(paid?'background:rgba(34,197,94,.16);color:#22c55e;':'background:rgba(239,68,68,.16);color:#ef4444;');
+    pill.onclick=(function(idx,cur){return function(){onPagChange(idx,'pago',!cur);};})(i,paid);
     var descRow=document.createElement('div');descRow.style.cssText='margin-bottom:6px;';descRow.appendChild(descInp);
     topRow.appendChild(dInp);topRow.appendChild(pill);topRow.appendChild(delBtn);
     // Bottom row: BRL + USD
