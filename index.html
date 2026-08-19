@@ -456,6 +456,14 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 <!-- FLUXO DE CAIXA -->
 <div class="pg" id="pg-caixa">
 
+  <!-- Configurações (recolhível) -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
+    <div onclick="cxToggle(this)" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;">
+      <div style="font-size:11px;font-weight:800;color:#1E90FF;letter-spacing:1px;text-transform:uppercase;">⚙️ Configurações e Cenário</div>
+      <span class="cx-arw" style="color:var(--text3);font-size:13px;">▾</span>
+    </div>
+    <div style="display:none;padding:0 10px 10px;">
+
   <!-- Cenários -->
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:10px;">
     <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Cenário de Projeção</div>
@@ -524,6 +532,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       </div>
     </div>
   </div>
+    </div>
+  </div>
 
   <!-- Filter -->
   <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;" id="cx-filter"></div>
@@ -558,9 +568,12 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div id="cx-projecao"></div>
   </div>
 
-  <!-- Detalhamento mensal -->
-  <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:8px;">DETALHAMENTO POR MÊS</div>
-  <div id="cx-meses"></div>
+  <!-- Detalhamento mensal (recolhível) -->
+  <div onclick="cxToggle(this)" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+    <div style="font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:1px;">📅 Detalhamento por mês</div>
+    <span class="cx-arw" style="color:var(--text3);font-size:13px;">▾</span>
+  </div>
+  <div style="display:none;"><div id="cx-meses"></div></div>
 
 </div>
 
@@ -11071,6 +11084,8 @@ document.addEventListener('click',function(e){
 });
 
 
+// Recolher/expandir seções da aba Caixa
+function cxToggle(h){var b=h.nextElementSibling;if(!b)return;var open=b.style.display!=='none';b.style.display=open?'none':'block';var a=h.querySelector('.cx-arw');if(a)a.textContent=open?'▾':'▴';}
 function renderCaixa(){
   if(curPage!=='caixa') return;
   // Garante que DB_DESP está carregado do Supabase antes de montar a caixa
