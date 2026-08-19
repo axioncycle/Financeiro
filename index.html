@@ -8040,13 +8040,19 @@ function renderPagamentos(){
     el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;">Nenhum pagamento. Clique em + Pagamento.</div>';
     calcTotalPago();return;
   }
+  var _hoje=today();var _totPago=0,_totFalta=0;
   var i;
   for(i=0;i<pagamentos.length;i++){
     var p=pagamentos[i];
+    // Status pela data: data passada/hoje = Pago (verde), data futura = A pagar (vermelho)
+    var pd=(p.data||'').slice(0,10);
+    var paid=pd&&pd<=_hoje;
+    var accent=!pd?'var(--border)':(paid?'#22c55e':'#ef4444');
+    if(pd){if(paid)_totPago+=(+p.valor||0);else _totFalta+=(+p.valor||0);}else _totPago+=(+p.valor||0);
     // Card wrapper
     var card=document.createElement('div');
-    card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:8px;';
-    // Top row: date + desc + delete
+    card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:10px;padding:8px 10px;margin-bottom:8px;';
+    // Top row: date + desc + status + delete
     var topRow=document.createElement('div');
     topRow.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;';
     var dInp=document.createElement('input');
@@ -8061,7 +8067,10 @@ function renderPagamentos(){
     delBtn.textContent='x';
     delBtn.style.cssText='width:28px;height:28px;border-radius:6px;border:1px solid #ef444433;background:#ef444411;color:#ef4444;font-size:13px;cursor:pointer;flex-shrink:0;';
     delBtn.onclick=(function(idx){return function(){removePagamento(idx);};})(i);
-    topRow.appendChild(dInp);topRow.appendChild(descInp);topRow.appendChild(delBtn);
+    var pill=document.createElement('span');
+    pill.textContent=!pd?'sem data':(paid?'✓ Pago':'● A pagar');
+    pill.style.cssText='font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;'+(!pd?'background:var(--bg3);color:var(--text3);':paid?'background:rgba(34,197,94,.16);color:#22c55e;':'background:rgba(239,68,68,.16);color:#ef4444;');
+    topRow.appendChild(dInp);topRow.appendChild(descInp);topRow.appendChild(pill);topRow.appendChild(delBtn);
     // Bottom row: BRL + USD
     var botRow=document.createElement('div');
     botRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;';
@@ -8090,6 +8099,16 @@ function renderPagamentos(){
     card.appendChild(topRow);card.appendChild(botRow);
     el.appendChild(card);
   }
+  // Resumo Pago (verde) x A pagar (vermelho)
+  var sum=document.createElement('div');
+  sum.style.cssText='display:flex;gap:8px;margin-top:2px;';
+  sum.innerHTML='<div style="flex:1;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.3);border-radius:9px;padding:8px 10px;">'+
+      '<div style="font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.5px;">✓ Pago</div>'+
+      '<div style="font-size:15px;font-weight:800;color:#22c55e;margin-top:2px;">'+fmt(_totPago)+'</div></div>'+
+    '<div style="flex:1;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:8px 10px;">'+
+      '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.5px;">● A pagar</div>'+
+      '<div style="font-size:15px;font-weight:800;color:#ef4444;margin-top:2px;">'+fmt(_totFalta)+'</div></div>';
+  el.appendChild(sum);
   calcTotalPago();
 }
 
