@@ -8061,7 +8061,7 @@ function renderPagamentos(){
     dInp.onchange=(function(idx){return function(){onPagChange(idx,'data',this.value);};})(i);
     var descInp=document.createElement('input');
     descInp.type='text';descInp.value=p.desc||'';descInp.placeholder='Descrição...';
-    descInp.style.cssText='flex:1.5;min-width:0;padding:7px 8px;font-size:13px;background:var(--input);border:1px solid var(--input-border);border-radius:8px;color:var(--text);outline:none;';
+    descInp.style.cssText='width:100%;box-sizing:border-box;padding:7px 8px;font-size:13px;background:var(--input);border:1px solid var(--input-border);border-radius:8px;color:var(--text);outline:none;';
     descInp.oninput=(function(idx){return function(){onPagChange(idx,'desc',this.value);};})(i);
     var delBtn=document.createElement('button');
     delBtn.textContent='x';
@@ -8070,7 +8070,8 @@ function renderPagamentos(){
     var pill=document.createElement('span');
     pill.textContent=!pd?'sem data':(paid?'✓ Pago':'● A pagar');
     pill.style.cssText='font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;'+(!pd?'background:var(--bg3);color:var(--text3);':paid?'background:rgba(34,197,94,.16);color:#22c55e;':'background:rgba(239,68,68,.16);color:#ef4444;');
-    topRow.appendChild(dInp);topRow.appendChild(descInp);topRow.appendChild(pill);topRow.appendChild(delBtn);
+    var descRow=document.createElement('div');descRow.style.cssText='margin-bottom:6px;';descRow.appendChild(descInp);
+    topRow.appendChild(dInp);topRow.appendChild(pill);topRow.appendChild(delBtn);
     // Bottom row: BRL + USD
     var botRow=document.createElement('div');
     botRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;';
@@ -8096,7 +8097,7 @@ function renderPagamentos(){
     uInp.oninput=(function(idx){return function(){onPagChange(idx,'usd',this.value);};})(i);
     usdWrap.appendChild(usdLbl);usdWrap.appendChild(uInp);
     botRow.appendChild(brlWrap);botRow.appendChild(usdWrap);
-    card.appendChild(topRow);card.appendChild(botRow);
+    card.appendChild(descRow);card.appendChild(topRow);card.appendChild(botRow);
     el.appendChild(card);
   }
   // Resumo Pago (verde) x A pagar (vermelho)
