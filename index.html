@@ -8043,6 +8043,8 @@ function calcTotalPago(){
   return tot;
 }
 
+// Status de pagamento: manual (p.pago) tem prioridade; senão data passada/hoje = pago
+function _pagPaid(p){if(!p)return false;if(p.pago===true||p.pago===false)return p.pago;var pd=(p.data||'').slice(0,10);return !!(pd&&pd<=today());}
 function renderPagamentos(){
   var el=document.getElementById('pag-list');
   if(!el) return;
@@ -8057,7 +8059,7 @@ function renderPagamentos(){
     var p=pagamentos[i];
     // Status: a data sugere o inicial (passado=Pago, futuro=A pagar); depois é manual (clicar no selo)
     var pd=(p.data||'').slice(0,10);
-    var paid=(p.pago===true||p.pago===false)?p.pago:(!!(pd&&pd<=_hoje));
+    var paid=_pagPaid(p);
     var accent=paid?'#22c55e':'#ef4444';
     if(paid)_totPago+=(+p.valor||0);else _totFalta+=(+p.valor||0);
     // Card wrapper
@@ -8446,7 +8448,7 @@ function calcResumo(){
   if(resBRL) resBRL.textContent=fmt(totBRL);
   if(resUSD) resUSD.textContent='$ '+totUSD.toFixed(2);
   var resUSDEfet=document.getElementById('res-usd-efet');
-  if(resUSDEfet){var totPagUSD=0;for(var pi2=0;pi2<pagamentos.length;pi2++) totPagUSD+=(pagamentos[pi2].usd||0);resUSDEfet.textContent='$ '+totPagUSD.toFixed(2);}
+  if(resUSDEfet){var totPagUSD=0;for(var pi2=0;pi2<pagamentos.length;pi2++){if(_pagPaid(pagamentos[pi2]))totPagUSD+=(+pagamentos[pi2].usd||0);}resUSDEfet.textContent='$ '+totPagUSD.toFixed(2);}
   if(resCot) resCot.textContent=fmt(cotacao);
   if(resQtd) resQtd.textContent=totQtd;
   if(resMed) resMed.textContent=fmt(medioUnit);
