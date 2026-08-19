@@ -7201,7 +7201,7 @@ function onCustoContChange(){
       pagamentos=rows.map(function(r){return{data:r.data||"",valor:+r.valor||0,desc:'',usd:0};});
       // Load descriptions and USD values from configuracoes
       var _pagLoadDone=0;
-      function _checkPagLoaded(){_pagLoadDone++;if(_pagLoadDone>=2) renderPagamentos();}
+      function _checkPagLoaded(){_pagLoadDone++;if(_pagLoadDone>=2){renderPagamentos();if(typeof calcResumo==='function')calcResumo();}}
       dbGet('configuracoes','chave=eq.pag_desc_'+custoContId).then(function(dr){
         var descs=[];
         try{descs=JSON.parse((dr&&dr[0]&&dr[0].valor)||'[]');}catch(e){}
