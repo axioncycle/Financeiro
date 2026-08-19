@@ -5640,9 +5640,9 @@ function renderRes(){
           '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md.das>0?'Valor real':'Estimado: '+fmt(impEstimado))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
-          '<input type="text" inputmode="decimal" value="'+(md.das?fmtN(md.das):'')+'" placeholder="'+impEstimado.toFixed(0)+'"'+
-          ' style="width:110px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
-          ' onchange="saveDAS(\''+mk+'\',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(md.das?fmtN(md.das):'')+'" placeholder="'+fmtN(impEstimado)+'"'+
+          ' style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
+          ' oninput="maskBRL(this)" onchange="saveDAS(\''+mk+'\',this.value)">'+
         '</div>'+
       '</div>'+
       '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'+
