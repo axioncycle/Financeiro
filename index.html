@@ -2759,12 +2759,10 @@ function renderDash(){
   // DAS real from Resultado takes priority over estimated imp from vendas
   var dasReal=0;
   for(var mk_ in periodos){
-    var d_=DB_DESP[mk_];
-    if(d_&&d_.das>0) dasReal+=d_.das;
-    else {
-      // fallback: sum imp from vendas for this month
-      for(var vi_=0;vi_<fv.length;vi_++){if(mkey(fv[vi_].date)===mk_) dasReal+=fv[vi_].imp||0;}
-    }
+    var d_=DB_DESP[mk_]||{};
+    var fatMk_=0,impMk_=0;
+    for(var vi_=0;vi_<fv.length;vi_++){if(mkey(fv[vi_].date)===mk_){fatMk_+=fv[vi_].venda||0;impMk_+=fv[vi_].imp||0;}}
+    dasReal+=mesImpTotal(mk_,fatMk_,d_,impMk_);
   }
   var recLiq=fat-taxas;
   var lucroBruto=recLiq-custoP;
@@ -3018,7 +3016,7 @@ function drawAnualChart(type){
     for(ji=0;ji<md.fixas.length;ji++) fixas+=parseFloat(md.fixas[ji].valor)||0;
     for(ji=0;ji<md.extras.length;ji++) extras+=parseFloat(md.extras[ji].valor)||0;
     if(md.financeiro) for(ji=0;ji<md.financeiro.length;ji++) fin+=parseFloat(md.financeiro[ji].valor)||0;
-    das=md.das>0?md.das:mMap[mk].imp;
+    das=mesImpTotal(mk,mMap[mk].fat,md,mMap[mk].imp);
     var recLiq=mMap[mk].fat-mMap[mk].taxas;
     var lucroBruto=recLiq-mMap[mk].custo;
     var margContrib=lucroBruto-mMap[mk].frete-extras;
@@ -3607,7 +3605,7 @@ function renderCharts(vendas){
     for(ji=0;ji<md.fixas.length;ji++) fixas+=parseFloat(md.fixas[ji].valor)||0;
     for(ji=0;ji<md.extras.length;ji++) extras+=parseFloat(md.extras[ji].valor)||0;
     if(md.financeiro) for(ji=0;ji<md.financeiro.length;ji++) fin+=parseFloat(md.financeiro[ji].valor)||0;
-    das=md.das>0?md.das:mMap[mk].imp;
+    das=mesImpTotal(mk,mMap[mk].fat,md,mMap[mk].imp);
     var recLiq=mMap[mk].fat-mMap[mk].taxas;
     var lucroBruto=recLiq-mMap[mk].custo;
     var margContrib=lucroBruto-mMap[mk].frete-extras;
@@ -3829,6 +3827,19 @@ var IRPJ_PRESUNC=0.08, IRPJ_ALIQ=0.15;          // IRPJ: 15% sobre 8% da receita
 var IRPJ_ADIC=0.10, IRPJ_ADIC_LIMITE=20000;     // adicional 10% sobre lucro presumido > R$20k/mês
 var CSLL_PRESUNC=0.12, CSLL_ALIQ=0.09;          // CSLL: 9% sobre 12% da receita = 1,08%
 var ICMS_VENDA_PCT=0.155;                       // ICMS débito médio s/ venda (2,5% MG + DIFAL médio) — estimativa editável
+// Imposto TOTAL do mês (para dashboards/projeções): DAS (pré-ago) ou,
+// no Presumido, PIS/COFINS + ICMS a recolher + IRPJ/CSLL — honrando overrides.
+function mesImpTotal(mk,fat,md,mvImpSum){
+  md=md||{};
+  if(mk>=REGIME_PRESUMIDO_FROM){
+    var pc=(md.das>0)?md.das:(fat||0)*PISCOFINS;
+    var icmsDeb=(md.icms_deb>0)?md.icms_deb:(fat||0)*ICMS_VENDA_PCT;
+    var icms=Math.max(0,icmsDeb-(+md.icms_cred||0));
+    var ic=(md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat||0).total;
+    return pc+icms+ic;
+  }
+  return (md.das>0)?md.das:(mvImpSum||0);
+}
 // IRPJ + CSLL (+ adicional) sobre o faturamento do mês
 function calcIrpjCsll(fat){
   if(!fat) return {irpj:0,csll:0,adic:0,total:0};
@@ -3846,13 +3857,12 @@ var _impUserEdited=false; // usuário digitou o imposto manualmente -> não sobr
 // mensalmente (débito − crédito) na aba Resultado, não por venda.
 function _applyPresumidoImp(){
   var dt=(document.getElementById('v-data').value||today()).slice(0,7);
-  var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
   var hint=document.getElementById('imp-hint');
-  if(dt<REGIME_PRESUMIDO_FROM||!venda){if(hint)hint.style.display='none';return;}
-  var pc=venda*PISCOFINS;
-  if(_impMode!=='brl'){_impMode='brl';var tg=document.getElementById('imp-mode-toggle');if(tg)tg.textContent='R$';}
-  document.getElementById('v-imp').value=fmtN(pc);
-  if(hint){hint.style.display='block';hint.innerHTML='PIS/COFINS 3,65% <span style="opacity:.75">· o ICMS é apurado por mês (débito − crédito) na aba Resultado</span>';}
+  if(dt<REGIME_PRESUMIDO_FROM){if(hint)hint.style.display='none';return;}
+  // Lucro Presumido: nenhum imposto por venda. Todos (PIS/COFINS, ICMS, IRPJ/CSLL)
+  // são apurados por mês na aba Resultado.
+  document.getElementById('v-imp').value='';
+  if(hint){hint.style.display='block';hint.innerHTML='Impostos apurados por mês na aba <b>Resultado</b> (PIS/COFINS, ICMS, IRPJ/CSLL)';}
 }
 function refreshImpUf(){if(!_impUserEdited)_applyPresumidoImp();}
 
@@ -5394,12 +5404,14 @@ function renderRes(){
 
     for(kF2=0;kF2<mdF2.extras.length;kF2++) anoExtrasF+=parseFloat(mdF2.extras[kF2].valor)||0;
     if(mdF2.financeiro) for(kF2=0;kF2<mdF2.financeiro.length;kF2++) anoFinF+=parseFloat(mdF2.financeiro[kF2].valor)||0;
-    // DAS
+    var _presF2=(mkF2>=REGIME_PRESUMIDO_FROM);
+    var fatF2=0;for(jF2=0;jF2<mvF2.length;jF2++) fatF2+=mvF2[jF2].venda||0;
+    // DAS (pré-ago) / PIS-COFINS (Presumido)
     if(mdF2.das>0) anoDasF+=mdF2.das;
+    else if(_presF2) anoDasF+=fatF2*PISCOFINS;
     else for(jF2=0;jF2<mvF2.length;jF2++) anoDasF+=mvF2[jF2].imp||0;
-    // IRPJ/CSLL (Lucro Presumido, a partir de ago/2026)
-    if(mkF2>=REGIME_PRESUMIDO_FROM){
-      var fatF2=0;for(jF2=0;jF2<mvF2.length;jF2++) fatF2+=mvF2[jF2].venda||0;
+    // IRPJ/CSLL + ICMS (Lucro Presumido, a partir de ago/2026)
+    if(_presF2){
       anoIrpjCsllF+=(mdF2.irpjcsll>0)?mdF2.irpjcsll:calcIrpjCsll(fatF2).total;
       var icmsDebF2=(mdF2.icms_deb>0)?mdF2.icms_deb:fatF2*ICMS_VENDA_PCT;
       anoIcmsF+=Math.max(0,icmsDebF2-(+mdF2.icms_cred||0));
@@ -5552,10 +5564,13 @@ function renderRes(){
     var ebitFinM=ebitdaM+totFin;
     // Get imp for this month
     // DAS real (from Resultado) takes priority over estimated (from vendas)
-    var impEstimado=0;for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
+    var isPresumido=(mk>=REGIME_PRESUMIDO_FROM);
+    // PIS/COFINS: no Presumido estima pelo faturamento (3,65%); antes, soma o imposto das vendas
+    var impEstimado=0;
+    if(isPresumido) impEstimado=fat*PISCOFINS;
+    else for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
     var impM=md.das>0?md.das:impEstimado;
     // IRPJ/CSLL sobre o faturamento (Lucro Presumido, a partir de ago/2026)
-    var isPresumido=(mk>=REGIME_PRESUMIDO_FROM);
     var irpjCsllAuto=isPresumido?calcIrpjCsll(fat).total:0;
     var irpjCsllM=isPresumido?((md.irpjcsll>0)?md.irpjcsll:irpjCsllAuto):0;
     // ICMS: apuração mensal (débito − crédito). Só o "a recolher" debita o resultado.
@@ -5993,8 +6008,8 @@ function exportMesXls(mk){
   (md.fixas||[]).forEach(function(f){if(f.nome!=='DAS'&&f.nome!=='das')totF+=parseFloat(f.valor)||0;});
   (md.extras||[]).forEach(function(e){totE+=parseFloat(e.valor)||0;});
   (md.financeiro||[]).forEach(function(f){totFin+=parseFloat(f.valor)||0;});
-  var das=md.das>0?md.das:impE;
   var _pres=(mk>=REGIME_PRESUMIDO_FROM);
+  var das=md.das>0?md.das:(_pres?fat*PISCOFINS:impE);
   var irpjCsll=_pres?((md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat).total):0;
   var icmsDebX=_pres?((md.icms_deb>0)?md.icms_deb:fat*ICMS_VENDA_PCT):0;
   var icmsCredX=_pres?(+md.icms_cred||0):0;
@@ -6102,7 +6117,7 @@ function buildResDRE(){
     for(k=0;k<md.fixas.length;k++) fixas+=parseFloat(md.fixas[k].valor)||0;
     for(k=0;k<md.extras.length;k++) extras+=parseFloat(md.extras[k].valor)||0;
     if(md.financeiro) for(k=0;k<md.financeiro.length;k++) fin+=parseFloat(md.financeiro[k].valor)||0;
-    var das=md.das>0?md.das:impE;
+    var das=mesImpTotal(mk,fat,md,impE);
     var margContrib=lsi-extras;
     var ebitda=margContrib-fixas;
     var res=ebitda+fin-das;
@@ -13263,7 +13278,7 @@ function buildRelatorioHTML(vendas,opts,mkFrom,mkTo,mkAtual,chartImgs){
   Object.keys(_mMapRel).forEach(function(mk){
     var m=_mMapRel[mk];
     var md=getMDesp(mk);
-    var fixas=0,extras=0,fin=0,das=md.das>0?md.das:m.imp,ji;
+    var fixas=0,extras=0,fin=0,das=mesImpTotal(mk,m.fat,md,m.imp),ji;
     for(ji=0;ji<md.fixas.length;ji++) fixas+=parseFloat(md.fixas[ji].valor)||0;
     for(ji=0;ji<md.extras.length;ji++) extras+=parseFloat(md.extras[ji].valor)||0;
     if(md.financeiro) for(ji=0;ji<md.financeiro.length;ji++) fin+=parseFloat(md.financeiro[ji].valor)||0;
