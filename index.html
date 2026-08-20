@@ -876,8 +876,14 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <option value="">Selecione o estoque</option>
       </select>
     </div>
+    <div class="fg"><label class="fl">UF destino <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— calcula o ICMS/DIFAL (opcional)</span></label>
+      <select class="fs" id="v-uf" onchange="onUfChange()">
+        <option value="">Selecionar</option>
+        <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+      </select>
+    </div>
     <div class="r2">
-      <div class="fg"><label class="fl">Valor da Venda</label><input class="fi" id="v-venda" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
+      <div class="fg"><label class="fl">Valor da Venda</label><input class="fi" id="v-venda" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);refreshImpUf();calcRes()"></div>
       <div class="fg"><label class="fl">Custo (R$)</label><input class="fi" id="v-custo" type="text" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);calcRes()"></div>
     </div>
 <div id="taxa-ml-wrap" style="display:none;"><div class="fg"><label class="fl" style="display:flex;justify-content:space-between;align-items:center;"><span id="taxa-ml-label">Taxa ML</span><span id="taxa-ml-mode-toggle" onclick="setMlTaxaMode(mlTaxaMode==='pct'?'brl':'pct')" style="cursor:pointer;font-size:10px;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:4px 10px;user-select:none;">%</span></label><input class="fi" id="v-tx1-ml" type="number" value="16.5" step="0.01" oninput="calcRes()" style="background:var(--input);color:#1E90FF;font-weight:700;"><div id="tx-hint" style="font-size:10px;color:#1E90FF;margin-top:3px;">Mercado Livre: editável</div></div></div>
@@ -966,7 +972,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
           <span>Imposto</span>
           <span id="imp-mode-toggle" onclick="toggleImpMode()" style="cursor:pointer;font-size:10px;line-height:1;background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF44;border-radius:8px;padding:4px 9px;user-select:none;flex-shrink:0;">%</span>
         </label>
-        <input class="fi" id="v-imp" type="text" inputmode="decimal" placeholder="0,00" oninput="maskImpField(this);calcRes()">
+        <input class="fi" id="v-imp" type="text" inputmode="decimal" placeholder="0,00" oninput="maskImpField(this);_impUserEdited=true;calcRes()">
+        <div id="imp-hint" style="display:none;font-size:9.5px;color:#1E90FF;margin-top:3px;line-height:1.35;"></div>
       </div>
       <div class="fg">
         <label class="fl" style="display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:16px;">
@@ -3751,6 +3758,7 @@ function onProdChange(){
     document.getElementById('v-custo').value=fmtN(parseFloat(opt.getAttribute('data-custo'))||0);
     document.getElementById('v-venda').value=fmtN(parseFloat(opt.getAttribute('data-pix'))||0);
   }
+  refreshImpUf();
   calcRes();
 }
 
@@ -3816,6 +3824,37 @@ function _getComVal(venda){
   if(_comMode==='brl') return parseBRL(raw)||0;
   return venda*(parseFloat(raw)||0)/100;
 }
+
+// ===== Imposto Lucro Presumido (ICMS 2,5% MG + DIFAL + PIS/COFINS) =====
+// Percentuais ILUSTRATIVOS — confirmar com o contador.
+var MG_EFETIVA=0.025;   // carga efetiva do benefício de importação de MG
+var PISCOFINS=0.0365;   // PIS 0,65% + COFINS 3% (cumulativo, comércio)
+// Alíquota interna modal aproximada por UF (%) — editável conforme legislação
+var ICMS_INTERNA={AC:19,AL:19,AP:18,AM:20,BA:20.5,CE:20,DF:20,ES:17,GO:19,MA:22,MT:17,MS:17,MG:18,PA:19,PB:20,PR:19.5,PE:20.5,PI:21,RJ:20,RN:18,RS:17,RO:19.5,RR:20,SC:17,SP:18,SE:19,TO:20};
+var _impUserEdited=false; // usuário digitou o imposto manualmente -> não sobrescrever
+
+function calcPresumidoImposto(venda,uf){
+  var interna=ICMS_INTERNA[uf];
+  if(interna==null||!venda) return null;
+  var difal=Math.max(0,(interna/100)-0.04); // (interna - interestadual 4%)
+  var icms=venda*(MG_EFETIVA+difal);
+  var pc=venda*PISCOFINS;
+  return {icms:icms,pc:pc,total:icms+pc,interna:interna,difal:difal};
+}
+function _applyPresumidoImp(){
+  var ufEl=document.getElementById('v-uf');
+  var uf=ufEl?ufEl.value:'';
+  var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
+  var r=calcPresumidoImposto(venda,uf);
+  var hint=document.getElementById('imp-hint');
+  if(r){
+    if(_impMode!=='brl'){_impMode='brl';var tg=document.getElementById('imp-mode-toggle');if(tg)tg.textContent='R$';}
+    document.getElementById('v-imp').value=fmtN(r.total);
+    if(hint){hint.style.display='block';hint.innerHTML='ICMS '+fmt(r.icms)+' <span style="opacity:.75">(2,5% MG + DIFAL '+(r.difal*100).toFixed(1)+'%)</span> + PIS/COFINS '+fmt(r.pc);}
+  } else if(hint){hint.style.display='none';}
+}
+function onUfChange(){_impUserEdited=false;_applyPresumidoImp();calcRes();}
+function refreshImpUf(){if(!_impUserEdited)_applyPresumidoImp();}
 
 function calcRes(){
   var venda=parseBRL(document.getElementById('v-venda').value||'0')||0;
@@ -3963,6 +4002,8 @@ function cancelarEdicao(){
   var tx1d2=document.getElementById('v-tx1-display');
   if(tx1d2) tx1d2.textContent='0%';
   document.getElementById('v-imp').value='';
+  _impUserEdited=false;var ufR=document.getElementById('v-uf');if(ufR)ufR.value='';
+  var impHr=document.getElementById('imp-hint');if(impHr)impHr.style.display='none';
   document.getElementById('v-com').value='';
   document.getElementById('v-frete').value='';
   document.getElementById('v-duplo').checked=false;
@@ -4000,6 +4041,9 @@ function editarVenda(id){
   if(tx1d3) tx1d3.textContent=(v.taxaPct||0)+'%';
   _impMode='pct';var impTog=document.getElementById('imp-mode-toggle');if(impTog) impTog.textContent='%';
   document.getElementById('v-imp').value=v.impPct||0;
+  // UF não é persistida; a venda editada usa o imposto salvo (não recalcular por UF)
+  _impUserEdited=true;var ufEd=document.getElementById('v-uf');if(ufEd)ufEd.value='';
+  var impHe=document.getElementById('imp-hint');if(impHe)impHe.style.display='none';
   _comMode='brl';var comTog=document.getElementById('com-mode-toggle');if(comTog) comTog.textContent='R$';
   document.getElementById('v-com').value=fmtN(v.com||0);
   document.getElementById('v-frete').value=fmtN(v.frete||0);
