@@ -1965,7 +1965,7 @@ function saveDespDB(mk,data){
   if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
-    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}
     // Pró-labore: uma linha por lançamento (descrição + data codificadas no campo nome)
     if(data.prolaboreItems&&data.prolaboreItems.length){for(i=0;i<data.prolaboreItems.length;i++){var _pl=data.prolaboreItems[i];if((+_pl.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_pl.desc||'Pró-labore'),pdata:_pl.data||''}),valor:+_pl.valor||0,tipo:'prolabore'};rows.push(r2);}}}
     else if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
@@ -3829,6 +3829,20 @@ function _getComVal(venda){
 // Percentuais ILUSTRATIVOS — confirmar com o contador.
 var MG_EFETIVA=0.025;   // carga efetiva do benefício de importação de MG
 var PISCOFINS=0.0365;   // PIS 0,65% + COFINS 3% (cumulativo, comércio)
+// Lucro Presumido — IRPJ/CSLL sobre o faturamento do mês (a partir de ago/2026)
+var REGIME_PRESUMIDO_FROM='2026-08';
+var IRPJ_PRESUNC=0.08, IRPJ_ALIQ=0.15;          // IRPJ: 15% sobre 8% da receita = 1,2%
+var IRPJ_ADIC=0.10, IRPJ_ADIC_LIMITE=20000;     // adicional 10% sobre lucro presumido > R$20k/mês
+var CSLL_PRESUNC=0.12, CSLL_ALIQ=0.09;          // CSLL: 9% sobre 12% da receita = 1,08%
+// IRPJ + CSLL (+ adicional) sobre o faturamento do mês
+function calcIrpjCsll(fat){
+  if(!fat) return {irpj:0,csll:0,adic:0,total:0};
+  var basePres=fat*IRPJ_PRESUNC;
+  var irpj=basePres*IRPJ_ALIQ;
+  var adic=basePres>IRPJ_ADIC_LIMITE?(basePres-IRPJ_ADIC_LIMITE)*IRPJ_ADIC:0;
+  var csll=fat*CSLL_PRESUNC*CSLL_ALIQ;
+  return {irpj:irpj,csll:csll,adic:adic,total:irpj+adic+csll};
+}
 // Alíquota interna modal aproximada por UF (%) — editável conforme legislação
 var ICMS_INTERNA={AC:19,AL:19,AP:18,AM:20,BA:20.5,CE:20,DF:20,ES:17,GO:19,MA:22,MT:17,MS:17,MG:18,PA:19,PB:20,PR:19.5,PE:20.5,PI:21,RJ:20,RN:18,RS:17,RO:19.5,RR:20,SC:17,SP:18,SE:19,TO:20};
 var _impUserEdited=false; // usuário digitou o imposto manualmente -> não sobrescrever
@@ -5251,6 +5265,8 @@ function syncDespesasFromDB(cb){
       if(r.tipo==='das'){
         // DAS real field
         d[r.mes].das=+r.valor||0;
+      } else if(r.tipo==='irpjcsll'){
+        d[r.mes].irpjcsll=+r.valor||0;
       } else if(r.tipo==='rendbruto'||r.tipo==='rendliq'){
         // tipos obsoletos — ignora (não polui extras)
       } else if(r.tipo==='prolabore'){
@@ -5369,7 +5385,7 @@ function renderRes(){
   }
 
   // DRE for filtered period
-  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0,anoDistribuicaoF=0;
+  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0,anoDistribuicaoF=0,anoIrpjCsllF=0;
   for(i=0;i<mesesF.length;i++){
     var mkF2=mesesF[i];
     var mvF2=[],jF2;
@@ -5391,12 +5407,17 @@ function renderRes(){
     // DAS
     if(mdF2.das>0) anoDasF+=mdF2.das;
     else for(jF2=0;jF2<mvF2.length;jF2++) anoDasF+=mvF2[jF2].imp||0;
+    // IRPJ/CSLL (Lucro Presumido, a partir de ago/2026)
+    if(mkF2>=REGIME_PRESUMIDO_FROM){
+      var fatF2=0;for(jF2=0;jF2<mvF2.length;jF2++) fatF2+=mvF2[jF2].venda||0;
+      anoIrpjCsllF+=(mdF2.irpjcsll>0)?mdF2.irpjcsll:calcIrpjCsll(fatF2).total;
+    }
     anoDistribuicaoF+=(mdF2.distribuicao||0);
   }
   var anoMargContribF=anoLSIF-anoExtrasF;
   var anoEbitdaF=anoMargContribF-anoFixasF; // pró-labore NÃO incluído (apenas para constar)
   var anoEbitFinF=anoEbitdaF+anoFinF;
-  var anoLiqF=anoEbitFinF-anoDasF;
+  var anoLiqF=anoEbitFinF-anoDasF-anoIrpjCsllF;
   var anoLiqDistF=anoLiqF-anoDistribuicaoF;
   var acF=anoLiqF>=0?'#22c55e':'#ef4444';
 
@@ -5422,6 +5443,7 @@ function renderRes(){
   var wfFixas=-(anoFixasF||0);
   var wfFin=anoFinF||0;
   var wfDas=-(anoDasF||0);
+  var wfIrpj=-(anoIrpjCsllF||0);
   var wfLiq=anoLiqF;
 
   // ── MoM: pegar mês anterior ─────────────────────────
@@ -5471,7 +5493,7 @@ function renderRes(){
     kc('Faturamento','#1E90FF',fmt(anoFatF),'','')+
     kc('Margem Contribuição','#22c55e',fmt(anoMargContribF),pctSpan(anoFatF?(anoMargContribF/anoFatF*100):0,'#22c55e'),'Após taxas, CMV, frete e extras')+
     kc('EBITDA','#f59e0b',fmt(anoEbitdaF),pctSpan(anoFatF?(anoEbitdaF/anoFatF*100):0,'#f59e0b'),'Margem contrib. − custos fixos')+
-    kc('Lucro Líquido',acF,fmt(anoLiqF),pctSpan(anoFatF?(anoLiqF/anoFatF*100):0,acF),'EBITDA ± financeiro − DAS')+
+    kc('Lucro Líquido',acF,fmt(anoLiqF),pctSpan(anoFatF?(anoLiqF/anoFatF*100):0,acF),'EBITDA ± financeiro − impostos'+(anoIrpjCsllF>0?' (DAS/ICMS + IRPJ/CSLL)':''))+
     // ── WATERFALL ──────────────────────────────────────
     (function(){
       var steps=[
@@ -5483,8 +5505,9 @@ function renderRes(){
         {l:'MC',v:wfMargC,col:'#22c55e',base:0,total:true},
         {l:'Fixas',v:wfFixas,col:'#ef4444',base:wfMargC},
         {l:'DAS',v:wfDas,col:'#ef4444',base:wfMargC+wfFixas},
+      ].concat(anoIrpjCsllF>0?[{l:'IRPJ/CSLL',v:wfIrpj,col:'#ef4444',base:wfMargC+wfFixas+wfDas}]:[]).concat([
         {l:'Líquido',v:wfLiq,col:wfLiq>=0?'#22c55e':'#ef4444',base:0,total:true},
-      ];
+      ]);
       var maxV=wfFat||1;
       var bars=steps.map(function(s){
         var pct=Math.abs(s.v)/maxV*100;
@@ -5538,7 +5561,11 @@ function renderRes(){
     // DAS real (from Resultado) takes priority over estimated (from vendas)
     var impEstimado=0;for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
     var impM=md.das>0?md.das:impEstimado;
-    var res=ebitFinM-impM; // pró-labore e distribuição NÃO entram (apenas para constar)
+    // IRPJ/CSLL sobre o faturamento (Lucro Presumido, a partir de ago/2026)
+    var isPresumido=(mk>=REGIME_PRESUMIDO_FROM);
+    var irpjCsllAuto=isPresumido?calcIrpjCsll(fat).total:0;
+    var irpjCsllM=isPresumido?((md.irpjcsll>0)?md.irpjcsll:irpjCsllAuto):0;
+    var res=ebitFinM-impM-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
@@ -5689,6 +5716,17 @@ function renderRes(){
           ' oninput="maskBRL(this)" onchange="saveDAS(\''+mk+'\',this.value)">'+
         '</div>'+
       '</div>'+
+      (isPresumido?'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
+        '<div>'+
+          '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− IRPJ + CSLL</div>'+
+          '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md.irpjcsll>0?'Valor real':'Estimado (1,2% + 1,08%'+(calcIrpjCsll(fat).adic>0?' + adic.':'')+'): '+fmt(irpjCsllAuto))+'</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;">'+
+          '<input type="text" inputmode="decimal" value="'+(md.irpjcsll?fmtN(md.irpjcsll):'')+'" placeholder="'+fmtN(irpjCsllAuto)+'"'+
+          ' style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
+          ' oninput="maskBRL(this)" onchange="saveIrpjCsll(\''+mk+'\',this.value)">'+
+        '</div>'+
+      '</div>':'')+
       '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
         '<div><div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore</div>'+
@@ -5940,7 +5978,8 @@ function exportMesXls(mk){
   (md.extras||[]).forEach(function(e){totE+=parseFloat(e.valor)||0;});
   (md.financeiro||[]).forEach(function(f){totFin+=parseFloat(f.valor)||0;});
   var das=md.das>0?md.das:impE;
-  var mc=lsi-totE,ebitda=mc-totF,res=ebitda+totFin-das,margem=fat>0?res/fat*100:0;
+  var irpjCsll=(mk>=REGIME_PRESUMIDO_FROM)?((md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat).total):0;
+  var mc=lsi-totE,ebitda=mc-totF,res=ebitda+totFin-das-irpjCsll,margem=fat>0?res/fat*100:0;
   function fd(d){d=(d||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('/'):'';}
   function S(v,s){return {t:'s',v:v,s:s||0};}
   function M(v,s){return {t:'n',v:(Math.round((v||0)*100)/100),s:s||4};}
@@ -5954,7 +5993,8 @@ function exportMesXls(mk){
   (md.fixas||[]).forEach(function(f){if(f.nome==='DAS'||f.nome==='das')return;R.push([S('DESPESA FIXA',1),S(f.nome),S(f.banco||''),S(fd(f.pdata)),M(f.valor)]);});
   (md.extras||[]).forEach(function(e){R.push([S('DESPESA EXTRA',1),S(e.nome),S(e.banco||''),S(fd(e.pdata)),M(e.valor)]);});
   (md.financeiro||[]).forEach(function(f){R.push([S('FINANCEIRO (INVESTIMENTO)',1),S((f.nome||'')+((+f.rendBruto||0)!==0?' — bruto '+fmt(f.rendBruto):'')),S(f.banco||''),S(''),M(f.valor)]);});
-  R.push([S('IMPOSTO',1),S('DAS'+(md.das>0?' (real)':' (estimado)')),S(''),S(''),M(das)]);
+  R.push([S('IMPOSTO',1),S((mk>=REGIME_PRESUMIDO_FROM?'ICMS + PIS/COFINS':'DAS')+(md.das>0?' (real)':' (estimado)')),S(''),S(''),M(das)]);
+  if(irpjCsll>0)R.push([S('IMPOSTO',1),S('IRPJ + CSLL'+(md.irpjcsll>0?' (real)':' (estimado)')),S(''),S(''),M(irpjCsll)]);
   if(md.prolaboreItems&&md.prolaboreItems.length){md.prolaboreItems.forEach(function(pl){if((+pl.valor||0)!==0)R.push([S('PRÓ-LABORE',1),S(pl.desc||'Pró-labore'),S(''),S(fd(pl.data)),M(pl.valor)]);});}
   else if((+md.prolabore||0)>0)R.push([S('PRÓ-LABORE',1),S(md.prolaboreDesc||'Pró-labore'),S(''),S(fd(md.prolaboreData)),M(md.prolabore)]);
   (md.distribuicaoItems||[]).forEach(function(di){if((+di.valor||0)!==0)R.push([S('DISTRIBUIÇÃO',1),S(di.desc||'Retirada de lucros'),S(''),S(fd(di.data)),M(di.valor)]);});
@@ -6154,6 +6194,14 @@ function updDistribVal(mk,idx,val){
 function saveDAS(mk,val){
   var md=getMDesp(mk);
   md.das=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
+}
+
+function saveIrpjCsll(mk,val){
+  var md=getMDesp(mk);
+  md.irpjcsll=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
   renderResDebounced();
