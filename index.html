@@ -586,6 +586,12 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
       <label class="fl">🎯 Margem desejada (%) <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— preencha + Venda <b>ou</b> Custo; o outro é calculado</span></label>
       <input class="fi" id="sim-margem" inputmode="decimal" placeholder="opcional — ex: 40" oninput="simVenda()">
     </div>
+    <div style="margin-bottom:8px;">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:var(--text2);font-weight:600;">
+        <input type="checkbox" id="sim-presumido" onchange="simPresToggle()" style="width:15px;height:15px;">
+        🧾 Impostos Presumido (auto) — ICMS + PIS/COFINS + IPI + IRPJ/CSLL
+      </label>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><label class="fl">Preço de Venda (R$)</label><input class="fi" id="sim-preco" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('venda')"></div>
       <div><label class="fl">Custo (R$)</label><input class="fi" id="sim-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('custo')"></div>
@@ -9821,6 +9827,13 @@ function simSkuPick(i){
   toast('Custo de "'+s.nome+'": '+fmt(c));
 }
 function simSetEdited(which){simLastEdited=which;simVenda();}
+function simPresToggle(){
+  var on=(document.getElementById('sim-presumido')||{}).checked;
+  var imp=document.getElementById('sim-imp');
+  if(imp){imp.disabled=on;imp.style.opacity=on?'0.4':'';imp.placeholder=on?'auto':'0';}
+  var tg=document.getElementById('sim-imp-tg');if(tg)tg.style.opacity=on?'0.4':'';
+  simVenda();
+}
 function simToggle(k){
   simMode[k]=simMode[k]==='%'?'R$':'%';
   var tg=document.getElementById('sim-'+k+'-tg');if(tg)tg.textContent='('+simMode[k]+')';
@@ -9859,6 +9872,9 @@ function simVenda(){
   var custo=parseBRL(gv('sim-custo')||'0')||0;
   var margRaw=gv('sim-margem');
   var md=(margRaw!==''&&margRaw!=null)?(parseFloat(String(margRaw).replace(',','.'))||0)/100:null;
+  var simPres=(document.getElementById('sim-presumido')||{}).checked;
+  var IRPJCSLL_SIM=0.0228; // IRPJ 1,2% + CSLL 1,08%
+  var _impPres=function(P,C){return (ICMS_VENDA_PCT+PISCOFINS+IRPJCSLL_SIM)*P + IPI_PCT*Math.max(0,P-(C||0));};
   var calcInfo='',calcWarn=false;
   var precoInp=document.getElementById('sim-preco'),custoInp=document.getElementById('sim-custo');
   if(precoInp)precoInp.style.borderColor='';
@@ -9872,8 +9888,14 @@ function simVenda(){
     }
     if(target==='custo'&&preco>0){
       // Preencheu a venda → calcula o custo (preço de compra) para a margem desejada
-      var t1=simVal('taxa',preco),i1=simVal('imp',preco),c1=simVal('com',preco);
-      custo=preco*(1-md)-(t1+i1+c1+frete);
+      var t1=simVal('taxa',preco),i1=simPres?0:simVal('imp',preco),c1=simVal('com',preco);
+      if(simPres){
+        // impostos = (ICMS+PIS/COFINS+IRPJ/CSLL)·P + IPI·(P−custo)  → resolve p/ custo
+        var _b=preco*(1-md)-t1-c1-frete-(ICMS_VENDA_PCT+PISCOFINS+IRPJCSLL_SIM+IPI_PCT)*preco;
+        custo=_b/(1-IPI_PCT);
+      } else {
+        custo=preco*(1-md)-(t1+i1+c1+frete);
+      }
       if(custo<0)custo=0;
       if(custoInp){custoInp.value=fmtN(custo);custoInp.style.borderColor='#22c55e';}
       calcInfo='✔ Custo calculado para margem de '+(md*100).toFixed(1)+'%';
@@ -9881,9 +9903,10 @@ function simVenda(){
       // Preencheu o custo → calcula o preço de venda para a margem desejada
       var sp=0,fx=0;
       if(simMode.taxa==='%')sp+=(parseFloat(gv('sim-taxa'))||0)/100;else fx+=parseBRL(gv('sim-taxa'))||0;
-      if(simMode.imp==='%')sp+=(parseFloat(gv('sim-imp'))||0)/100;else fx+=parseBRL(gv('sim-imp'))||0;
+      if(!simPres){if(simMode.imp==='%')sp+=(parseFloat(gv('sim-imp'))||0)/100;else fx+=parseBRL(gv('sim-imp'))||0;}
       if(simMode.com==='%')sp+=(parseFloat(gv('sim-com'))||0)/100;else fx+=parseBRL(gv('sim-com'))||0;
       fx+=frete;
+      if(simPres){sp+=ICMS_VENDA_PCT+PISCOFINS+IRPJCSLL_SIM+IPI_PCT; fx+=-IPI_PCT*custo;}
       var denom=1-sp-md;
       if(denom>0){preco=(custo+fx)/denom;if(precoInp){precoInp.value=fmtN(preco);precoInp.style.borderColor='#22c55e';}calcInfo='✔ Preço de venda calculado para margem de '+(md*100).toFixed(1)+'%';}
       else{preco=0;calcInfo='⚠️ Impossível: % de custos + margem desejada ≥ 100%';calcWarn=true;}
@@ -9893,7 +9916,7 @@ function simVenda(){
   }
   var taxa=simVal('taxa',preco);
   var com=simVal('com',preco);
-  var imp=simVal('imp',preco);
+  var imp=simPres?_impPres(preco,custo):simVal('imp',preco);
   var lucro=preco-custo-taxa-imp-com-frete;
   var margem=preco>0?lucro/preco*100:0;
   var markup=custo>0?preco/custo:0;
@@ -9905,7 +9928,7 @@ function simVenda(){
     lin('Preço de venda',preco,false)+
     lin('Custo',custo,true)+
     lin('Taxa'+(simMode.taxa==='%'?' ('+(parseFloat(gv('sim-taxa'))||0)+'%)':''),taxa,true)+
-    lin('Imposto'+(simMode.imp==='%'?' ('+(parseFloat(gv('sim-imp'))||0)+'%)':''),imp,true)+
+    lin(simPres?('Impostos Presumido ('+(((ICMS_VENDA_PCT+PISCOFINS+IRPJCSLL_SIM)*100).toFixed(2).replace(/\.?0+$/,'')).replace('.',',')+'% + IPI)'):('Imposto'+(simMode.imp==='%'?' ('+(parseFloat(gv('sim-imp'))||0)+'%)':'')),imp,true)+
     lin('Comissão'+(simMode.com==='%'?' ('+(parseFloat(gv('sim-com'))||0)+'%)':''),com,true)+
     lin('Frete',frete,true)+
     '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:800;">Lucro Líquido</span><span style="font-size:20px;font-weight:900;color:'+rc+';">'+fmt(lucro)+'</span></div>'+
