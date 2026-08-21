@@ -1082,6 +1082,25 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
 <!-- RESULTADO -->
 <div class="pg" id="pg-res">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;">
+    <div onclick="var b=document.getElementById('cfg-body');b.style.display=b.style.display==='none'?'block':'none';" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
+      <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;">⚙️ Configuração de Impostos</span>
+      <span style="font-size:11px;color:var(--text3);">Presumido · alíquotas ▾</span>
+    </div>
+    <div id="cfg-body" style="display:none;padding:0 14px 14px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.4;">Ajuste conforme o contador. Tudo recalcula ao salvar.</div>
+      <div class="r2">
+        <div class="fg"><label class="fl">Presumido a partir de</label><input class="fi" id="cfg-regime" type="month"></div>
+        <div class="fg"><label class="fl">ICMS s/ venda (%)</label><input class="fi" id="cfg-icms" inputmode="decimal" placeholder="15,5"></div>
+      </div>
+      <div class="r2">
+        <div class="fg"><label class="fl">PIS/COFINS (%)</label><input class="fi" id="cfg-pc" inputmode="decimal" placeholder="3,65"></div>
+        <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
+      <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
+    </div>
+  </div>
   <div id="res-anual" style="background:var(--card);border:1px solid #1E90FF33;border-radius:12px;padding:14px;margin-bottom:14px;"></div>
   <div class="stitle">Por Mês</div>
   <div id="res-meses"></div>
@@ -1959,7 +1978,7 @@ function saveDespDB(mk,data){
   if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
-    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}if(data.icms_deb){r2={mes:mk,nome:'ICMS Débito',valor:data.icms_deb,tipo:'icmsdeb'};rows.push(r2);}if(data.icms_cred){r2={mes:mk,nome:'ICMS Crédito',valor:data.icms_cred,tipo:'icmscred'};rows.push(r2);}
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}if(data.icms_deb){r2={mes:mk,nome:'ICMS Débito',valor:data.icms_deb,tipo:'icmsdeb'};rows.push(r2);}if(data.icms_cred){r2={mes:mk,nome:'ICMS Crédito',valor:data.icms_cred,tipo:'icmscred'};rows.push(r2);}if(data.ipi_deb){r2={mes:mk,nome:'IPI Débito',valor:data.ipi_deb,tipo:'ipideb'};rows.push(r2);}if(data.ipi_cred){r2={mes:mk,nome:'IPI Crédito',valor:data.ipi_cred,tipo:'ipicred'};rows.push(r2);}
     // Pró-labore: uma linha por lançamento (descrição + data codificadas no campo nome)
     if(data.prolaboreItems&&data.prolaboreItems.length){for(i=0;i<data.prolaboreItems.length;i++){var _pl=data.prolaboreItems[i];if((+_pl.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_pl.desc||'Pró-labore'),pdata:_pl.data||''}),valor:+_pl.valor||0,tipo:'prolabore'};rows.push(r2);}}}
     else if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
@@ -3817,16 +3836,34 @@ function _getComVal(venda){
   return venda*(parseFloat(raw)||0)/100;
 }
 
-// ===== Imposto Lucro Presumido (ICMS 2,5% MG + DIFAL + PIS/COFINS) =====
+// ===== Configuração de alíquotas (Lucro Presumido) — editável na aba Impostos =====
 // Percentuais ILUSTRATIVOS — confirmar com o contador.
-var MG_EFETIVA=0.025;   // carga efetiva do benefício de importação de MG
-var PISCOFINS=0.0365;   // PIS 0,65% + COFINS 3% (cumulativo, comércio)
-// Lucro Presumido — IRPJ/CSLL sobre o faturamento do mês (a partir de ago/2026)
-var REGIME_PRESUMIDO_FROM='2026-08';
-var IRPJ_PRESUNC=0.08, IRPJ_ALIQ=0.15;          // IRPJ: 15% sobre 8% da receita = 1,2%
-var IRPJ_ADIC=0.10, IRPJ_ADIC_LIMITE=20000;     // adicional 10% sobre lucro presumido > R$20k/mês
-var CSLL_PRESUNC=0.12, CSLL_ALIQ=0.09;          // CSLL: 9% sobre 12% da receita = 1,08%
-var ICMS_VENDA_PCT=0.155;                       // ICMS débito médio s/ venda (2,5% MG + DIFAL médio) — estimativa editável
+var TAXCFG_DEFAULTS={regimeFrom:'2026-08', icmsVenda:15.5, piscofins:3.65, ipi:6.5};
+var TAXCFG=(function(){try{var s=JSON.parse(localStorage.getItem('ax_taxcfg')||'null');return Object.assign({},TAXCFG_DEFAULTS,s||{});}catch(e){return Object.assign({},TAXCFG_DEFAULTS);}})();
+var REGIME_PRESUMIDO_FROM=TAXCFG.regimeFrom;   // início do Presumido (AAAA-MM)
+var PISCOFINS=TAXCFG.piscofins/100;            // PIS 0,65% + COFINS 3% (cumulativo)
+var ICMS_VENDA_PCT=TAXCFG.icmsVenda/100;       // ICMS débito médio s/ venda (origem 1,5% + DIFAL médio)
+var IPI_PCT=TAXCFG.ipi/100;                    // IPI débito s/ venda (equiparado a industrial)
+var IRPJ_PRESUNC=0.08, IRPJ_ALIQ=0.15;         // IRPJ: 15% sobre 8% da receita = 1,2%
+var IRPJ_ADIC=0.10, IRPJ_ADIC_LIMITE=20000;    // adicional 10% sobre lucro presumido > R$20k/mês
+var CSLL_PRESUNC=0.12, CSLL_ALIQ=0.09;         // CSLL: 9% sobre 12% da receita = 1,08%
+function _applyTaxCfg(){
+  REGIME_PRESUMIDO_FROM=TAXCFG.regimeFrom; PISCOFINS=TAXCFG.piscofins/100;
+  ICMS_VENDA_PCT=TAXCFG.icmsVenda/100; IPI_PCT=TAXCFG.ipi/100;
+}
+function saveTaxCfg(){
+  var g=function(id){return (document.getElementById(id)||{value:''}).value;};
+  var num=function(v){return parseFloat(String(v||'').replace(',','.'))||0;};
+  TAXCFG.regimeFrom=g('cfg-regime')||'2026-08';
+  TAXCFG.icmsVenda=num(g('cfg-icms'));
+  TAXCFG.piscofins=num(g('cfg-pc'));
+  TAXCFG.ipi=num(g('cfg-ipi'));
+  try{localStorage.setItem('ax_taxcfg',JSON.stringify(TAXCFG));}catch(e){}
+  _applyTaxCfg();
+  if(typeof toast==='function') toast('Alíquotas salvas ✓');
+  if(typeof renderRes==='function') renderRes();
+  if(typeof renderDash==='function') renderDash();
+}
 // Imposto TOTAL do mês (para dashboards/projeções): DAS (pré-ago) ou,
 // no Presumido, PIS/COFINS + ICMS a recolher + IRPJ/CSLL — honrando overrides.
 function mesImpTotal(mk,fat,md,mvImpSum){
@@ -3835,8 +3872,10 @@ function mesImpTotal(mk,fat,md,mvImpSum){
     var pc=(md.das>0)?md.das:(fat||0)*PISCOFINS;
     var icmsDeb=(md.icms_deb>0)?md.icms_deb:(fat||0)*ICMS_VENDA_PCT;
     var icms=Math.max(0,icmsDeb-(+md.icms_cred||0));
+    var ipiDeb=(md.ipi_deb>0)?md.ipi_deb:(fat||0)*IPI_PCT;
+    var ipi=Math.max(0,ipiDeb-(+md.ipi_cred||0));
     var ic=(md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat||0).total;
-    return pc+icms+ic;
+    return pc+icms+ipi+ic;
   }
   return (md.das>0)?md.das:(mvImpSum||0);
 }
@@ -3862,7 +3901,7 @@ function _applyPresumidoImp(){
   // Lucro Presumido: nenhum imposto por venda. Todos (PIS/COFINS, ICMS, IRPJ/CSLL)
   // são apurados por mês na aba Resultado.
   document.getElementById('v-imp').value='';
-  if(hint){hint.style.display='block';hint.innerHTML='Impostos apurados por mês na aba <b>Resultado</b> (PIS/COFINS, ICMS, IRPJ/CSLL)';}
+  if(hint){hint.style.display='block';hint.innerHTML='Impostos apurados por mês na aba <b>Resultado</b> (PIS/COFINS, ICMS, IPI, IRPJ/CSLL)';}
 }
 function refreshImpUf(){if(!_impUserEdited)_applyPresumidoImp();}
 
@@ -5267,6 +5306,10 @@ function syncDespesasFromDB(cb){
         d[r.mes].icms_deb=+r.valor||0;
       } else if(r.tipo==='icmscred'){
         d[r.mes].icms_cred=+r.valor||0;
+      } else if(r.tipo==='ipideb'){
+        d[r.mes].ipi_deb=+r.valor||0;
+      } else if(r.tipo==='ipicred'){
+        d[r.mes].ipi_cred=+r.valor||0;
       } else if(r.tipo==='rendbruto'||r.tipo==='rendliq'){
         // tipos obsoletos — ignora (não polui extras)
       } else if(r.tipo==='prolabore'){
@@ -5324,7 +5367,16 @@ function loadDespesasFromDB(mk,cb){
   }).catch(function(){cb(null);});
 }
 
+function fillTaxCfg(){
+  var ae=document.activeElement, ids=['cfg-regime','cfg-icms','cfg-pc','cfg-ipi'];
+  if(ae&&ids.indexOf(ae.id)>=0) return; // não sobrescreve enquanto edita
+  var set=function(id,v){var el=document.getElementById(id);if(el)el.value=v;};
+  var n=function(x){return String(x).replace('.',',');};
+  set('cfg-regime',TAXCFG.regimeFrom); set('cfg-icms',n(TAXCFG.icmsVenda));
+  set('cfg-pc',n(TAXCFG.piscofins)); set('cfg-ipi',n(TAXCFG.ipi));
+}
 function renderRes(){
+  fillTaxCfg();
   // Não reconstrói enquanto o usuário edita um campo dentro da lista (evita perder o valor digitado)
   var _ae=document.activeElement;
   if(_ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(_ae.tagName)){
@@ -5385,7 +5437,7 @@ function renderRes(){
   }
 
   // DRE for filtered period
-  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0,anoDistribuicaoF=0,anoIrpjCsllF=0,anoIcmsF=0;
+  var anoTaxasF=0,anoCustoF=0,anoFreteF=0,anoExtrasF=0,anoFixasF=0,anoFinF=0,anoDasF=0,anoDistribuicaoF=0,anoIrpjCsllF=0,anoIcmsF=0,anoIpiF=0;
   for(i=0;i<mesesF.length;i++){
     var mkF2=mesesF[i];
     var mvF2=[],jF2;
@@ -5415,13 +5467,15 @@ function renderRes(){
       anoIrpjCsllF+=(mdF2.irpjcsll>0)?mdF2.irpjcsll:calcIrpjCsll(fatF2).total;
       var icmsDebF2=(mdF2.icms_deb>0)?mdF2.icms_deb:fatF2*ICMS_VENDA_PCT;
       anoIcmsF+=Math.max(0,icmsDebF2-(+mdF2.icms_cred||0));
+      var ipiDebF2=(mdF2.ipi_deb>0)?mdF2.ipi_deb:fatF2*IPI_PCT;
+      anoIpiF+=Math.max(0,ipiDebF2-(+mdF2.ipi_cred||0));
     }
     anoDistribuicaoF+=(mdF2.distribuicao||0);
   }
   var anoMargContribF=anoLSIF-anoExtrasF;
   var anoEbitdaF=anoMargContribF-anoFixasF; // pró-labore NÃO incluído (apenas para constar)
   var anoEbitFinF=anoEbitdaF+anoFinF;
-  var anoLiqF=anoEbitFinF-anoDasF-anoIcmsF-anoIrpjCsllF;
+  var anoLiqF=anoEbitFinF-anoDasF-anoIcmsF-anoIpiF-anoIrpjCsllF;
   var anoLiqDistF=anoLiqF-anoDistribuicaoF;
   var acF=anoLiqF>=0?'#22c55e':'#ef4444';
 
@@ -5448,6 +5502,7 @@ function renderRes(){
   var wfFin=anoFinF||0;
   var wfDas=-(anoDasF||0);
   var wfIcms=-(anoIcmsF||0);
+  var wfIpi=-(anoIpiF||0);
   var wfIrpj=-(anoIrpjCsllF||0);
   var wfLiq=anoLiqF;
 
@@ -5510,7 +5565,7 @@ function renderRes(){
         {l:'MC',v:wfMargC,col:'#22c55e',base:0,total:true},
         {l:'Fixas',v:wfFixas,col:'#ef4444',base:wfMargC},
         {l:(anoIcmsF>0?'PIS/COF':'DAS'),v:wfDas,col:'#ef4444',base:wfMargC+wfFixas},
-      ].concat(anoIcmsF>0?[{l:'ICMS',v:wfIcms,col:'#ef4444',base:wfMargC+wfFixas+wfDas}]:[]).concat(anoIrpjCsllF>0?[{l:'IRPJ/CSLL',v:wfIrpj,col:'#ef4444',base:wfMargC+wfFixas+wfDas+wfIcms}]:[]).concat([
+      ].concat(anoIcmsF>0?[{l:'ICMS',v:wfIcms,col:'#ef4444',base:wfMargC+wfFixas+wfDas}]:[]).concat(anoIpiF>0?[{l:'IPI',v:wfIpi,col:'#ef4444',base:wfMargC+wfFixas+wfDas+wfIcms}]:[]).concat(anoIrpjCsllF>0?[{l:'IRPJ/CSLL',v:wfIrpj,col:'#ef4444',base:wfMargC+wfFixas+wfDas+wfIcms+wfIpi}]:[]).concat([
         {l:'Líquido',v:wfLiq,col:wfLiq>=0?'#22c55e':'#ef4444',base:0,total:true},
       ]);
       var maxV=wfFat||1;
@@ -5580,7 +5635,14 @@ function renderRes(){
     var icmsLiq=icmsDeb-icmsCred;
     var icmsRecolher=isPresumido?Math.max(0,icmsLiq):0;
     var icmsSaldoCredor=isPresumido?Math.max(0,-icmsLiq):0;
-    var res=ebitFinM-impM-icmsRecolher-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
+    // IPI: apuração mensal (débito 6,5% da venda − crédito da importação)
+    var ipiDebEst=isPresumido?fat*IPI_PCT:0;
+    var ipiDeb=isPresumido?((md.ipi_deb>0)?md.ipi_deb:ipiDebEst):0;
+    var ipiCred=isPresumido?(+md.ipi_cred||0):0;
+    var ipiLiq=ipiDeb-ipiCred;
+    var ipiRecolher=isPresumido?Math.max(0,ipiLiq):0;
+    var ipiSaldoCredor=isPresumido?Math.max(0,-ipiLiq):0;
+    var res=ebitFinM-impM-icmsRecolher-ipiRecolher-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
@@ -5735,6 +5797,21 @@ function renderRes(){
           '<span style="font-size:13px;font-weight:800;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(icmsSaldoCredor>0?icmsSaldoCredor:icmsRecolher)+'</span>'+
         '</div>'+
         (icmsSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Crédito &gt; débito: some este saldo ao crédito do próximo mês.</div>':'')+
+      '</div>':'')+
+      (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
+        '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− IPI (apuração do mês)</div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
+          '<span style="font-size:10px;color:var(--text2);">Débito (venda)'+(md.ipi_deb>0?' · real':' · est. '+(IPI_PCT*100).toFixed(2).replace(/\\.?0+$/,'')+'%')+'</span>'+
+          '<input type="text" inputmode="decimal" value="'+(md.ipi_deb?fmtN(md.ipi_deb):'')+'" placeholder="'+fmtN(ipiDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIpiDeb(\''+mk+'\',this.value)">'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
+          '<span style="font-size:10px;color:var(--text2);">(−) Crédito (IPI da importação)</span>'+
+          '<input type="text" inputmode="decimal" value="'+(md.ipi_cred?fmtN(md.ipi_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIpiCred(\''+mk+'\',this.value)">'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:5px;border-top:1px dashed var(--border);">'+
+          '<span style="font-size:10px;font-weight:700;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(ipiSaldoCredor>0?'= Saldo credor (compensa meses futuros)':'= IPI a recolher')+'</span>'+
+          '<span style="font-size:13px;font-weight:800;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(ipiSaldoCredor>0?ipiSaldoCredor:ipiRecolher)+'</span>'+
+        '</div>'+
       '</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
@@ -6014,7 +6091,10 @@ function exportMesXls(mk){
   var icmsDebX=_pres?((md.icms_deb>0)?md.icms_deb:fat*ICMS_VENDA_PCT):0;
   var icmsCredX=_pres?(+md.icms_cred||0):0;
   var icmsRecX=_pres?Math.max(0,icmsDebX-icmsCredX):0;
-  var mc=lsi-totE,ebitda=mc-totF,res=ebitda+totFin-das-icmsRecX-irpjCsll,margem=fat>0?res/fat*100:0;
+  var ipiDebX=_pres?((md.ipi_deb>0)?md.ipi_deb:fat*IPI_PCT):0;
+  var ipiCredX=_pres?(+md.ipi_cred||0):0;
+  var ipiRecX=_pres?Math.max(0,ipiDebX-ipiCredX):0;
+  var mc=lsi-totE,ebitda=mc-totF,res=ebitda+totFin-das-icmsRecX-ipiRecX-irpjCsll,margem=fat>0?res/fat*100:0;
   function fd(d){d=(d||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('/'):'';}
   function S(v,s){return {t:'s',v:v,s:s||0};}
   function M(v,s){return {t:'n',v:(Math.round((v||0)*100)/100),s:s||4};}
@@ -6033,6 +6113,9 @@ function exportMesXls(mk){
     R.push([S('IMPOSTO',1),S('ICMS Débito (saídas)'+(md.icms_deb>0?' (real)':' (estimado)')),S(''),S(''),M(icmsDebX)]);
     R.push([S('IMPOSTO',1),S('ICMS Crédito (entradas)'),S(''),S(''),M(-icmsCredX)]);
     R.push([S('IMPOSTO',1),S('ICMS a recolher'),S(''),S(''),M(icmsRecX)]);
+    R.push([S('IMPOSTO',1),S('IPI Débito (venda)'+(md.ipi_deb>0?' (real)':' (estimado)')),S(''),S(''),M(ipiDebX)]);
+    R.push([S('IMPOSTO',1),S('IPI Crédito (importação)'),S(''),S(''),M(-ipiCredX)]);
+    R.push([S('IMPOSTO',1),S('IPI a recolher'),S(''),S(''),M(ipiRecX)]);
   }
   if(irpjCsll>0)R.push([S('IMPOSTO',1),S('IRPJ + CSLL'+(md.irpjcsll>0?' (real)':' (estimado)')),S(''),S(''),M(irpjCsll)]);
   if(md.prolaboreItems&&md.prolaboreItems.length){md.prolaboreItems.forEach(function(pl){if((+pl.valor||0)!==0)R.push([S('PRÓ-LABORE',1),S(pl.desc||'Pró-labore'),S(''),S(fd(pl.data)),M(pl.valor)]);});}
@@ -6257,6 +6340,20 @@ function saveIcmsDeb(mk,val){
 function saveIcmsCred(mk,val){
   var md=getMDesp(mk);
   md.icms_cred=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
+}
+function saveIpiDeb(mk,val){
+  var md=getMDesp(mk);
+  md.ipi_deb=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
+}
+function saveIpiCred(mk,val){
+  var md=getMDesp(mk);
+  md.ipi_cred=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
   renderResDebounced();
