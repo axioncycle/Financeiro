@@ -3897,6 +3897,20 @@ function calcIrpjCsll(fat){
   var csll=fat*CSLL_PRESUNC*CSLL_ALIQ;
   return {irpj:irpj,csll:csll,adic:adic,total:irpj+adic+csll};
 }
+// Soma dos pagamentos de contêiner com data no mês (a partir do Presumido) — vira Investimento p/ GCM
+function investFromContainers(mk){
+  if(mk<REGIME_PRESUMIDO_FROM) return 0;
+  var cs=(typeof loadContainers==='function')?loadContainers():[];
+  var tot=0,c,i;
+  for(c=0;c<cs.length;c++){
+    var data=sg('ax_custo_'+cs[c].id,{pagamentos:[]});
+    var pags=(data&&data.pagamentos)||[];
+    for(i=0;i<pags.length;i++){
+      if(((pags[i].data||'').slice(0,7))===mk) tot+=(+pags[i].valor||0);
+    }
+  }
+  return tot;
+}
 // DRE resumido do mês: fat → EBITDA → Lucro Líquido → GCM (caixa gerado)
 // GCM = Lucro − Investimentos (compra de contêiner/estoque). Investimento é capex:
 // NÃO entra no lucro (P&L), só na geração de caixa.
@@ -3912,7 +3926,7 @@ function mesDRE(mk){
   var ebitda=margContrib-totF;
   var imp=mesImpTotal(mk,fat,md,impE);
   var res=ebitda+totFin-imp;
-  var invest=+md.invest||0;
+  var invest=(+md.invest>0)?+md.invest:investFromContainers(mk); // manual sobrepõe o auto
   var gcm=res-invest;
   return {mk:mk,fat:fat,ebitda:ebitda,res:res,imp:imp,invest:invest,gcm:gcm,hasData:(mv.length>0)};
 }
@@ -5715,7 +5729,8 @@ function renderRes(){
     var ipiRecolher=isPresumido?Math.max(0,ipiLiq):0;
     var ipiSaldoCredor=isPresumido?Math.max(0,-ipiLiq):0;
     var res=ebitFinM-impM-icmsRecolher-ipiRecolher-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
-    var investM=+md.invest||0;          // compra de contêiner/estoque (capex — não entra no lucro)
+    var investAuto=isPresumido?investFromContainers(mk):0; // soma dos pagamentos de contêiner do mês
+    var investM=(+md.invest>0)?+md.invest:investAuto;      // manual sobrepõe o auto (capex — não entra no lucro)
     var gcmM=res-investM;               // Geração de Caixa Mensal = Lucro − Investimentos
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
@@ -5961,8 +5976,8 @@ function renderRes(){
       '<div style="margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;">'+
           '<div><div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos (abaixo da linha)</div>'+
-          '<div style="font-size:9px;color:var(--text3);">Estoque/contêiner, equipamentos, obra, parcelas de empréstimo · sai do caixa, não do lucro</div></div>'+
-          '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveInvest(\''+mk+'\',this.value)">'+
+          '<div style="font-size:9px;color:var(--text3);">'+((md.invest>0)?'Valor manual':(investAuto>0?'Auto dos pagamentos de contêiner deste mês':'Estoque/contêiner, equip., obra, empréstimo · edite p/ sobrepor'))+'</div></div>'+
+          '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="'+fmtN(investAuto)+'" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveInvest(\''+mk+'\',this.value)">'+
         '</div>'+
       '</div>'+
     '</div>'+
