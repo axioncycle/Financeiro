@@ -1091,7 +1091,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 <!-- RESULTADO -->
 <div class="pg" id="pg-res">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;">
-    <div onclick="var b=document.getElementById('cfg-body');b.style.display=b.style.display==='none'?'block':'none';" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
+    <div onclick="var b=document.getElementById('cfg-body');var op=b.style.display==='none';b.style.display=op?'block':'none';if(op&&typeof fillTaxCfg==='function')fillTaxCfg();" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
       <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;">⚙️ Configuração de Impostos</span>
       <span style="font-size:11px;color:var(--text3);">Presumido · alíquotas ▾</span>
     </div>
@@ -3861,14 +3861,15 @@ function _applyTaxCfg(){
   ICMS_VENDA_PCT=TAXCFG.icmsVenda/100; IPI_PCT=TAXCFG.ipi/100;
 }
 function saveTaxCfg(){
-  var g=function(id){return (document.getElementById(id)||{value:''}).value;};
-  var num=function(v){return parseFloat(String(v||'').replace(',','.'))||0;};
-  TAXCFG.regimeFrom=g('cfg-regime')||'2026-08';
-  TAXCFG.icmsVenda=num(g('cfg-icms'));
-  TAXCFG.piscofins=num(g('cfg-pc'));
-  TAXCFG.ipi=num(g('cfg-ipi'));
+  var g=function(id){return String((document.getElementById(id)||{value:''}).value||'').trim();};
+  var num=function(v){return parseFloat(String(v).replace(',','.'))||0;};
+  // Só sobrescreve o que foi realmente preenchido — campo vazio mantém o valor atual (não zera)
+  var r=g('cfg-regime'); if(r) TAXCFG.regimeFrom=r;
+  var setIf=function(id,key){var raw=g(id); if(raw!=='') TAXCFG[key]=num(raw);};
+  setIf('cfg-icms','icmsVenda'); setIf('cfg-pc','piscofins'); setIf('cfg-ipi','ipi');
   try{localStorage.setItem('ax_taxcfg',JSON.stringify(TAXCFG));}catch(e){}
   _applyTaxCfg();
+  fillTaxCfg();
   if(typeof toast==='function') toast('Alíquotas salvas ✓');
   if(typeof renderRes==='function') renderRes();
   if(typeof renderDash==='function') renderDash();
