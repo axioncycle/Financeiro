@@ -1396,7 +1396,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div class="mtitle">📄 Exportar Estoque em PDF</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Escolha o que exportar:</div>
     <button class="btn" style="width:100%;margin-bottom:8px;background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed44;" onclick="closeModal('m-export-est');exportEstoquePDF('all')">📦 Tudo (Geral + todos os contêineres)</button>
-    <button class="btn" style="width:100%;margin-bottom:12px;background:#1E90FF18;color:#1E90FF;border:1px solid #1E90FF44;" onclick="closeModal('m-export-est');exportEstoquePDF('geral')">📊 Somente Estoque Geral</button>
+    <button class="btn" style="width:100%;margin-bottom:8px;background:#1E90FF18;color:#1E90FF;border:1px solid #1E90FF44;" onclick="closeModal('m-export-est');exportEstoquePDF('geral')">📊 Somente Estoque Geral</button>
+    <button class="btn" style="width:100%;margin-bottom:12px;background:#22c55e18;color:#22c55e;border:1px solid #22c55e44;" onclick="closeModal('m-export-est');exportEstoqueCredito()">📋 Para crédito do contador (Excel)</button>
     <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Ou um contêiner específico</div>
     <div id="exp-est-conts" style="display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow-y:auto;"></div>
     <button class="btn btn-s" style="width:100%;margin-top:12px;" onclick="closeModal('m-export-est')">Fechar</button>
@@ -5008,6 +5009,48 @@ function openExportEstoque(){
     else{wrap.innerHTML=cs.map(function(c){var dt=c.data?c.data.split('-').reverse().join('/'):'—';return '<button class="btn btn-s" style="width:100%;text-align:left;justify-content:flex-start;" onclick="closeModal(\'m-export-est\');exportEstoquePDF(\''+c.id+'\')">📦 '+esc(c.nome)+' <span style="color:var(--text3);font-weight:400;font-size:11px;margin-left:6px;">'+dt+'</span></button>';}).join('');}
   }
   openModal('m-export-est');
+}
+// Estoque para cálculo do crédito na transição p/ Presumido (Excel).
+// Base do crédito = valor da nota/DI (FOB), NÃO o custo total com frete/despachante.
+function exportEstoqueCredito(){
+  var skus=getAllSKUs();
+  var locais=loadLocais();
+  var cs=loadContainers();
+  // Mapa nome -> USD (FOB unitário) do cadastro de custo
+  var usdMap={};
+  var custoSkus=(typeof getAllCustoSKUs==='function')?getAllCustoSKUs():[];
+  for(var u=0;u<custoSkus.length;u++){var cn=(custoSkus[u].nome||'').trim().toLowerCase();if(cn&&custoSkus[u].usd)usdMap[cn]=+custoSkus[u].usd||0;}
+  var cambio=(typeof skcDolarRef==='function')?skcDolarRef():5.40;
+  function qtot(sid){var t=0;for(var j=0;j<locais.length;j++)t+=getQtyLocal(locais[j],sid);return t;}
+  // Contêiner(es) de origem que ainda têm este SKU planejado
+  function origem(sid){var o=[];for(var c=0;c<cs.length;c++){var sk=cs[c].skus[sid];if(sk&&sk.custoQty>0)o.push(cs[c].nome||cs[c].id);}return o.join(', ');}
+  function S(v,s){return {t:'s',v:v,s:s||0};}
+  function M(v,s){return {t:'n',v:(Math.round((v||0)*100)/100),s:s||4};}
+  var R=[];
+  R.push([S('Estoque para crédito na transição — Lucro Presumido',2)]);
+  R.push([S('Câmbio de referência: '+fmtN(cambio)+' · valores FOB são REFERÊNCIA — o ICMS/IPI exato vem das DIs',3)]);
+  R.push([S('Modelo / SKU',3),S('Qtd em estoque',3),S('FOB unit (US$)',3),S('FOB unit (R$)',3),S('FOB total (R$)',3),S('Contêiner / DI de origem',3)]);
+  var totQ=0,totFob=0,n=0;
+  for(var i=0;i<skus.length;i++){
+    var s=skus[i],q=qtot(s.id);
+    if(q<=0) continue;
+    var usd=usdMap[(s.nome||'').trim().toLowerCase()]||0;
+    var fobU=usd*cambio, fobT=fobU*q;
+    totQ+=q; totFob+=fobT; n++;
+    R.push([S(s.nome),M(q),M(usd),M(fobU),M(fobT),S(origem(s.id))]);
+  }
+  if(!n){toast('Nenhum item em estoque para exportar',true);return;}
+  R.push([]);
+  R.push([S('TOTAIS',6),M(totQ),S(''),S(''),M(totFob),S('')]);
+  R.push([]);
+  R.push([S('Observações:',1)]);
+  R.push([S('• Base do crédito = valor da mercadoria na nota/DI (FOB). NÃO inclui frete nacional, despachante, armazenagem (serviços, sem crédito de ICMS).',1)]);
+  R.push([S('• Créditos aplicáveis no Presumido: ICMS e IPI (destacados na DI). PIS/COFINS cumulativo NÃO gera crédito de estoque.',1)]);
+  R.push([S('• Para o valor exato do imposto por item, usar as DIs de origem (ex.: DI 26/0211421-8).',1)]);
+  var bytes=buildXlsx(R,'Estoque Crédito');
+  var blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var d=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  shareOrDownload(blob,'estoque para credito - '+d+'.xlsx','Estoque exportado!');
 }
 function exportEstoquePDF(scope){
   scope=scope||'all';
