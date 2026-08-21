@@ -579,6 +579,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
 <!-- DASHBOARD 2 -->
 <div class="pg" id="pg-dash2">
+  <!-- Cadência do ano: Receita · EBITDA · Lucro · GCM (Real vs Projeção) -->
+  <div id="cad-kpis" style="margin:10px 0 12px;"></div>
   <!-- Simulação de Venda -->
   <div style="background:var(--card);border:1px solid #22c55e44;border-radius:14px;padding:14px;margin:10px 0 12px;">
     <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">🧮 Simulação de Venda</div>
@@ -1984,7 +1986,7 @@ function saveDespDB(mk,data){
   if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
-    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}if(data.icms_deb){r2={mes:mk,nome:'ICMS Débito',valor:data.icms_deb,tipo:'icmsdeb'};rows.push(r2);}if(data.icms_cred){r2={mes:mk,nome:'ICMS Crédito',valor:data.icms_cred,tipo:'icmscred'};rows.push(r2);}if(data.ipi_deb){r2={mes:mk,nome:'IPI Débito',valor:data.ipi_deb,tipo:'ipideb'};rows.push(r2);}if(data.ipi_cred){r2={mes:mk,nome:'IPI Crédito',valor:data.ipi_cred,tipo:'ipicred'};rows.push(r2);}
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}if(data.icms_deb){r2={mes:mk,nome:'ICMS Débito',valor:data.icms_deb,tipo:'icmsdeb'};rows.push(r2);}if(data.icms_cred){r2={mes:mk,nome:'ICMS Crédito',valor:data.icms_cred,tipo:'icmscred'};rows.push(r2);}if(data.ipi_deb){r2={mes:mk,nome:'IPI Débito',valor:data.ipi_deb,tipo:'ipideb'};rows.push(r2);}if(data.ipi_cred){r2={mes:mk,nome:'IPI Crédito',valor:data.ipi_cred,tipo:'ipicred'};rows.push(r2);}if(data.invest){r2={mes:mk,nome:'Investimentos',valor:data.invest,tipo:'invest'};rows.push(r2);}
     // Pró-labore: uma linha por lançamento (descrição + data codificadas no campo nome)
     if(data.prolaboreItems&&data.prolaboreItems.length){for(i=0;i<data.prolaboreItems.length;i++){var _pl=data.prolaboreItems[i];if((+_pl.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_pl.desc||'Pró-labore'),pdata:_pl.data||''}),valor:+_pl.valor||0,tipo:'prolabore'};rows.push(r2);}}}
     else if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
@@ -3894,6 +3896,25 @@ function calcIrpjCsll(fat){
   var csll=fat*CSLL_PRESUNC*CSLL_ALIQ;
   return {irpj:irpj,csll:csll,adic:adic,total:irpj+adic+csll};
 }
+// DRE resumido do mês: fat → EBITDA → Lucro Líquido → GCM (caixa gerado)
+// GCM = Lucro − Investimentos (compra de contêiner/estoque). Investimento é capex:
+// NÃO entra no lucro (P&L), só na geração de caixa.
+function mesDRE(mk){
+  var vendas=(typeof loadVendas==='function')?loadVendas():[];
+  var mv=[],fat=0,lsi=0,taxas=0,custo=0,frete=0,impE=0,i;
+  for(i=0;i<vendas.length;i++){if(mkey(vendas[i].date)===mk){var v=vendas[i];mv.push(v);fat+=v.venda||0;lsi+=v.lucroSI||0;taxas+=(v.taxa||0)+(v.com||0);custo+=v.custo||0;frete+=v.frete||0;impE+=v.imp||0;}}
+  var md=getMDesp(mk),totF=0,totE=0,totFin=0,k;
+  for(k=0;k<(md.fixas||[]).length;k++){var f=md.fixas[k];if(f.nome!=='DAS'&&f.nome!=='das')totF+=parseFloat(f.valor)||0;}
+  for(k=0;k<(md.extras||[]).length;k++) totE+=parseFloat(md.extras[k].valor)||0;
+  if(md.financeiro) for(k=0;k<md.financeiro.length;k++) totFin+=parseFloat(md.financeiro[k].valor)||0;
+  var margContrib=lsi-totE;
+  var ebitda=margContrib-totF;
+  var imp=mesImpTotal(mk,fat,md,impE);
+  var res=ebitda+totFin-imp;
+  var invest=+md.invest||0;
+  var gcm=res-invest;
+  return {mk:mk,fat:fat,ebitda:ebitda,res:res,imp:imp,invest:invest,gcm:gcm,hasData:(mv.length>0)};
+}
 // Alíquota interna modal aproximada por UF (%) — editável conforme legislação
 var ICMS_INTERNA={AC:19,AL:19,AP:18,AM:20,BA:20.5,CE:20,DF:20,ES:17,GO:19,MA:22,MT:17,MS:17,MG:18,PA:19,PB:20,PR:19.5,PE:20.5,PI:21,RJ:20,RN:18,RS:17,RO:19.5,RR:20,SC:17,SP:18,SE:19,TO:20};
 var _impUserEdited=false; // usuário digitou o imposto manualmente -> não sobrescrever
@@ -5316,6 +5337,8 @@ function syncDespesasFromDB(cb){
         d[r.mes].ipi_deb=+r.valor||0;
       } else if(r.tipo==='ipicred'){
         d[r.mes].ipi_cred=+r.valor||0;
+      } else if(r.tipo==='invest'){
+        d[r.mes].invest=+r.valor||0;
       } else if(r.tipo==='rendbruto'||r.tipo==='rendliq'){
         // tipos obsoletos — ignora (não polui extras)
       } else if(r.tipo==='prolabore'){
@@ -5649,6 +5672,8 @@ function renderRes(){
     var ipiRecolher=isPresumido?Math.max(0,ipiLiq):0;
     var ipiSaldoCredor=isPresumido?Math.max(0,-ipiLiq):0;
     var res=ebitFinM-impM-icmsRecolher-ipiRecolher-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
+    var investM=+md.invest||0;          // compra de contêiner/estoque (capex — não entra no lucro)
+    var gcmM=res-investM;               // Geração de Caixa Mensal = Lucro − Investimentos
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
@@ -5890,9 +5915,21 @@ function renderRes(){
           '</div>'+
         '</div>'+
       '</div>'+
+      '<div style="margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+          '<div><div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos</div>'+
+          '<div style="font-size:9px;color:var(--text3);">Compra de contêiner/estoque · sai do caixa, não do lucro</div></div>'+
+          '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveInvest(\''+mk+'\',this.value)">'+
+        '</div>'+
+      '</div>'+
     '</div>'+
 '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
       '<div style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
+      '<div style="margin-top:8px;padding:8px 10px;background:'+(gcmM>=0?'#0ea5e914':'#ef444414')+';border:1px solid '+(gcmM>=0?'#0ea5e944':'#ef444444')+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'+
+        '<div><div style="font-size:9px;font-weight:700;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';text-transform:uppercase;letter-spacing:.5px;">💧 GCM · Geração de Caixa</div>'+
+        '<div style="font-size:8.5px;color:var(--text3);">Lucro '+fmt(res)+' − Investimentos '+fmt(investM)+'</div></div>'+
+        '<div style="font-size:18px;font-weight:800;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';">'+fmt(gcmM)+'</div>'+
+      '</div>'+
       '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
         '<div style="font-size:11px;color:var(--text3);">Margem: <strong style="color:'+rc+';">'+mg.toFixed(1)+'%</strong></div>'+
         '<span style="font-size:14px;">'+(mg>=META_MARG_LIQ?'🟢':mg>=META_MARG_LIQ*0.6?'🟡':'🔴')+'</span>'+
@@ -6360,6 +6397,13 @@ function saveIpiDeb(mk,val){
 function saveIpiCred(mk,val){
   var md=getMDesp(mk);
   md.ipi_cred=parseBRL(val);
+  setMDesp(mk,md);
+  saveDespDB(mk,md);
+  renderResDebounced();
+}
+function saveInvest(mk,val){
+  var md=getMDesp(mk);
+  md.invest=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
   renderResDebounced();
@@ -9938,9 +9982,49 @@ function simVenda(){
     '</div>'+
   '</div>';
 }
+// Cadência do ano — 4 KPIs (Receita · EBITDA · Lucro · GCM) com Real (YTD) vs Projeção
+function renderCadenciaKPIs(){
+  var host=document.getElementById('cad-kpis'); if(!host) return;
+  var yr=today().slice(0,4), curMk=today().slice(0,7);
+  var realFat=0,realEbitda=0,realLiq=0,realGcm=0,realInvest=0,nReal=0,m;
+  for(m=1;m<=12;m++){
+    var mk=yr+'-'+(m<10?'0':'')+m;
+    if(mk>curMk) continue;                 // meses futuros = projeção
+    var d=mesDRE(mk);
+    if(!d.hasData && d.invest===0) continue; // mês sem movimento ainda
+    realFat+=d.fat; realEbitda+=d.ebitda; realLiq+=d.res; realGcm+=d.gcm; realInvest+=d.invest; nReal++;
+  }
+  var rem=12-nReal;
+  var avg=function(v){return nReal?v/nReal:0;};
+  var projFat=realFat+avg(realFat)*rem, projEbitda=realEbitda+avg(realEbitda)*rem,
+      projLiq=realLiq+avg(realLiq)*rem, projGcm=realGcm+avg(realGcm)*rem;
+  var pct=function(v,base){return base>0?(v/base*100):0;};
+  function card(lbl,ico,col,realV,projV,sub){
+    var mgProj=pct(projV,projFat);
+    return '<div style="background:var(--card);border:1px solid '+col+'44;border-left:3px solid '+col+';border-radius:12px;padding:12px 13px;">'+
+      '<div style="font-size:9px;font-weight:700;color:'+col+';text-transform:uppercase;letter-spacing:.5px;">'+ico+' '+lbl+' · Ano</div>'+
+      '<div style="font-size:20px;font-weight:800;color:var(--text);margin-top:4px;white-space:nowrap;">'+formatK(projV)+'</div>'+
+      (sub?'<div style="font-size:9.5px;color:var(--text3);margin-top:1px;">'+sub+'</div>':'')+
+      '<div style="margin-top:7px;background:var(--bg3);border-radius:3px;height:5px;overflow:hidden;">'+
+        '<div style="height:100%;width:'+Math.min(100,Math.max(0,pct(realV,projV))).toFixed(0)+'%;background:'+col+';border-radius:3px;"></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--text3);">'+
+        '<span>Real '+formatK(realV)+'</span><span>Proj '+formatK(projV)+'</span></div>'+
+    '</div>';
+  }
+  var head='<div style="font-size:10px;color:#1E90FF;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">📅 Cadência '+yr+' · realizado + projeção</div>';
+  host.innerHTML=head+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+
+    card('Receita Bruta','💰','#1E90FF',realFat,projFat,nReal+' meses reais + '+rem+' proj.')+
+    card('EBITDA','⚙️','#f59e0b',realEbitda,projEbitda,'margem '+pct(projEbitda,projFat).toFixed(1)+'%')+
+    card('Lucro Líquido','📈','#22c55e',realLiq,projLiq,'margem '+pct(projLiq,projFat).toFixed(1)+'%')+
+    card('GCM · Caixa','💧','#0ea5e9',realGcm,projGcm,'após investimentos')+
+  '</div>'+
+  '<div style="font-size:9px;color:var(--text3);margin-top:7px;line-height:1.4;">Projeção = realizado + média mensal × meses restantes. GCM = Lucro − compra de estoque/contêiner.</div>';
+}
 function renderDash2(){
   simVenda();
   if(curPage!=='dash2') return;
+  renderCadenciaKPIs();
   var vendas=getD2Vendas();
   var dre=calcDRE(vendas);
   renderD2Filter();
