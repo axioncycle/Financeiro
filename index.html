@@ -5917,8 +5917,8 @@ function renderRes(){
       '</div>'+
       '<div style="margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-          '<div><div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos</div>'+
-          '<div style="font-size:9px;color:var(--text3);">Compra de contêiner/estoque · sai do caixa, não do lucro</div></div>'+
+          '<div><div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos (abaixo da linha)</div>'+
+          '<div style="font-size:9px;color:var(--text3);">Estoque/contêiner, equipamentos, obra, parcelas de empréstimo · sai do caixa, não do lucro</div></div>'+
           '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveInvest(\''+mk+'\',this.value)">'+
         '</div>'+
       '</div>'+
@@ -10019,7 +10019,9 @@ function renderCadenciaKPIs(){
     card('Lucro Líquido','📈','#22c55e',realLiq,projLiq,'margem '+pct(projLiq,projFat).toFixed(1)+'%')+
     card('GCM · Caixa','💧','#0ea5e9',realGcm,projGcm,'após investimentos')+
   '</div>'+
-  '<div style="font-size:9px;color:var(--text3);margin-top:7px;line-height:1.4;">Projeção = realizado + média mensal × meses restantes. GCM = Lucro − compra de estoque/contêiner.</div>';
+  '<div style="font-size:9px;color:var(--text3);margin-top:7px;line-height:1.5;">Projeção = realizado + média mensal × meses restantes.<br>'+
+  '<b style="color:#f59e0b;">EBITDA</b> = caixa da operação (antes de juros, IR/CS e investimentos). '+
+  '<b style="color:#0ea5e9;">GCM</b> = caixa de verdade no mês = Lucro − investimentos abaixo da linha. Pode ser negativo mesmo com lucro positivo (mês que paga contêiner/obra).</div>';
 }
 function renderDash2(){
   simVenda();
