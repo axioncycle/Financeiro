@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08c (recálculo automático ao sair do campo)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08d (salva e recalcula ao vivo, a cada tecla)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2443,6 +2443,33 @@ function renderResDebounced(){
 function renderResForce(){
   try{ if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }catch(e){}
   setTimeout(function(){renderRes();},30);
+}
+// Edição AO VIVO de imposto/investimento: salva a cada tecla e atualiza os números
+// na tela SEM reconstruir os campos (evita o foco travar no iOS).
+var _taxSaveT={};
+function taxLive(mk,field,el){
+  maskBRL(el);
+  var md=getMDesp(mk);
+  md[field]=parseBRL(el.value)||0;
+  setMDesp(mk,md);                                   // grava local na hora
+  if(_taxSaveT[mk]) clearTimeout(_taxSaveT[mk]);
+  _taxSaveT[mk]=setTimeout(function(){saveDespDB(mk,md);},700); // persiste no banco (debounce)
+  refreshMesOut(mk);                                 // atualiza a tela ao vivo
+}
+function refreshMesOut(mk){
+  var set=function(id,txt,col){var e=document.getElementById(id);if(e){e.textContent=txt;if(col)e.style.color=col;}};
+  if(mk>=REGIME_PRESUMIDO_FROM){
+    var ic=icmsMonth(mk),icG=ic.saldoNovo>0;
+    set('ic-lbl-'+mk,icG?'= Saldo credor (passa p/ o próximo mês)':'= ICMS a recolher',icG?'#22c55e':'#ef4444');
+    set('ic-v-'+mk,fmt(icG?ic.saldoNovo:ic.aRecolher),icG?'#22c55e':'#ef4444');
+    var ip=ipiMonth(mk),ipG=ip.saldoNovo>0;
+    set('ip-lbl-'+mk,ipG?'= Saldo credor (passa p/ o próximo mês)':'= IPI a recolher',ipG?'#22c55e':'#ef4444');
+    set('ip-v-'+mk,fmt(ipG?ip.saldoNovo:ip.aRecolher),ipG?'#22c55e':'#ef4444');
+  }
+  var d=mesDRE(mk);
+  set('res-liq-'+mk,fmt(d.res),d.res>=0?'#22c55e':'#ef4444');
+  set('gcm-v-'+mk,fmt(d.gcm),d.gcm>=0?'#0ea5e9':'#ef4444');
+  set('gcm-s-'+mk,'Lucro '+fmt(d.res)+' − Investimentos '+fmt(d.invest));
 }
 
 function fmtDate(iso){if(!iso)return'';var d=(iso||'').slice(0,10);var p=d.split('-');if(p.length!==3)return d;return p[2]+'/'+p[1]+'/'+p[0];}function mkey(iso){return iso?iso.slice(0,7):'';}
@@ -5900,16 +5927,16 @@ function renderRes(){
         '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− ICMS (apuração do mês)</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">Débito (saídas)'+(md.icms_deb>0?' · real':' · est. '+(ICMS_VENDA_PCT*100).toFixed(1)+'%')+'</span>'+
-          '<input type="text" inputmode="decimal" value="'+(md.icms_deb?fmtN(md.icms_deb):'')+'" placeholder="'+fmtN(icmsDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIcmsDeb(\''+mk+'\',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(md.icms_deb?fmtN(md.icms_deb):'')+'" placeholder="'+fmtN(icmsDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'icms_deb\',this)">'+
         '</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">(−) Crédito (importação/entradas)</span>'+
-          '<input type="text" inputmode="decimal" value="'+(md.icms_cred?fmtN(md.icms_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIcmsCred(\''+mk+'\',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(md.icms_cred?fmtN(md.icms_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'icms_cred\',this)">'+
         '</div>'+
         (icmsSaldoAntes>0?'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;"><span style="font-size:10px;color:#22c55e;">(−) Saldo credor de meses anteriores</span><span style="font-size:12px;font-weight:700;color:#22c55e;">'+fmt(icmsSaldoAntes)+'</span></div>':'')+
         '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:5px;border-top:1px dashed var(--border);">'+
-          '<span style="font-size:10px;font-weight:700;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(icmsSaldoCredor>0?'= Saldo credor (passa p/ o próximo mês)':'= ICMS a recolher')+'</span>'+
-          '<span style="font-size:13px;font-weight:800;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(icmsSaldoCredor>0?icmsSaldoCredor:icmsRecolher)+'</span>'+
+          '<span id="ic-lbl-'+mk+'" style="font-size:10px;font-weight:700;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(icmsSaldoCredor>0?'= Saldo credor (passa p/ o próximo mês)':'= ICMS a recolher')+'</span>'+
+          '<span id="ic-v-'+mk+'" style="font-size:13px;font-weight:800;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(icmsSaldoCredor>0?icmsSaldoCredor:icmsRecolher)+'</span>'+
         '</div>'+
         (icmsSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Carregado automaticamente para o próximo mês.</div>':'')+
       '</div>':'')+
@@ -5917,16 +5944,16 @@ function renderRes(){
         '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− IPI (apuração do mês)</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">Débito (venda)'+(md.ipi_deb>0?' · real':' · est. '+(IPI_PCT*100).toFixed(2).replace(/\\.?0+$/,'')+'%')+'</span>'+
-          '<input type="text" inputmode="decimal" value="'+(md.ipi_deb?fmtN(md.ipi_deb):'')+'" placeholder="'+fmtN(ipiDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIpiDeb(\''+mk+'\',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(md.ipi_deb?fmtN(md.ipi_deb):'')+'" placeholder="'+fmtN(ipiDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'ipi_deb\',this)">'+
         '</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">(−) Crédito (IPI da importação)</span>'+
-          '<input type="text" inputmode="decimal" value="'+(md.ipi_cred?fmtN(md.ipi_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIpiCred(\''+mk+'\',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(md.ipi_cred?fmtN(md.ipi_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'ipi_cred\',this)">'+
         '</div>'+
         (ipiSaldoAntes>0?'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;"><span style="font-size:10px;color:#22c55e;">(−) Saldo credor de meses anteriores</span><span style="font-size:12px;font-weight:700;color:#22c55e;">'+fmt(ipiSaldoAntes)+'</span></div>':'')+
         '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:5px;border-top:1px dashed var(--border);">'+
-          '<span style="font-size:10px;font-weight:700;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(ipiSaldoCredor>0?'= Saldo credor (passa p/ o próximo mês)':'= IPI a recolher')+'</span>'+
-          '<span style="font-size:13px;font-weight:800;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(ipiSaldoCredor>0?ipiSaldoCredor:ipiRecolher)+'</span>'+
+          '<span id="ip-lbl-'+mk+'" style="font-size:10px;font-weight:700;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(ipiSaldoCredor>0?'= Saldo credor (passa p/ o próximo mês)':'= IPI a recolher')+'</span>'+
+          '<span id="ip-v-'+mk+'" style="font-size:13px;font-weight:800;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(ipiSaldoCredor>0?ipiSaldoCredor:ipiRecolher)+'</span>'+
         '</div>'+
         (ipiSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Carregado automaticamente para o próximo mês.</div>':'')+
       '</div>':'')+
@@ -5938,7 +5965,7 @@ function renderRes(){
         '<div style="display:flex;align-items:center;gap:6px;">'+
           '<input type="text" inputmode="decimal" value="'+(md.das?fmtN(md.das):'')+'" placeholder="'+fmtN(impEstimado)+'"'+
           ' style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
-          ' oninput="maskBRL(this)" onchange="saveDAS(\''+mk+'\',this.value)">'+
+          ' oninput="taxLive(\''+mk+'\',\'das\',this)">'+
         '</div>'+
       '</div>'+
       (isPresumido?'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
@@ -5949,7 +5976,7 @@ function renderRes(){
         '<div style="display:flex;align-items:center;gap:6px;">'+
           '<input type="text" inputmode="decimal" value="'+(md.irpjcsll?fmtN(md.irpjcsll):'')+'" placeholder="'+fmtN(irpjCsllAuto)+'"'+
           ' style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
-          ' oninput="maskBRL(this)" onchange="saveIrpjCsll(\''+mk+'\',this.value)">'+
+          ' oninput="taxLive(\''+mk+'\',\'irpjcsll\',this)">'+
         '</div>'+
       '</div>':'')+
       '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'+
@@ -6005,16 +6032,16 @@ function renderRes(){
         '<div style="display:flex;justify-content:space-between;align-items:center;">'+
           '<div><div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos (abaixo da linha)</div>'+
           '<div style="font-size:9px;color:var(--text3);">'+((md.invest>0)?'Valor manual':(investAuto>0?'Auto dos pagamentos de contêiner deste mês':'Estoque/contêiner, equip., obra, empréstimo · edite p/ sobrepor'))+'</div></div>'+
-          '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="'+fmtN(investAuto)+'" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveInvest(\''+mk+'\',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="'+fmtN(investAuto)+'" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'invest\',this)">'+
         '</div>'+
       '</div>'+
     '</div>'+
 '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Resultado Líquido do Mês</div>'+
-      '<div style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
+      '<div id="res-liq-'+mk+'" style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
       '<div style="margin-top:8px;padding:8px 10px;background:'+(gcmM>=0?'#0ea5e914':'#ef444414')+';border:1px solid '+(gcmM>=0?'#0ea5e944':'#ef444444')+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'+
         '<div><div style="font-size:9px;font-weight:700;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';text-transform:uppercase;letter-spacing:.5px;">💧 GCM · Geração de Caixa</div>'+
-        '<div style="font-size:8.5px;color:var(--text3);">Lucro '+fmt(res)+' − Investimentos '+fmt(investM)+'</div></div>'+
-        '<div style="font-size:18px;font-weight:800;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';">'+fmt(gcmM)+'</div>'+
+        '<div id="gcm-s-'+mk+'" style="font-size:8.5px;color:var(--text3);">Lucro '+fmt(res)+' − Investimentos '+fmt(investM)+'</div></div>'+
+        '<div id="gcm-v-'+mk+'" style="font-size:18px;font-weight:800;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';">'+fmt(gcmM)+'</div>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
         '<div style="font-size:11px;color:var(--text3);">Margem: <strong style="color:'+rc+';">'+mg.toFixed(1)+'%</strong></div>'+
