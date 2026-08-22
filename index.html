@@ -3874,16 +3874,40 @@ function saveTaxCfg(){
   if(typeof renderRes==='function') renderRes();
   if(typeof renderDash==='function') renderDash();
 }
+// Lista de meses (AAAA-MM) de fromMk até toMkExcl (exclusivo)
+function _monthRange(fromMk,toMkExcl){
+  var res=[],y=+fromMk.slice(0,4),m=+fromMk.slice(5,7),ey=+toMkExcl.slice(0,4),em=+toMkExcl.slice(5,7),guard=0;
+  while((y<ey||(y===ey&&m<em))&&guard++<600){res.push(y+'-'+(m<10?'0':'')+m);m++;if(m>12){m=1;y++;}}
+  return res;
+}
+function monthFat(mk){var v=(typeof loadVendas==='function')?loadVendas():[],f=0,i;for(i=0;i<v.length;i++)if(mkey(v[i].date)===mk)f+=v[i].venda||0;return f;}
+// Apuração não-cumulativa com SALDO CREDOR acumulado dos meses anteriores.
+// debKey/credKey = campos em md; estPct = alíquota p/ estimar o débito.
+function _apurMonth(mk,debKey,credKey,estPct){
+  var saldo=0,i;
+  var months=(mk>=REGIME_PRESUMIDO_FROM)?_monthRange(REGIME_PRESUMIDO_FROM,mk):[];
+  for(i=0;i<months.length;i++){
+    var mm=months[i],mdm=getMDesp(mm),fm=monthFat(mm);
+    var dd=(+mdm[debKey]>0)?+mdm[debKey]:fm*estPct;
+    var cc=+mdm[credKey]||0;
+    saldo=Math.max(0,saldo+cc-dd);
+  }
+  var md=getMDesp(mk),fat=monthFat(mk);
+  var deb=(+md[debKey]>0)?+md[debKey]:fat*estPct;
+  var cred=+md[credKey]||0;
+  var liq=deb-cred-saldo;
+  return {deb:deb,cred:cred,saldoAntes:saldo,aRecolher:Math.max(0,liq),saldoNovo:Math.max(0,-liq)};
+}
+function icmsMonth(mk){return _apurMonth(mk,'icms_deb','icms_cred',ICMS_VENDA_PCT);}
+function ipiMonth(mk){return _apurMonth(mk,'ipi_deb','ipi_cred',IPI_PCT);}
 // Imposto TOTAL do mês (para dashboards/projeções): DAS (pré-ago) ou,
 // no Presumido, PIS/COFINS + ICMS a recolher + IRPJ/CSLL — honrando overrides.
 function mesImpTotal(mk,fat,md,mvImpSum){
   md=md||{};
   if(mk>=REGIME_PRESUMIDO_FROM){
     var pc=(md.das>0)?md.das:(fat||0)*PISCOFINS;
-    var icmsDeb=(md.icms_deb>0)?md.icms_deb:(fat||0)*ICMS_VENDA_PCT;
-    var icms=Math.max(0,icmsDeb-(+md.icms_cred||0));
-    var ipiDeb=(md.ipi_deb>0)?md.ipi_deb:(fat||0)*IPI_PCT;
-    var ipi=Math.max(0,ipiDeb-(+md.ipi_cred||0));
+    var icms=icmsMonth(mk).aRecolher;   // saldo credor acumulado já considerado
+    var ipi=ipiMonth(mk).aRecolher;
     var ic=(md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat||0).total;
     return pc+icms+ipi+ic;
   }
@@ -5552,10 +5576,8 @@ function renderRes(){
     // IRPJ/CSLL + ICMS (Lucro Presumido, a partir de ago/2026)
     if(_presF2){
       anoIrpjCsllF+=(mdF2.irpjcsll>0)?mdF2.irpjcsll:calcIrpjCsll(fatF2).total;
-      var icmsDebF2=(mdF2.icms_deb>0)?mdF2.icms_deb:fatF2*ICMS_VENDA_PCT;
-      anoIcmsF+=Math.max(0,icmsDebF2-(+mdF2.icms_cred||0));
-      var ipiDebF2=(mdF2.ipi_deb>0)?mdF2.ipi_deb:fatF2*IPI_PCT;
-      anoIpiF+=Math.max(0,ipiDebF2-(+mdF2.ipi_cred||0));
+      anoIcmsF+=icmsMonth(mkF2).aRecolher;   // já considera o saldo credor acumulado
+      anoIpiF+=ipiMonth(mkF2).aRecolher;
     }
     anoDistribuicaoF+=(mdF2.distribuicao||0);
   }
@@ -5716,19 +5738,15 @@ function renderRes(){
     var irpjCsllAuto=isPresumido?calcIrpjCsll(fat).total:0;
     var irpjCsllM=isPresumido?((md.irpjcsll>0)?md.irpjcsll:irpjCsllAuto):0;
     // ICMS: apuração mensal (débito − crédito). Só o "a recolher" debita o resultado.
+    var _icm=isPresumido?icmsMonth(mk):{deb:0,cred:0,saldoAntes:0,aRecolher:0,saldoNovo:0};
     var icmsDebEst=isPresumido?fat*ICMS_VENDA_PCT:0;
-    var icmsDeb=isPresumido?((md.icms_deb>0)?md.icms_deb:icmsDebEst):0;
-    var icmsCred=isPresumido?(+md.icms_cred||0):0;
-    var icmsLiq=icmsDeb-icmsCred;
-    var icmsRecolher=isPresumido?Math.max(0,icmsLiq):0;
-    var icmsSaldoCredor=isPresumido?Math.max(0,-icmsLiq):0;
-    // IPI: apuração mensal (débito 6,5% da venda − crédito da importação)
+    var icmsDeb=_icm.deb, icmsCred=_icm.cred, icmsSaldoAntes=_icm.saldoAntes;
+    var icmsRecolher=_icm.aRecolher, icmsSaldoCredor=_icm.saldoNovo;
+    // IPI: apuração mensal (débito 6,5% da venda − crédito da importação) c/ saldo acumulado
+    var _ipm=isPresumido?ipiMonth(mk):{deb:0,cred:0,saldoAntes:0,aRecolher:0,saldoNovo:0};
     var ipiDebEst=isPresumido?fat*IPI_PCT:0;
-    var ipiDeb=isPresumido?((md.ipi_deb>0)?md.ipi_deb:ipiDebEst):0;
-    var ipiCred=isPresumido?(+md.ipi_cred||0):0;
-    var ipiLiq=ipiDeb-ipiCred;
-    var ipiRecolher=isPresumido?Math.max(0,ipiLiq):0;
-    var ipiSaldoCredor=isPresumido?Math.max(0,-ipiLiq):0;
+    var ipiDeb=_ipm.deb, ipiCred=_ipm.cred, ipiSaldoAntes=_ipm.saldoAntes;
+    var ipiRecolher=_ipm.aRecolher, ipiSaldoCredor=_ipm.saldoNovo;
     var res=ebitFinM-impM-icmsRecolher-ipiRecolher-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
     var investAuto=isPresumido?investFromContainers(mk):0; // soma dos pagamentos de contêiner do mês
     var investM=(+md.invest>0)?+md.invest:investAuto;      // manual sobrepõe o auto (capex — não entra no lucro)
@@ -5882,11 +5900,12 @@ function renderRes(){
           '<span style="font-size:10px;color:var(--text2);">(−) Crédito (importação/entradas)</span>'+
           '<input type="text" inputmode="decimal" value="'+(md.icms_cred?fmtN(md.icms_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIcmsCred(\''+mk+'\',this.value)">'+
         '</div>'+
+        (icmsSaldoAntes>0?'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;"><span style="font-size:10px;color:#22c55e;">(−) Saldo credor de meses anteriores</span><span style="font-size:12px;font-weight:700;color:#22c55e;">'+fmt(icmsSaldoAntes)+'</span></div>':'')+
         '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:5px;border-top:1px dashed var(--border);">'+
-          '<span style="font-size:10px;font-weight:700;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(icmsSaldoCredor>0?'= Saldo credor (compensa meses futuros)':'= ICMS a recolher')+'</span>'+
+          '<span style="font-size:10px;font-weight:700;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(icmsSaldoCredor>0?'= Saldo credor (passa p/ o próximo mês)':'= ICMS a recolher')+'</span>'+
           '<span style="font-size:13px;font-weight:800;color:'+(icmsSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(icmsSaldoCredor>0?icmsSaldoCredor:icmsRecolher)+'</span>'+
         '</div>'+
-        (icmsSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Crédito &gt; débito: some este saldo ao crédito do próximo mês.</div>':'')+
+        (icmsSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Carregado automaticamente para o próximo mês.</div>':'')+
       '</div>':'')+
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− IPI (apuração do mês)</div>'+
@@ -5898,10 +5917,12 @@ function renderRes(){
           '<span style="font-size:10px;color:var(--text2);">(−) Crédito (IPI da importação)</span>'+
           '<input type="text" inputmode="decimal" value="'+(md.ipi_cred?fmtN(md.ipi_cred):'')+'" placeholder="0,00" style="width:120px;background:var(--bg3);border:1px solid #22c55e44;border-radius:6px;padding:5px 8px;color:#22c55e;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)" onchange="saveIpiCred(\''+mk+'\',this.value)">'+
         '</div>'+
+        (ipiSaldoAntes>0?'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;"><span style="font-size:10px;color:#22c55e;">(−) Saldo credor de meses anteriores</span><span style="font-size:12px;font-weight:700;color:#22c55e;">'+fmt(ipiSaldoAntes)+'</span></div>':'')+
         '<div style="display:flex;align-items:center;justify-content:space-between;padding-top:5px;border-top:1px dashed var(--border);">'+
-          '<span style="font-size:10px;font-weight:700;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(ipiSaldoCredor>0?'= Saldo credor (compensa meses futuros)':'= IPI a recolher')+'</span>'+
+          '<span style="font-size:10px;font-weight:700;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+(ipiSaldoCredor>0?'= Saldo credor (passa p/ o próximo mês)':'= IPI a recolher')+'</span>'+
           '<span style="font-size:13px;font-weight:800;color:'+(ipiSaldoCredor>0?'#22c55e':'#ef4444')+';">'+fmt(ipiSaldoCredor>0?ipiSaldoCredor:ipiRecolher)+'</span>'+
         '</div>'+
+        (ipiSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Carregado automaticamente para o próximo mês.</div>':'')+
       '</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
@@ -6190,12 +6211,10 @@ function exportMesXls(mk){
   var _pres=(mk>=REGIME_PRESUMIDO_FROM);
   var das=md.das>0?md.das:(_pres?fat*PISCOFINS:impE);
   var irpjCsll=_pres?((md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat).total):0;
-  var icmsDebX=_pres?((md.icms_deb>0)?md.icms_deb:fat*ICMS_VENDA_PCT):0;
-  var icmsCredX=_pres?(+md.icms_cred||0):0;
-  var icmsRecX=_pres?Math.max(0,icmsDebX-icmsCredX):0;
-  var ipiDebX=_pres?((md.ipi_deb>0)?md.ipi_deb:fat*IPI_PCT):0;
-  var ipiCredX=_pres?(+md.ipi_cred||0):0;
-  var ipiRecX=_pres?Math.max(0,ipiDebX-ipiCredX):0;
+  var _icX=_pres?icmsMonth(mk):{deb:0,cred:0,aRecolher:0};
+  var _ipX=_pres?ipiMonth(mk):{deb:0,cred:0,aRecolher:0};
+  var icmsDebX=_icX.deb, icmsCredX=_icX.cred, icmsRecX=_icX.aRecolher;
+  var ipiDebX=_ipX.deb, ipiCredX=_ipX.cred, ipiRecX=_ipX.aRecolher;
   var mc=lsi-totE,ebitda=mc-totF,res=ebitda+totFin-das-icmsRecX-ipiRecX-irpjCsll,margem=fat>0?res/fat*100:0;
   function fd(d){d=(d||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('/'):'';}
   function S(v,s){return {t:'s',v:v,s:s||0};}
