@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08b (se você vê isto, está na versão nova)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08c (recálculo automático ao sair do campo)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2438,6 +2438,11 @@ var _resTimer=null;
 function renderResDebounced(){
   clearTimeout(_resTimer);
   _resTimer=setTimeout(function(){renderRes();},600);
+}
+// Força o re-render mesmo se um campo ainda estiver "focado" (quirk do iOS ao sair do campo)
+function renderResForce(){
+  try{ if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }catch(e){}
+  setTimeout(function(){renderRes();},30);
 }
 
 function fmtDate(iso){if(!iso)return'';var d=(iso||'').slice(0,10);var p=d.split('-');if(p.length!==3)return d;return p[2]+'/'+p[1]+'/'+p[0];}function mkey(iso){return iso?iso.slice(0,7):'';}
@@ -6441,7 +6446,7 @@ function saveDAS(mk,val){
   md.das=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 
 function saveIrpjCsll(mk,val){
@@ -6449,7 +6454,7 @@ function saveIrpjCsll(mk,val){
   md.irpjcsll=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 
 function saveIcmsDeb(mk,val){
@@ -6457,35 +6462,35 @@ function saveIcmsDeb(mk,val){
   md.icms_deb=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 function saveIcmsCred(mk,val){
   var md=getMDesp(mk);
   md.icms_cred=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 function saveIpiDeb(mk,val){
   var md=getMDesp(mk);
   md.ipi_deb=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 function saveIpiCred(mk,val){
   var md=getMDesp(mk);
   md.ipi_cred=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 function saveInvest(mk,val){
   var md=getMDesp(mk);
   md.invest=parseBRL(val);
   setMDesp(mk,md);
   saveDespDB(mk,md);
-  renderResDebounced();
+  renderResForce();
 }
 
 function addFinanceiro(mk,i){
