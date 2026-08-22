@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08e (zerar debito, PIS-IRPJ e fixas ao vivo, auto-investimento)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08f (investimento auto+itens manuais, impostos nao somem ao atualizar)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -1988,7 +1988,7 @@ function saveDespDB(mk,data){
   if(_saveDespTimers[mk]) clearTimeout(_saveDespTimers[mk]);
   _saveDespTimers[mk]=setTimeout(function(){
     delete _saveDespTimers[mk];
-    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}if(data.icms_deb){r2={mes:mk,nome:'ICMS Débito',valor:data.icms_deb,tipo:'icmsdeb'};rows.push(r2);}if(data.icms_cred){r2={mes:mk,nome:'ICMS Crédito',valor:data.icms_cred,tipo:'icmscred'};rows.push(r2);}if(data.ipi_deb){r2={mes:mk,nome:'IPI Débito',valor:data.ipi_deb,tipo:'ipideb'};rows.push(r2);}if(data.ipi_cred){r2={mes:mk,nome:'IPI Crédito',valor:data.ipi_cred,tipo:'ipicred'};rows.push(r2);}if(data.invest){r2={mes:mk,nome:'Investimentos',valor:data.invest,tipo:'invest'};rows.push(r2);}
+    dbDel("despesas","mes=eq."+mk).then(function(){var rows=[],i,r2;if(data.fixas)for(i=0;i<data.fixas.length;i++){r2={mes:mk,nome:encNomeData(data.fixas[i]),valor:data.fixas[i].valor,tipo:"fixa"};rows.push(r2);}if(data.extras)for(i=0;i<data.extras.length;i++){r2={mes:mk,nome:encNomeData(data.extras[i]),valor:data.extras[i].valor,tipo:"extra"};rows.push(r2);}if(data.financeiro) for(i=0;i<data.financeiro.length;i++){var _fin=data.financeiro[i];r2={mes:mk,nome:encNomeData({nome:_fin.nome,banco:_fin.banco,bruto:_fin.rendBruto}),valor:_fin.valor,tipo:"financeiro"};rows.push(r2);}if(data.das){r2={mes:mk,nome:'DAS',valor:data.das,tipo:'das'};rows.push(r2);}if(data.irpjcsll){r2={mes:mk,nome:'IRPJ/CSLL',valor:data.irpjcsll,tipo:'irpjcsll'};rows.push(r2);}if(data.icms_deb){r2={mes:mk,nome:'ICMS Débito',valor:data.icms_deb,tipo:'icmsdeb'};rows.push(r2);}if(data.icms_cred){r2={mes:mk,nome:'ICMS Crédito',valor:data.icms_cred,tipo:'icmscred'};rows.push(r2);}if(data.ipi_deb){r2={mes:mk,nome:'IPI Débito',valor:data.ipi_deb,tipo:'ipideb'};rows.push(r2);}if(data.ipi_cred){r2={mes:mk,nome:'IPI Crédito',valor:data.ipi_cred,tipo:'ipicred'};rows.push(r2);}if(data.invest){r2={mes:mk,nome:'Investimentos',valor:data.invest,tipo:'invest'};rows.push(r2);}if(data.investItems)for(i=0;i<data.investItems.length;i++){var _iv=data.investItems[i];if((+_iv.valor||0)!==0){r2={mes:mk,nome:(_iv.desc||'Investimento'),valor:+_iv.valor||0,tipo:'investitem'};rows.push(r2);}}
     // Pró-labore: uma linha por lançamento (descrição + data codificadas no campo nome)
     if(data.prolaboreItems&&data.prolaboreItems.length){for(i=0;i<data.prolaboreItems.length;i++){var _pl=data.prolaboreItems[i];if((+_pl.valor||0)!==0){r2={mes:mk,nome:encNomeData({nome:(_pl.desc||'Pró-labore'),pdata:_pl.data||''}),valor:+_pl.valor||0,tipo:'prolabore'};rows.push(r2);}}}
     else if(data.prolabore>0){r2={mes:mk,nome:encNomeData({nome:(data.prolaboreDesc||'Pró-labore'),pdata:data.prolaboreData||''}),valor:data.prolabore,tipo:'prolabore'};rows.push(r2);}
@@ -2482,6 +2482,18 @@ function fixaLive(mk,fi,el){
   var e1=document.getElementById('fix-toth-'+mk);if(e1)e1.textContent=fmt(tot);
   var e2=document.getElementById('fix-tot-'+mk);if(e2)e2.textContent=fmt(tot);
   refreshMesOut(mk);
+}
+function addInvestItem(mk){
+  var desc=((document.getElementById('inv-desc-'+mk)||{value:''}).value||'').trim();
+  var val=parseBRL((document.getElementById('inv-val-'+mk)||{value:''}).value)||0;
+  if(!val){toast('Informe o valor do investimento',true);return;}
+  var md=getMDesp(mk); if(!md.investItems)md.investItems=[];
+  md.investItems.push({desc:desc||'Investimento',valor:val});
+  setMDesp(mk,md); saveDespDB(mk,md); renderResForce();
+}
+function delInvestItem(mk,idx){
+  var md=getMDesp(mk);
+  if(md.investItems&&md.investItems[idx]){md.investItems.splice(idx,1);setMDesp(mk,md);saveDespDB(mk,md);renderResForce();}
 }
 function extraLive(mk,ei,el){
   maskBRL(el);
@@ -4010,6 +4022,7 @@ function investFromContainers(mk){
   }
   return tot;
 }
+function _sumInvestItems(md){var s=0,a=(md&&md.investItems)||[],i;for(i=0;i<a.length;i++)s+=+a[i].valor||0;return s;}
 // DRE resumido do mês: fat → EBITDA → Lucro Líquido → GCM (caixa gerado)
 // GCM = Lucro − Investimentos (compra de contêiner/estoque). Investimento é capex:
 // NÃO entra no lucro (P&L), só na geração de caixa.
@@ -4025,7 +4038,7 @@ function mesDRE(mk){
   var ebitda=margContrib-totF;
   var imp=mesImpTotal(mk,fat,md,impE);
   var res=ebitda+totFin-imp;
-  var invest=(+md.invest>0)?+md.invest:investFromContainers(mk); // manual sobrepõe o auto
+  var invest=investFromContainers(mk)+_sumInvestItems(md); // auto (contêineres) + itens manuais
   var gcm=res-invest;
   return {mk:mk,fat:fat,ebitda:ebitda,res:res,imp:imp,invest:invest,gcm:gcm,hasData:(mv.length>0)};
 }
@@ -5495,6 +5508,9 @@ function syncDespesasFromDB(cb){
         d[r.mes].ipi_cred=+r.valor||0;
       } else if(r.tipo==='invest'){
         d[r.mes].invest=+r.valor||0;
+      } else if(r.tipo==='investitem'){
+        if(!d[r.mes].investItems)d[r.mes].investItems=[];
+        d[r.mes].investItems.push({desc:r.nome||'Investimento',valor:+r.valor||0});
       } else if(r.tipo==='rendbruto'||r.tipo==='rendliq'){
         // tipos obsoletos — ignora (não polui extras)
       } else if(r.tipo==='prolabore'){
@@ -5525,9 +5541,17 @@ function syncDespesasFromDB(cb){
         var _ed=decNomeData(r.nome);d[r.mes].extras.push({nome:_ed.nome,valor:+r.valor||0,pdata:_ed.pdata,banco:_ed.banco});
       }
     }
-    // Merge with localStorage (DB wins)
-    var mk2;
-    for(mk2 in d) DB_DESP[mk2]=d[mk2];
+    // Merge com o local: o banco vence no que TEM, mas preserva valores digitados
+    // localmente que ainda não foram gravados no banco (impostos/investimento).
+    var mk2,localAll=(typeof loadDesp==='function')?loadDesp():{};
+    var PRES=['das','irpjcsll','icms_deb','icms_cred','ipi_deb','ipi_cred','invest','investItems'];
+    for(mk2 in d){
+      var loc=DB_DESP[mk2]||localAll[mk2];
+      if(loc){ for(var pk=0;pk<PRES.length;pk++){var k=PRES[pk]; if((d[mk2][k]===undefined||d[mk2][k]===null)&&loc[k]!=null) d[mk2][k]=loc[k];} }
+      DB_DESP[mk2]=d[mk2];
+    }
+    // meses que só existem localmente (nunca gravados no banco) — não some com eles
+    for(mk2 in localAll){ if(!d[mk2]&&!DB_DESP[mk2]) DB_DESP[mk2]=localAll[mk2]; }
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
@@ -5822,8 +5846,9 @@ function renderRes(){
     var ipiDeb=_ipm.deb, ipiCred=_ipm.cred, ipiSaldoAntes=_ipm.saldoAntes;
     var ipiRecolher=_ipm.aRecolher, ipiSaldoCredor=_ipm.saldoNovo;
     var res=ebitFinM-impM-icmsRecolher-ipiRecolher-irpjCsllM; // pró-labore e distribuição NÃO entram (apenas para constar)
-    var investAuto=isPresumido?investFromContainers(mk):0; // soma dos pagamentos de contêiner do mês
-    var investM=(+md.invest>0)?+md.invest:investAuto;      // manual sobrepõe o auto (capex — não entra no lucro)
+    var investAuto=investFromContainers(mk);          // pagamentos de contêiner do mês (auto)
+    var investItemsSum=_sumInvestItems(md);           // itens manuais fora do contêiner
+    var investM=investAuto+investItemsSum;            // total (capex — não entra no lucro)
     var gcmM=res-investM;               // Geração de Caixa Mensal = Lucro − Investimentos
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
@@ -6070,10 +6095,27 @@ function renderRes(){
         '</div>'+
       '</div>'+
       '<div style="margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-          '<div><div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos (abaixo da linha)</div>'+
-          '<div style="font-size:9px;color:var(--text3);">'+((md.invest>0)?'Valor manual':(investAuto>0?'Auto dos pagamentos de contêiner deste mês':'Estoque/contêiner, equip., obra, empréstimo · edite p/ sobrepor'))+'</div></div>'+
-          '<input type="text" inputmode="decimal" value="'+(md.invest?fmtN(md.invest):'')+'" placeholder="'+fmtN(investAuto)+'" style="width:120px;background:var(--bg3);border:1px solid #0ea5e944;border-radius:6px;padding:6px 8px;color:#0ea5e9;font-size:13px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'invest\',this)">'+
+        '<div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">🏭 Investimentos (abaixo da linha)</div>'+
+        '<div style="font-size:9px;color:var(--text3);margin-bottom:6px;">Estoque/contêiner, equip., obra, empréstimo · sai do caixa, não do lucro</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;">'+
+          '<span style="color:var(--text2);">📦 Pagamentos de contêiner (auto)</span>'+
+          '<span style="font-weight:700;color:#0ea5e9;">'+fmt(investAuto)+'</span>'+
+        '</div>'+
+        ((md.investItems&&md.investItems.length)?md.investItems.map(function(it,ii){
+          return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-top:1px solid var(--border);">'+
+            '<span style="flex:1;min-width:0;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(it.desc||'Investimento')+'</span>'+
+            '<span style="font-size:12px;font-weight:700;color:#0ea5e9;">'+fmt(it.valor||0)+'</span>'+
+            '<button onclick="delInvestItem(\''+mk+'\','+ii+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;" title="Remover">×</button>'+
+          '</div>';
+        }).join(''):'')+
+        '<div style="display:flex;gap:6px;margin-top:6px;">'+
+          '<input id="inv-desc-'+mk+'" type="text" placeholder="Descrição (ex.: máquina)" style="flex:1;min-width:0;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:6px 8px;color:var(--text);outline:none;">'+
+          '<input id="inv-val-'+mk+'" type="text" inputmode="decimal" placeholder="R$" style="width:90px;font-size:12px;background:var(--input);border:1px solid #0ea5e944;border-radius:5px;padding:6px 8px;color:#0ea5e9;font-weight:700;text-align:right;outline:none;" oninput="maskBRL(this)">'+
+          '<button onclick="addInvestItem(\''+mk+'\')" style="background:#0ea5e922;border:1px solid #0ea5e944;color:#0ea5e9;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;padding:5px 12px;">+</button>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;margin-top:4px;border-top:1px dashed var(--border);font-size:11px;">'+
+          '<span style="font-weight:700;color:var(--text2);">Total investido no mês</span>'+
+          '<span id="inv-tot-'+mk+'" style="font-size:13px;font-weight:800;color:#0ea5e9;">'+fmt(investM)+'</span>'+
         '</div>'+
       '</div>'+
     '</div>'+
