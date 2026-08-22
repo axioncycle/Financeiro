@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08d (salva e recalcula ao vivo, a cada tecla)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08e (zerar debito, PIS-IRPJ e fixas ao vivo, auto-investimento)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2471,6 +2471,29 @@ function refreshMesOut(mk){
   set('gcm-v-'+mk,fmt(d.gcm),d.gcm>=0?'#0ea5e9':'#ef4444');
   set('gcm-s-'+mk,'Lucro '+fmt(d.res)+' − Investimentos '+fmt(d.invest));
 }
+// Edição AO VIVO de despesa fixa/extra: recalcula o total e o resultado sem reconstruir
+function fixaLive(mk,fi,el){
+  maskBRL(el);
+  var md=getMDesp(mk);
+  if(!md.fixas||!md.fixas[fi]) return;
+  md.fixas[fi].valor=parseBRL(el.value)||0; setMDesp(mk,md);
+  if(_taxSaveT['f'+mk])clearTimeout(_taxSaveT['f'+mk]); _taxSaveT['f'+mk]=setTimeout(function(){saveDespDB(mk,md);},700);
+  var tot=0,k;for(k=0;k<md.fixas.length;k++){var f=md.fixas[k];if(f.nome!=='DAS'&&f.nome!=='das')tot+=parseFloat(f.valor)||0;}
+  var e1=document.getElementById('fix-toth-'+mk);if(e1)e1.textContent=fmt(tot);
+  var e2=document.getElementById('fix-tot-'+mk);if(e2)e2.textContent=fmt(tot);
+  refreshMesOut(mk);
+}
+function extraLive(mk,ei,el){
+  maskBRL(el);
+  var md=getMDesp(mk);
+  if(!md.extras||!md.extras[ei]) return;
+  md.extras[ei].valor=parseBRL(el.value)||0; setMDesp(mk,md);
+  if(_taxSaveT['e'+mk])clearTimeout(_taxSaveT['e'+mk]); _taxSaveT['e'+mk]=setTimeout(function(){saveDespDB(mk,md);},700);
+  var tot=0,k;for(k=0;k<md.extras.length;k++)tot+=parseFloat(md.extras[k].valor)||0;
+  var e1=document.getElementById('ext-toth-'+mk);if(e1)e1.textContent=fmt(tot);
+  var e2=document.getElementById('ext-tot-'+mk);if(e2)e2.textContent=fmt(tot);
+  refreshMesOut(mk);
+}
 
 function fmtDate(iso){if(!iso)return'';var d=(iso||'').slice(0,10);var p=d.split('-');if(p.length!==3)return d;return p[2]+'/'+p[1]+'/'+p[0];}function mkey(iso){return iso?iso.slice(0,7):'';}
 function mlabel(k){
@@ -2682,7 +2705,7 @@ function goTo(p){
   if(p==='vend'){fillOrigSelect();renderHist();}
   if(p==='est') renderEst();
   if(p==='res'){
-    syncDespesasFromDB(function(){renderRes();});
+    syncDespesasFromDB(function(){preloadContainerPayments(function(){renderRes();});});
   } else if(p==='custo') initCustoPage();
 }
 
@@ -3916,17 +3939,20 @@ function _monthRange(fromMk,toMkExcl){
 function monthFat(mk){var v=(typeof loadVendas==='function')?loadVendas():[],f=0,i;for(i=0;i<v.length;i++)if(mkey(v[i].date)===mk)f+=v[i].venda||0;return f;}
 // Apuração não-cumulativa com SALDO CREDOR acumulado dos meses anteriores.
 // debKey/credKey = campos em md; estPct = alíquota p/ estimar o débito.
+// Débito: usa a estimativa SÓ quando o campo nunca foi tocado (null/undefined).
+// Se o usuário digitou qualquer valor — inclusive 0 — usa esse valor (permite zerar).
+function _debVal(md,debKey,fat,estPct){return (md[debKey]==null)?fat*estPct:(+md[debKey]||0);}
 function _apurMonth(mk,debKey,credKey,estPct){
   var saldo=0,i;
   var months=(mk>=REGIME_PRESUMIDO_FROM)?_monthRange(REGIME_PRESUMIDO_FROM,mk):[];
   for(i=0;i<months.length;i++){
     var mm=months[i],mdm=getMDesp(mm),fm=monthFat(mm);
-    var dd=(+mdm[debKey]>0)?+mdm[debKey]:fm*estPct;
+    var dd=_debVal(mdm,debKey,fm,estPct);
     var cc=+mdm[credKey]||0;
     saldo=Math.max(0,saldo+cc-dd);
   }
   var md=getMDesp(mk),fat=monthFat(mk);
-  var deb=(+md[debKey]>0)?+md[debKey]:fat*estPct;
+  var deb=_debVal(md,debKey,fat,estPct);
   var cred=+md[credKey]||0;
   var liq=deb-cred-saldo;
   return {deb:deb,cred:cred,saldoAntes:saldo,aRecolher:Math.max(0,liq),saldoNovo:Math.max(0,-liq)};
@@ -3954,6 +3980,21 @@ function calcIrpjCsll(fat){
   var adic=basePres>IRPJ_ADIC_LIMITE?(basePres-IRPJ_ADIC_LIMITE)*IRPJ_ADIC:0;
   var csll=fat*CSLL_PRESUNC*CSLL_ALIQ;
   return {irpj:irpj,csll:csll,adic:adic,total:irpj+adic+csll};
+}
+// Carrega os pagamentos de TODOS os contêineres do banco para o cache local,
+// para o Investimento automático (GCM) funcionar sem abrir a aba Custo de cada um.
+function preloadContainerPayments(cb){
+  if(typeof dbGet!=='function'){if(cb)cb();return;}
+  dbGet('container_pagamentos','order=data').then(function(rows){
+    try{
+      if(Array.isArray(rows)){
+        var byC={},i,r;
+        for(i=0;i<rows.length;i++){r=rows[i];var c=r.container_id;if(!byC[c])byC[c]=[];byC[c].push({data:r.data||'',valor:+r.valor||0});}
+        for(var cid in byC){var cur=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});cur.pagamentos=byC[cid];ss('ax_custo_'+cid,cur);}
+      }
+    }catch(e){}
+    if(cb)cb();
+  }).catch(function(){if(cb)cb();});
 }
 // Soma dos pagamentos de contêiner com data no mês (a partir do Presumido) — vira Investimento p/ GCM
 function investFromContainers(mk){
@@ -5791,7 +5832,7 @@ function renderRes(){
       return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px;">'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
           '<input type="text" value="'+esc(f.nome)+'" placeholder="Descrição" style="flex:1;min-width:0;font-size:12px;font-weight:600;background:transparent;border:none;color:var(--text);outline:none;padding:2px 0;" onchange="updFixaNome(\''+mk+'\','+fi+',this.value)">'+
-          '<input type="text" inputmode="decimal" value="'+(fmtN(f.valor||0))+'" placeholder="0,00" style="width:84px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);font-size:12px;text-align:right;outline:none;flex-shrink:0;" oninput="maskBRL(this)" onchange="updFixa(\''+mk+'\','+fi+',this.value)">'+
+          '<input type="text" inputmode="decimal" value="'+(fmtN(f.valor||0))+'" placeholder="0,00" style="width:84px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);font-size:12px;text-align:right;outline:none;flex-shrink:0;" oninput="fixaLive(\''+mk+'\','+fi+',this)">'+
           '<button onclick="delFixa(\''+mk+'\','+fi+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;" title="Remover">×</button>'+
         '</div>'+
         (mk>=RES_PAG_FROM?'<div style="display:flex;gap:6px;margin-top:5px;">'+
@@ -5823,7 +5864,7 @@ function renderRes(){
     var extraRows=md.extras.map(function(e,ei){return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px;">'+
       '<div style="display:flex;align-items:center;gap:6px;">'+
         '<input type="text" value="'+esc(e.nome)+'" placeholder="Descrição" style="flex:1;min-width:0;font-size:12px;font-weight:600;background:transparent;border:none;color:var(--text);outline:none;padding:2px 0;" onchange="updExtraNome(\''+mk+'\','+ei+',this.value)">'+
-        '<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'" placeholder="0,00" style="width:84px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);font-size:12px;text-align:right;outline:none;flex-shrink:0;" oninput="maskBRL(this)" onchange="updExtra(\''+mk+'\','+ei+',this.value)">'+
+        '<input type="text" inputmode="decimal" value="'+(fmtN(parseFloat(e.valor)||0))+'" placeholder="0,00" style="width:84px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);font-size:12px;text-align:right;outline:none;flex-shrink:0;" oninput="extraLive(\''+mk+'\','+ei+',this)">'+
         '<button onclick="delExtra(\''+mk+'\','+ei+')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;" title="Remover">×</button>'+
       '</div>'+
       (mk>=RES_PAG_FROM?'<div style="display:flex;gap:6px;margin-top:5px;">'+
@@ -5859,17 +5900,17 @@ function renderRes(){
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🔁 Despesas Fixas</span>'+
-        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totF)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span id="fix-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totF)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div class="rsec" style="display:none;margin-top:8px;">'+
       fixaRows+
-      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Fixas</span><span id="fix-tot-'+mk+'" style="color:#ef4444;">'+fmt(totF)+'</span></div>'+
       '</div>'+
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f97316;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
         '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;flex:1;">🧾 Despesas Extras</span>'+
-        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totE)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><span id="ext-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totE)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div class="rsec" style="display:none;margin-top:8px;">'+
       extraRows+
@@ -5879,7 +5920,7 @@ function renderRes(){
         '<select id="new-extra-meses-'+mk+'" class="fi" style="width:70px;font-size:11px;flex-shrink:0;" title="Repetir por quantos meses"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option></select>'+
         '<button onclick="addExtraB(\''+mk+'\')" style="background:#1E90FF22;border:1px solid #1E90FF44;color:#1E90FF;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;padding:5px 10px;flex-shrink:0;">+</button>'+
       '</div>'+
-      (totE?'<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span style="color:#ef4444;">'+fmt(totE)+'</span></div>':'')+
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;font-weight:700;"><span>Total Extras</span><span id="ext-tot-'+mk+'" style="color:#ef4444;">'+fmt(totE)+'</span></div>'+
       '</div>'+
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
@@ -5926,8 +5967,8 @@ function renderRes(){
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− ICMS (apuração do mês)</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
-          '<span style="font-size:10px;color:var(--text2);">Débito (saídas)'+(md.icms_deb>0?' · real':' · est. '+(ICMS_VENDA_PCT*100).toFixed(1)+'%')+'</span>'+
-          '<input type="text" inputmode="decimal" value="'+(md.icms_deb?fmtN(md.icms_deb):'')+'" placeholder="'+fmtN(icmsDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'icms_deb\',this)">'+
+          '<span style="font-size:10px;color:var(--text2);">Débito (saídas)'+(md.icms_deb!=null?' · manual':' · est. '+(ICMS_VENDA_PCT*100).toFixed(1)+'%')+'</span>'+
+          '<input type="text" inputmode="decimal" value="'+(md.icms_deb!=null?fmtN(md.icms_deb):'')+'" placeholder="'+fmtN(icmsDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'icms_deb\',this)">'+
         '</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">(−) Crédito (importação/entradas)</span>'+
@@ -5943,8 +5984,8 @@ function renderRes(){
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− IPI (apuração do mês)</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
-          '<span style="font-size:10px;color:var(--text2);">Débito (venda)'+(md.ipi_deb>0?' · real':' · est. '+(IPI_PCT*100).toFixed(2).replace(/\\.?0+$/,'')+'%')+'</span>'+
-          '<input type="text" inputmode="decimal" value="'+(md.ipi_deb?fmtN(md.ipi_deb):'')+'" placeholder="'+fmtN(ipiDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'ipi_deb\',this)">'+
+          '<span style="font-size:10px;color:var(--text2);">Débito (venda)'+(md.ipi_deb!=null?' · manual':' · est. '+(IPI_PCT*100).toFixed(2).replace(/\\.?0+$/,'')+'%')+'</span>'+
+          '<input type="text" inputmode="decimal" value="'+(md.ipi_deb!=null?fmtN(md.ipi_deb):'')+'" placeholder="'+fmtN(ipiDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'ipi_deb\',this)">'+
         '</div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">(−) Crédito (IPI da importação)</span>'+
