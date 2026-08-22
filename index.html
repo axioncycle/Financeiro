@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08f (investimento auto+itens manuais, impostos nao somem ao atualizar)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08g (persistencia local real - impostos e investimentos sobrevivem ao recarregar)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -1714,7 +1714,9 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
 var SUPA_URL="https://qbnnxdqmxiwdgzciqhvx.supabase.co";
 var SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibm54ZHFteGl3ZGd6Y2lxaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTc3MDQsImV4cCI6MjA5Mzc3MzcwNH0.o175qai8T3sJA4ISbLL3uaeqj8nTByADCcqVjwpoFGk";
-var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_DESP={},DB_READY=false;
+var DB_VENDAS=[],DB_CONTAINERS=[],DB_LOCAIS=["Brasilia","Full","Alphaville","Ribeirao Preto"],DB_READY=false;
+// DB_DESP começa do backup local (localStorage) — assim impostos/investimentos sobrevivem ao recarregar.
+var DB_DESP=(function(){try{var v=localStorage.getItem('ax_desp');return v?JSON.parse(v):{};}catch(e){return {};}})();
 var mlTaxaMode='pct';
 var _margProdMode='mc';
 function setMlTaxaMode(mode){
@@ -2252,10 +2254,10 @@ function saveContainer(cid){
     }
   }
 }
-function loadDesp(){return DB_DESP;}
-function saveDesp(v){
-  // data saved via saveDespDB
-}
+// Persistência LOCAL das despesas (backup confiável, independente do Supabase).
+// Garante que impostos/investimentos digitados sobrevivem a recarregar o app.
+function loadDesp(){try{var v=localStorage.getItem('ax_desp');return v?JSON.parse(v):{};}catch(e){return {};}}
+function saveDesp(v){try{localStorage.setItem('ax_desp',JSON.stringify(v||DB_DESP||{}));}catch(e){}}
 function loadSkuOver(){return sg('ax_v6_sover',{});}
 function saveSkuOver(v){
   dbUpsert('configuracoes',{chave:'ax_v6_sover',valor:JSON.stringify(v)});
@@ -2571,8 +2573,8 @@ function refreshApp(){
     renderDash();
     if(curPage==='vend') renderHist();
     if(curPage==='est') renderEst();
-    if(curPage==='res') renderRes();
-    if(curPage==='custo') initCustoPage();
+    if(curPage==='res'){ preloadContainerPayments(function(){renderRes();}); }
+    else if(curPage==='custo') initCustoPage();
     toast('Dados atualizados!');
     setTimeout(function(){
       if(btn){btn.style.color='var(--text3)';btn.style.transform='';}
@@ -3999,11 +4001,11 @@ function preloadContainerPayments(cb){
   if(typeof dbGet!=='function'){if(cb)cb();return;}
   dbGet('container_pagamentos','order=data').then(function(rows){
     try{
-      if(Array.isArray(rows)){
-        var byC={},i,r;
-        for(i=0;i<rows.length;i++){r=rows[i];var c=r.container_id;if(!byC[c])byC[c]=[];byC[c].push({data:r.data||'',valor:+r.valor||0});}
-        for(var cid in byC){var cur=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});cur.pagamentos=byC[cid];ss('ax_custo_'+cid,cur);}
-      }
+      var byC={},i,r;
+      if(Array.isArray(rows)) for(i=0;i<rows.length;i++){r=rows[i];var c=r.container_id;if(!byC[c])byC[c]=[];byC[c].push({data:r.data||'',valor:+r.valor||0});}
+      // Atualiza o cache de TODOS os contêineres — inclusive zerando os que ficaram sem pagamento (apagados)
+      var cs=(typeof loadContainers==='function')?loadContainers():[];
+      for(i=0;i<cs.length;i++){var cid=cs[i].id;var cur=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});cur.pagamentos=byC[cid]||[];ss('ax_custo_'+cid,cur);}
     }catch(e){}
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
@@ -5552,6 +5554,7 @@ function syncDespesasFromDB(cb){
     }
     // meses que só existem localmente (nunca gravados no banco) — não some com eles
     for(mk2 in localAll){ if(!d[mk2]&&!DB_DESP[mk2]) DB_DESP[mk2]=localAll[mk2]; }
+    saveDesp(DB_DESP);   // persiste o estado mesclado no backup local
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
