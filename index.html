@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08g (persistencia local real - impostos e investimentos sobrevivem ao recarregar)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08h (zerar PIS-COFINS e IRPJ vale 0 e persiste)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2453,6 +2453,7 @@ function taxLive(mk,field,el){
   maskBRL(el);
   var md=getMDesp(mk);
   md[field]=parseBRL(el.value)||0;
+  md['_t_'+field]=true;                              // marca como editado (permite zerar)
   setMDesp(mk,md);                                   // grava local na hora
   if(_taxSaveT[mk]) clearTimeout(_taxSaveT[mk]);
   _taxSaveT[mk]=setTimeout(function(){saveDespDB(mk,md);},700); // persiste no banco (debounce)
@@ -3973,18 +3974,20 @@ function _apurMonth(mk,debKey,credKey,estPct){
 }
 function icmsMonth(mk){return _apurMonth(mk,'icms_deb','icms_cred',ICMS_VENDA_PCT);}
 function ipiMonth(mk){return _apurMonth(mk,'ipi_deb','ipi_cred',IPI_PCT);}
+// Valor manual (inclui 0 se o usuário editou) ou a estimativa se nunca tocou.
+function _manualOrEst(md,key,tk,est){ if(md[tk])return +md[key]||0; if(+md[key]>0)return +md[key]; return est; }
 // Imposto TOTAL do mês (para dashboards/projeções): DAS (pré-ago) ou,
 // no Presumido, PIS/COFINS + ICMS a recolher + IRPJ/CSLL — honrando overrides.
 function mesImpTotal(mk,fat,md,mvImpSum){
   md=md||{};
   if(mk>=REGIME_PRESUMIDO_FROM){
-    var pc=(md.das>0)?md.das:(fat||0)*PISCOFINS;
+    var pc=_manualOrEst(md,'das','_t_das',(fat||0)*PISCOFINS);
     var icms=icmsMonth(mk).aRecolher;   // saldo credor acumulado já considerado
     var ipi=ipiMonth(mk).aRecolher;
-    var ic=(md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat||0).total;
+    var ic=_manualOrEst(md,'irpjcsll','_t_irpjcsll',calcIrpjCsll(fat||0).total);
     return pc+icms+ipi+ic;
   }
-  return (md.das>0)?md.das:(mvImpSum||0);
+  return _manualOrEst(md,'das','_t_das',(mvImpSum||0));
 }
 // IRPJ + CSLL (+ adicional) sobre o faturamento do mês
 function calcIrpjCsll(fat){
@@ -5834,10 +5837,10 @@ function renderRes(){
     var impEstimado=0;
     if(isPresumido) impEstimado=fat*PISCOFINS;
     else for(j=0;j<mv.length;j++) impEstimado+=mv[j].imp||0;
-    var impM=md.das>0?md.das:impEstimado;
+    var impM=_manualOrEst(md,'das','_t_das',impEstimado);
     // IRPJ/CSLL sobre o faturamento (Lucro Presumido, a partir de ago/2026)
     var irpjCsllAuto=isPresumido?calcIrpjCsll(fat).total:0;
-    var irpjCsllM=isPresumido?((md.irpjcsll>0)?md.irpjcsll:irpjCsllAuto):0;
+    var irpjCsllM=isPresumido?_manualOrEst(md,'irpjcsll','_t_irpjcsll',irpjCsllAuto):0;
     // ICMS: apuração mensal (débito − crédito). Só o "a recolher" debita o resultado.
     var _icm=isPresumido?icmsMonth(mk):{deb:0,cred:0,saldoAntes:0,aRecolher:0,saldoNovo:0};
     var icmsDebEst=isPresumido?fat*ICMS_VENDA_PCT:0;
@@ -6029,10 +6032,10 @@ function renderRes(){
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
           '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− '+(isPresumido?'PIS/COFINS':'DAS (Imposto Real)')+'</div>'+
-          '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md.das>0?'Valor real':'Estimado: '+fmt(impEstimado))+'</div>'+
+          '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md._t_das?'Valor manual':'Estimado: '+fmt(impEstimado))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
-          '<input type="text" inputmode="decimal" value="'+(md.das?fmtN(md.das):'')+'" placeholder="'+fmtN(impEstimado)+'"'+
+          '<input type="text" inputmode="decimal" value="'+((md._t_das||md.das>0)?fmtN(md.das||0):'')+'" placeholder="'+fmtN(impEstimado)+'"'+
           ' style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
           ' oninput="taxLive(\''+mk+'\',\'das\',this)">'+
         '</div>'+
@@ -6040,10 +6043,10 @@ function renderRes(){
       (isPresumido?'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
           '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− IRPJ + CSLL</div>'+
-          '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md.irpjcsll>0?'Valor real':'Estimado (1,2% + 1,08%'+(calcIrpjCsll(fat).adic>0?' + adic.':'')+'): '+fmt(irpjCsllAuto))+'</div>'+
+          '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md._t_irpjcsll?'Valor manual':'Estimado (1,2% + 1,08%'+(calcIrpjCsll(fat).adic>0?' + adic.':'')+'): '+fmt(irpjCsllAuto))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
-          '<input type="text" inputmode="decimal" value="'+(md.irpjcsll?fmtN(md.irpjcsll):'')+'" placeholder="'+fmtN(irpjCsllAuto)+'"'+
+          '<input type="text" inputmode="decimal" value="'+((md._t_irpjcsll||md.irpjcsll>0)?fmtN(md.irpjcsll||0):'')+'" placeholder="'+fmtN(irpjCsllAuto)+'"'+
           ' style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:6px 8px;color:#ef4444;font-size:13px;font-weight:700;text-align:right;outline:none;"'+
           ' oninput="taxLive(\''+mk+'\',\'irpjcsll\',this)">'+
         '</div>'+
@@ -6328,8 +6331,8 @@ function exportMesXls(mk){
   (md.extras||[]).forEach(function(e){totE+=parseFloat(e.valor)||0;});
   (md.financeiro||[]).forEach(function(f){totFin+=parseFloat(f.valor)||0;});
   var _pres=(mk>=REGIME_PRESUMIDO_FROM);
-  var das=md.das>0?md.das:(_pres?fat*PISCOFINS:impE);
-  var irpjCsll=_pres?((md.irpjcsll>0)?md.irpjcsll:calcIrpjCsll(fat).total):0;
+  var das=_manualOrEst(md,'das','_t_das',(_pres?fat*PISCOFINS:impE));
+  var irpjCsll=_pres?_manualOrEst(md,'irpjcsll','_t_irpjcsll',calcIrpjCsll(fat).total):0;
   var _icX=_pres?icmsMonth(mk):{deb:0,cred:0,aRecolher:0};
   var _ipX=_pres?ipiMonth(mk):{deb:0,cred:0,aRecolher:0};
   var icmsDebX=_icX.deb, icmsCredX=_icX.cred, icmsRecX=_icX.aRecolher;
