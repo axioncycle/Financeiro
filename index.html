@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08h (zerar PIS-COFINS e IRPJ vale 0 e persiste)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08i (tocar no titulo do imposto preenche com o estimado)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2458,6 +2458,15 @@ function taxLive(mk,field,el){
   if(_taxSaveT[mk]) clearTimeout(_taxSaveT[mk]);
   _taxSaveT[mk]=setTimeout(function(){saveDespDB(mk,md);},700); // persiste no banco (debounce)
   refreshMesOut(mk);                                 // atualiza a tela ao vivo
+}
+// Preenche o campo do imposto com o valor estimado (ao tocar no título)
+function useEst(mk,field,est){
+  var md=getMDesp(mk);
+  md[field]=Math.round((+est||0)*100)/100;
+  md['_t_'+field]=true;
+  setMDesp(mk,md); saveDespDB(mk,md);
+  renderResForce();
+  if(typeof toast==='function') toast('Preenchido com o estimado ✓');
 }
 function refreshMesOut(mk){
   var set=function(id,txt,col){var e=document.getElementById(id);if(e){e.textContent=txt;if(col)e.style.color=col;}};
@@ -5996,7 +6005,7 @@ function renderRes(){
       '<div><div style="font-size:9px;color:var(--text3);font-weight:600;">EBIT (c/ Financeiro)</div><div style="font-size:14px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';">'+fmt(ebitFinM)+'</div></div>'+
       '</div>'+
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
-        '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− ICMS (apuração do mês)</div>'+
+        '<div onclick="useEst(\''+mk+'\',\'icms_deb\','+icmsDebEst+')" style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;cursor:pointer;">− ICMS (apuração do mês) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· toque p/ estimado ↩</span></div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">Débito (saídas)'+(md.icms_deb!=null?' · manual':' · est. '+(ICMS_VENDA_PCT*100).toFixed(1)+'%')+'</span>'+
           '<input type="text" inputmode="decimal" value="'+(md.icms_deb!=null?fmtN(md.icms_deb):'')+'" placeholder="'+fmtN(icmsDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'icms_deb\',this)">'+
@@ -6013,7 +6022,7 @@ function renderRes(){
         (icmsSaldoCredor>0?'<div style="font-size:9px;color:var(--text3);margin-top:3px;">Carregado automaticamente para o próximo mês.</div>':'')+
       '</div>':'')+
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
-        '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− IPI (apuração do mês)</div>'+
+        '<div onclick="useEst(\''+mk+'\',\'ipi_deb\','+ipiDebEst+')" style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;cursor:pointer;">− IPI (apuração do mês) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· toque p/ estimado ↩</span></div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
           '<span style="font-size:10px;color:var(--text2);">Débito (venda)'+(md.ipi_deb!=null?' · manual':' · est. '+(IPI_PCT*100).toFixed(2).replace(/\\.?0+$/,'')+'%')+'</span>'+
           '<input type="text" inputmode="decimal" value="'+(md.ipi_deb!=null?fmtN(md.ipi_deb):'')+'" placeholder="'+fmtN(ipiDebEst)+'" style="width:120px;background:var(--bg3);border:1px solid #ef444444;border-radius:6px;padding:5px 8px;color:#ef4444;font-size:12px;font-weight:700;text-align:right;outline:none;" oninput="taxLive(\''+mk+'\',\'ipi_deb\',this)">'+
@@ -6031,7 +6040,7 @@ function renderRes(){
       '</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
-          '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− '+(isPresumido?'PIS/COFINS':'DAS (Imposto Real)')+'</div>'+
+          '<div onclick="useEst(\''+mk+'\',\'das\','+impEstimado+')" style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">− '+(isPresumido?'PIS/COFINS':'DAS (Imposto Real)')+' <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· toque p/ estimado ↩</span></div>'+
           '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md._t_das?'Valor manual':'Estimado: '+fmt(impEstimado))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
@@ -6042,7 +6051,7 @@ function renderRes(){
       '</div>'+
       (isPresumido?'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div>'+
-          '<div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;">− IRPJ + CSLL</div>'+
+          '<div onclick="useEst(\''+mk+'\',\'irpjcsll\','+irpjCsllAuto+')" style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;cursor:pointer;">− IRPJ + CSLL <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· toque p/ estimado ↩</span></div>'+
           '<div style="font-size:9px;color:var(--text3);margin-top:1px;">'+(md._t_irpjcsll?'Valor manual':'Estimado (1,2% + 1,08%'+(calcIrpjCsll(fat).adic>0?' + adic.':'')+'): '+fmt(irpjCsllAuto))+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;">'+
