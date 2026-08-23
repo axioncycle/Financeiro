@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08i (tocar no titulo do imposto preenche com o estimado)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08j (GCM debita pro-labore; nova linha Sobra apos retiradas)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2481,7 +2481,9 @@ function refreshMesOut(mk){
   var d=mesDRE(mk);
   set('res-liq-'+mk,fmt(d.res),d.res>=0?'#22c55e':'#ef4444');
   set('gcm-v-'+mk,fmt(d.gcm),d.gcm>=0?'#0ea5e9':'#ef4444');
-  set('gcm-s-'+mk,'Lucro '+fmt(d.res)+' − Investimentos '+fmt(d.invest));
+  set('gcm-s-'+mk,'Lucro '+fmt(d.res)+' − Invest. '+fmt(d.invest)+' − Pró-labore '+fmt(d.prolab));
+  set('sob-v-'+mk,fmt(d.sobra),d.sobra>=0?'#a78bfa':'#ef4444');
+  set('sob-s-'+mk,'GCM '+fmt(d.gcm)+' − Distribuição '+fmt(d.distrib));
 }
 // Edição AO VIVO de despesa fixa/extra: recalcula o total e o resultado sem reconstruir
 function fixaLive(mk,fi,el){
@@ -4053,8 +4055,11 @@ function mesDRE(mk){
   var imp=mesImpTotal(mk,fat,md,impE);
   var res=ebitda+totFin-imp;
   var invest=investFromContainers(mk)+_sumInvestItems(md); // auto (contêineres) + itens manuais
-  var gcm=res-invest;
-  return {mk:mk,fat:fat,ebitda:ebitda,res:res,imp:imp,invest:invest,gcm:gcm,hasData:(mv.length>0)};
+  var prolab=+md.prolabore||0;          // pró-labore = saída de caixa operacional (debita o GCM)
+  var distrib=+md.distribuicao||0;      // distribuição = retirada do sócio (após o GCM)
+  var gcm=res-invest-prolab;            // geração de caixa (antes das retiradas)
+  var sobra=gcm-distrib;                // sobra em caixa após retiradas
+  return {mk:mk,fat:fat,ebitda:ebitda,res:res,imp:imp,invest:invest,prolab:prolab,distrib:distrib,gcm:gcm,sobra:sobra,hasData:(mv.length>0)};
 }
 // Alíquota interna modal aproximada por UF (%) — editável conforme legislação
 var ICMS_INTERNA={AC:19,AL:19,AP:18,AM:20,BA:20.5,CE:20,DF:20,ES:17,GO:19,MA:22,MT:17,MS:17,MG:18,PA:19,PB:20,PR:19.5,PE:20.5,PI:21,RJ:20,RN:18,RS:17,RO:19.5,RR:20,SC:17,SP:18,SE:19,TO:20};
@@ -5864,7 +5869,10 @@ function renderRes(){
     var investAuto=investFromContainers(mk);          // pagamentos de contêiner do mês (auto)
     var investItemsSum=_sumInvestItems(md);           // itens manuais fora do contêiner
     var investM=investAuto+investItemsSum;            // total (capex — não entra no lucro)
-    var gcmM=res-investM;               // Geração de Caixa Mensal = Lucro − Investimentos
+    var prolabM=+md.prolabore||0;                     // pró-labore debita o GCM
+    var distribM=+md.distribuicao||0;                 // distribuição = retirada (após GCM)
+    var gcmM=res-investM-prolabM;       // Geração de Caixa = Lucro − Investimentos − Pró-labore
+    var sobraM=gcmM-distribM;           // Sobra em caixa após retiradas
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
@@ -6138,8 +6146,13 @@ function renderRes(){
       '<div id="res-liq-'+mk+'" style="font-size:22px;font-weight:800;color:'+rc+';margin-top:2px;">'+fmt(res)+'</div>'+
       '<div style="margin-top:8px;padding:8px 10px;background:'+(gcmM>=0?'#0ea5e914':'#ef444414')+';border:1px solid '+(gcmM>=0?'#0ea5e944':'#ef444444')+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'+
         '<div><div style="font-size:9px;font-weight:700;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';text-transform:uppercase;letter-spacing:.5px;">💧 GCM · Geração de Caixa</div>'+
-        '<div id="gcm-s-'+mk+'" style="font-size:8.5px;color:var(--text3);">Lucro '+fmt(res)+' − Investimentos '+fmt(investM)+'</div></div>'+
+        '<div id="gcm-s-'+mk+'" style="font-size:8.5px;color:var(--text3);">Lucro '+fmt(res)+' − Invest. '+fmt(investM)+' − Pró-labore '+fmt(prolabM)+'</div></div>'+
         '<div id="gcm-v-'+mk+'" style="font-size:18px;font-weight:800;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';">'+fmt(gcmM)+'</div>'+
+      '</div>'+
+      '<div style="margin-top:6px;padding:7px 10px;background:'+(sobraM>=0?'#a78bfa14':'#ef444414')+';border:1px solid '+(sobraM>=0?'#a78bfa44':'#ef444444')+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'+
+        '<div><div style="font-size:9px;font-weight:700;color:'+(sobraM>=0?'#a78bfa':'#ef4444')+';text-transform:uppercase;letter-spacing:.5px;">💰 Sobra após retiradas</div>'+
+        '<div id="sob-s-'+mk+'" style="font-size:8.5px;color:var(--text3);">GCM '+fmt(gcmM)+' − Distribuição '+fmt(distribM)+'</div></div>'+
+        '<div id="sob-v-'+mk+'" style="font-size:16px;font-weight:800;color:'+(sobraM>=0?'#a78bfa':'#ef4444')+';">'+fmt(sobraM)+'</div>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">'+
         '<div style="font-size:11px;color:var(--text3);">Margem: <strong style="color:'+rc+';">'+mg.toFixed(1)+'%</strong></div>'+
