@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08m (indicadores-chave fixos no topo: Lucro Bruto, Margem Contrib, EBITDA, EBIT)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08n (ajuda ? em cada indicador)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2458,6 +2458,29 @@ function taxLive(mk,field,el){
   if(_taxSaveT[mk]) clearTimeout(_taxSaveT[mk]);
   _taxSaveT[mk]=setTimeout(function(){saveDespDB(mk,md);},700); // persiste no banco (debounce)
   refreshMesOut(mk);                                 // atualiza a tela ao vivo
+}
+// Explicação de cada indicador (toque no "?")
+var KPI_HELP={
+  lucrobruto:'📗 Lucro Bruto = Receita − CMV (custo do produto). Quanto sobra depois de pagar só a mercadoria.',
+  margcontrib:'📘 Margem de Contribuição = Lucro Bruto − custos variáveis (taxa cartão/ML, frete, comissão, extras). O que sobra pra bancar a estrutura fixa.',
+  ebitda:'📙 EBITDA = Margem de Contribuição − despesas fixas. É o lucro da operação (antes de juros, impostos e investimentos). Mostra se o negócio se paga sozinho.',
+  ebit:'📓 EBIT = EBITDA ± resultado financeiro (juros e rendimentos). Como o EBITDA, mas já com o financeiro.',
+  lucroliq:'💵 Lucro Líquido = EBIT − impostos. O lucro de verdade no papel, depois do governo.',
+  gcm:'💧 GCM (Geração de Caixa) = Lucro Líquido − investimentos − pró-labore. O caixa que o negócio gerou de fato no mês (pode ser negativo mesmo com lucro).',
+  sobra:'💰 Sobra em caixa = GCM − distribuição de lucros. Quanto realmente ficou no banco depois das suas retiradas.'
+};
+function kpiHelp(k){
+  var txt=KPI_HELP[k]||''; if(!txt)return;
+  var ov=document.getElementById('kpi-help-ov');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='kpi-help-ov';
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:26px;';
+    ov.onclick=function(){ov.style.display='none';};
+    ov.innerHTML='<div id="kpi-help-box" style="max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px 16px;color:var(--text);font-size:14px;line-height:1.55;box-shadow:0 14px 44px rgba(0,0,0,.5);"></div><div style="position:absolute;bottom:26px;left:0;right:0;text-align:center;color:rgba(255,255,255,.6);font-size:11px;">toque para fechar</div>';
+    document.body.appendChild(ov);
+  }
+  document.getElementById('kpi-help-box').textContent=txt;
+  ov.style.display='flex';
 }
 // Preenche o campo do imposto com o valor estimado (ao tocar no título)
 function useEst(mk,field,est){
@@ -6011,10 +6034,10 @@ function renderRes(){
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:10px;padding:12px;margin-bottom:10px;">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'+
-      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Lucro Bruto</div><div style="font-size:15px;font-weight:800;color:'+(lucroBrutoM>=0?'#22c55e':'#ef4444')+';margin-top:1px;">'+fmt(lucroBrutoM)+'</div><div style="font-size:7.5px;color:var(--text3);">Receita − CMV</div></div>'+
-      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Margem Contrib.</div><div style="font-size:15px;font-weight:800;color:'+(margContribM>=0?'#14b8a6':'#ef4444')+';margin-top:1px;">'+fmt(margContribM)+'</div><div style="font-size:7.5px;color:var(--text3);">− taxas, frete, extras</div></div>'+
-      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA</div><div style="font-size:15px;font-weight:800;color:#f59e0b;margin-top:1px;">'+fmt(ebitdaM)+'</div><div style="font-size:7.5px;color:var(--text3);">− despesas fixas</div></div>'+
-      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financ.</div><div style="font-size:15px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:1px;">'+fmt(ebitFinM)+'</div><div style="font-size:7.5px;color:var(--text3);">± resultado financeiro</div></div>'+
+      '<div onclick="kpiHelp(\'lucrobruto\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Lucro Bruto <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(lucroBrutoM>=0?'#22c55e':'#ef4444')+';margin-top:1px;">'+fmt(lucroBrutoM)+'</div><div style="font-size:7.5px;color:var(--text3);">Receita − CMV</div></div>'+
+      '<div onclick="kpiHelp(\'margcontrib\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Margem Contrib. <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(margContribM>=0?'#14b8a6':'#ef4444')+';margin-top:1px;">'+fmt(margContribM)+'</div><div style="font-size:7.5px;color:var(--text3);">− taxas, frete, extras</div></div>'+
+      '<div onclick="kpiHelp(\'ebitda\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:#f59e0b;margin-top:1px;">'+fmt(ebitdaM)+'</div><div style="font-size:7.5px;color:var(--text3);">− despesas fixas</div></div>'+
+      '<div onclick="kpiHelp(\'ebit\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financ. <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:1px;">'+fmt(ebitFinM)+'</div><div style="font-size:7.5px;color:var(--text3);">± resultado financeiro</div></div>'+
       '</div>'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Impostos do mês</span>'+
@@ -6162,7 +6185,7 @@ function renderRes(){
 '<div style="margin-top:6px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">'+
         '<div style="padding:13px 16px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
           '<div style="min-width:0;">'+
-            '<div style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;">Lucro Líquido do mês</div>'+
+            '<div style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;">Lucro Líquido do mês <span onclick="kpiHelp(\'lucroliq\')" style="color:#1E90FF;cursor:pointer;">?</span></div>'+
             '<div id="res-liq-'+mk+'" style="font-size:25px;font-weight:800;color:'+rc+';line-height:1.05;margin-top:3px;white-space:nowrap;">'+fmt(res)+'</div>'+
           '</div>'+
           '<div style="text-align:right;flex-shrink:0;">'+
@@ -6176,12 +6199,12 @@ function renderRes(){
         '<div style="height:3px;background:var(--bg3);"><div style="height:100%;width:'+Math.min(100,Math.max(0,mg/META_MARG_LIQ*100)).toFixed(1)+'%;background:'+rc+';transition:width .4s;"></div></div>'+
         '<div style="display:flex;border-top:1px solid var(--border);">'+
           '<div style="flex:1;padding:11px 14px;border-right:1px solid var(--border);">'+
-            '<div style="font-size:8.5px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.6px;">💧 GCM · Geração de caixa</div>'+
+            '<div style="font-size:8.5px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.6px;">💧 GCM · Geração de caixa <span onclick="kpiHelp(\'gcm\')" style="cursor:pointer;">?</span></div>'+
             '<div id="gcm-v-'+mk+'" style="font-size:18px;font-weight:800;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';margin-top:3px;white-space:nowrap;">'+fmt(gcmM)+'</div>'+
             '<div style="font-size:8px;color:var(--text3);margin-top:1px;">− invest. − pró-labore</div>'+
           '</div>'+
           '<div style="flex:1;padding:11px 14px;">'+
-            '<div style="font-size:8.5px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;">💰 Sobra em caixa</div>'+
+            '<div style="font-size:8.5px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;">💰 Sobra em caixa <span onclick="kpiHelp(\'sobra\')" style="cursor:pointer;">?</span></div>'+
             '<div id="sob-v-'+mk+'" style="font-size:18px;font-weight:800;color:'+(sobraM>=0?'#a78bfa':'#ef4444')+';margin-top:3px;white-space:nowrap;">'+fmt(sobraM)+'</div>'+
             '<div style="font-size:8px;color:var(--text3);margin-top:1px;">após retiradas</div>'+
           '</div>'+
