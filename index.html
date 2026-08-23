@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08k (visual do resultado mensal melhorado)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08l (Impostos, Pro-labore, Distribuicao e Investimentos recolhiveis)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -5873,6 +5873,7 @@ function renderRes(){
     var distribM=+md.distribuicao||0;                 // distribuição = retirada (após GCM)
     var gcmM=res-investM-prolabM;       // Geração de Caixa = Lucro − Investimentos − Pró-labore
     var sobraM=gcmM-distribM;           // Sobra em caixa após retiradas
+    var impMesTot=impM+(isPresumido?(icmsRecolher+ipiRecolher+irpjCsllM):0); // total de impostos do mês
     var totD=totF+totE-totFin;
     var mg=fat?(res/fat*100):0,rc=res>=0?'#22c55e':'#ef4444';
     var mvRows=mv.map(function(v){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span>'+esc(v.cliente)+' - '+esc(v.produto.length>16?v.produto.slice(0,16)+'...':v.produto)+'</span><span style="font-weight:700;color:'+(v.lucroSI>=0?'#22c55e':'#ef4444')+';">'+fmt(v.lucroSI)+'</span></div>';}).join('');
@@ -6012,7 +6013,11 @@ function renderRes(){
       '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA</div><div style="font-size:16px;font-weight:800;color:#f59e0b;margin-top:2px;">'+fmt(ebitdaM)+'</div></div>'+
       '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financeiro</div><div style="font-size:16px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:2px;">'+fmt(ebitFinM)+'</div></div>'+
       '</div>'+
-      '<div style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Impostos do mês</div>'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+        '<span style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Impostos do mês</span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(impMesTot)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+      '</div>'+
+      '<div class="rsec" style="display:none;margin-top:8px;">'+
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
         '<div onclick="useEst(\''+mk+'\',\'icms_deb\','+icmsDebEst+')" style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;cursor:pointer;">− ICMS (apuração do mês) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">· toque p/ estimado ↩</span></div>'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'+
@@ -6069,12 +6074,13 @@ function renderRes(){
           ' oninput="taxLive(\''+mk+'\',\'irpjcsll\',this)">'+
         '</div>'+
       '</div>':'')+
-      '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
-        '<div><div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore</div>'+
-        '<div style="font-size:9px;color:var(--text3);">Remuneração sócio · para constar, não debita</div></div>'+
-        '<div style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(md.prolabore||0)+'</div>'+
-        '</div>'+
+      '</div>'+
+      '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'+
+      '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+        '<div style="font-size:9px;font-weight:700;color:#f59e0b;text-transform:uppercase;">💼 Pró-labore <span style="color:var(--text3);font-weight:400;text-transform:none;">· debita o GCM</span></div>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:800;color:#f59e0b;">'+fmt(md.prolabore||0)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+      '</div>'+
+      '<div class="rsec" style="display:none;margin-top:8px;">'+
       ((md.prolaboreItems&&md.prolaboreItems.length)?md.prolaboreItems.map(function(pl,pli){
         return '<div style="padding:4px 0;border-bottom:1px solid var(--border);">'+
           '<input type="text" value="'+esc(pl.desc||'')+'" placeholder="Descrição" onchange="updProlaboreDesc(\''+mk+'\','+pli+',this.value)" style="width:100%;box-sizing:border-box;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;margin-bottom:4px;">'+
@@ -6093,12 +6099,13 @@ function renderRes(){
           '<button onclick="addProlaboreItem(\''+mk+'\')" style="background:#f59e0b22;border:1px solid #f59e0b44;color:#f59e0b;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;padding:5px 11px;">+</button>'+
         '</div>'+
       '</div>'+
-      '<div style="margin-bottom:8px;">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'+
-          '<div><div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;">💸 Distribuição de Lucros</div>'+
-          '<div style="font-size:9px;color:var(--text3);">Retiradas (data + valor) · para constar, não debita</div></div>'+
-          '<div style="font-size:14px;font-weight:800;color:#a78bfa;">'+fmt(md.distribuicao||0)+'</div>'+
+      '</div>'+
+      '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'+
+        '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+          '<div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;">💸 Distribuição de Lucros <span style="color:var(--text3);font-weight:400;text-transform:none;">· reduz a Sobra</span></div>'+
+          '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:800;color:#a78bfa;">'+fmt(md.distribuicao||0)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
         '</div>'+
+        '<div class="rsec" style="display:none;margin-top:8px;">'+
         ((md.distribuicaoItems&&md.distribuicaoItems.length)?md.distribuicaoItems.map(function(di,dii){
           return '<div style="padding:4px 0;border-bottom:1px solid var(--border);">'+
             '<input type="text" value="'+esc(di.desc||'')+'" placeholder="Descrição" onchange="updDistribDesc(\''+mk+'\','+dii+',this.value)" style="width:100%;box-sizing:border-box;font-size:11px;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:4px 6px;color:var(--text);outline:none;margin-bottom:4px;">'+
@@ -6118,8 +6125,13 @@ function renderRes(){
           '</div>'+
         '</div>'+
       '</div>'+
-      '<div style="margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">'+
-        '<div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">🏭 Investimentos (abaixo da linha)</div>'+
+      '</div>'+
+      '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">'+
+        '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
+          '<div style="font-size:9px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.5px;">🏭 Investimentos <span style="color:var(--text3);font-weight:400;text-transform:none;">· debita o GCM</span></div>'+
+          '<span style="display:flex;align-items:center;gap:8px;"><span id="inv-toth-'+mk+'" style="font-size:14px;font-weight:800;color:#0ea5e9;">'+fmt(investM)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '</div>'+
+        '<div class="rsec" style="display:none;margin-top:8px;">'+
         '<div style="font-size:9px;color:var(--text3);margin-bottom:6px;">Estoque/contêiner, equip., obra, empréstimo · sai do caixa, não do lucro</div>'+
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;">'+
           '<span style="color:var(--text2);">📦 Pagamentos de contêiner (auto)</span>'+
@@ -6141,6 +6153,7 @@ function renderRes(){
           '<span style="font-weight:700;color:var(--text2);">Total investido no mês</span>'+
           '<span id="inv-tot-'+mk+'" style="font-size:13px;font-weight:800;color:#0ea5e9;">'+fmt(investM)+'</span>'+
         '</div>'+
+      '</div>'+
       '</div>'+
     '</div>'+
 '<div style="margin-top:6px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">'+
