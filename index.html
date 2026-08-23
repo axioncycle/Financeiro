@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08l (Impostos, Pro-labore, Distribuicao e Investimentos recolhiveis)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08m (indicadores-chave fixos no topo: Lucro Bruto, Margem Contrib, EBITDA, EBIT)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -5832,8 +5832,9 @@ function renderRes(){
     var mk=meses[i];
     var mv=[],j;
     for(j=0;j<vendas.length;j++){if(mkey(vendas[j].date)===mk) mv.push(vendas[j]);}
-    var fat=0,lsi=0;
-    for(j=0;j<mv.length;j++){fat+=mv[j].venda;lsi+=mv[j].lucroSI;}
+    var fat=0,lsi=0,custoTot=0;
+    for(j=0;j<mv.length;j++){fat+=mv[j].venda;lsi+=mv[j].lucroSI;custoTot+=mv[j].custo||0;}
+    var lucroBrutoM=fat-custoTot;   // Lucro Bruto = Receita − CMV
     var md=getMDesp(mk);var totF=0,totE=0,totFin=0,k;
     for(k=0;k<md.fixas.length;k++) totF+=parseFloat(md.fixas[k].valor)||0;
     // Pró-labore e distribuição de lucros NÃO debitam o resultado — são apenas para constar
@@ -6009,9 +6010,11 @@ function renderRes(){
       '</div>'+
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:10px;padding:12px;margin-bottom:10px;">'+
-      '<div style="display:flex;gap:8px;margin-bottom:12px;">'+
-      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA</div><div style="font-size:16px;font-weight:800;color:#f59e0b;margin-top:2px;">'+fmt(ebitdaM)+'</div></div>'+
-      '<div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financeiro</div><div style="font-size:16px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:2px;">'+fmt(ebitFinM)+'</div></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'+
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Lucro Bruto</div><div style="font-size:15px;font-weight:800;color:'+(lucroBrutoM>=0?'#22c55e':'#ef4444')+';margin-top:1px;">'+fmt(lucroBrutoM)+'</div><div style="font-size:7.5px;color:var(--text3);">Receita − CMV</div></div>'+
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Margem Contrib.</div><div style="font-size:15px;font-weight:800;color:'+(margContribM>=0?'#14b8a6':'#ef4444')+';margin-top:1px;">'+fmt(margContribM)+'</div><div style="font-size:7.5px;color:var(--text3);">− taxas, frete, extras</div></div>'+
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA</div><div style="font-size:15px;font-weight:800;color:#f59e0b;margin-top:1px;">'+fmt(ebitdaM)+'</div><div style="font-size:7.5px;color:var(--text3);">− despesas fixas</div></div>'+
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financ.</div><div style="font-size:15px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:1px;">'+fmt(ebitFinM)+'</div><div style="font-size:7.5px;color:var(--text3);">± resultado financeiro</div></div>'+
       '</div>'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Impostos do mês</span>'+
