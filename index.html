@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08n (ajuda ? em cada indicador)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08o (% sobre faturamento em cada card do resultado)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2505,8 +2505,10 @@ function refreshMesOut(mk){
   set('res-liq-'+mk,fmt(d.res),d.res>=0?'#22c55e':'#ef4444');
   set('gcm-v-'+mk,fmt(d.gcm),d.gcm>=0?'#0ea5e9':'#ef4444');
   set('gcm-s-'+mk,'Lucro '+fmt(d.res)+' − Invest. '+fmt(d.invest)+' − Pró-labore '+fmt(d.prolab));
+  set('gcm-pct-'+mk,(d.fat>0?(d.gcm/d.fat*100).toFixed(1)+'%':''));
   set('sob-v-'+mk,fmt(d.sobra),d.sobra>=0?'#a78bfa':'#ef4444');
   set('sob-s-'+mk,'GCM '+fmt(d.gcm)+' − Distribuição '+fmt(d.distrib));
+  set('sob-pct-'+mk,(d.fat>0?(d.sobra/d.fat*100).toFixed(1)+'%':''));
 }
 // Edição AO VIVO de despesa fixa/extra: recalcula o total e o resultado sem reconstruir
 function fixaLive(mk,fi,el){
@@ -6034,10 +6036,10 @@ function renderRes(){
       '</div>'+
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:10px;padding:12px;margin-bottom:10px;">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'+
-      '<div onclick="kpiHelp(\'lucrobruto\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Lucro Bruto <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(lucroBrutoM>=0?'#22c55e':'#ef4444')+';margin-top:1px;">'+fmt(lucroBrutoM)+'</div><div style="font-size:7.5px;color:var(--text3);">Receita − CMV</div></div>'+
-      '<div onclick="kpiHelp(\'margcontrib\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Margem Contrib. <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(margContribM>=0?'#14b8a6':'#ef4444')+';margin-top:1px;">'+fmt(margContribM)+'</div><div style="font-size:7.5px;color:var(--text3);">− taxas, frete, extras</div></div>'+
-      '<div onclick="kpiHelp(\'ebitda\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:#f59e0b;margin-top:1px;">'+fmt(ebitdaM)+'</div><div style="font-size:7.5px;color:var(--text3);">− despesas fixas</div></div>'+
-      '<div onclick="kpiHelp(\'ebit\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financ. <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:1px;">'+fmt(ebitFinM)+'</div><div style="font-size:7.5px;color:var(--text3);">± resultado financeiro</div></div>'+
+      '<div onclick="kpiHelp(\'lucrobruto\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Lucro Bruto <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(lucroBrutoM>=0?'#22c55e':'#ef4444')+';margin-top:1px;">'+fmt(lucroBrutoM)+' <span style="font-size:9.5px;color:var(--text3);font-weight:700;">'+(fat>0?(lucroBrutoM/fat*100).toFixed(1)+'%':'')+'</span></div><div style="font-size:7.5px;color:var(--text3);">Receita − CMV</div></div>'+
+      '<div onclick="kpiHelp(\'margcontrib\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Margem Contrib. <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(margContribM>=0?'#14b8a6':'#ef4444')+';margin-top:1px;">'+fmt(margContribM)+' <span style="font-size:9.5px;color:var(--text3);font-weight:700;">'+(fat>0?(margContribM/fat*100).toFixed(1)+'%':'')+'</span></div><div style="font-size:7.5px;color:var(--text3);">− taxas, frete, extras</div></div>'+
+      '<div onclick="kpiHelp(\'ebitda\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBITDA <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:#f59e0b;margin-top:1px;">'+fmt(ebitdaM)+' <span style="font-size:9.5px;color:var(--text3);font-weight:700;">'+(fat>0?(ebitdaM/fat*100).toFixed(1)+'%':'')+'</span></div><div style="font-size:7.5px;color:var(--text3);">− despesas fixas</div></div>'+
+      '<div onclick="kpiHelp(\'ebit\')" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px;">EBIT · c/ financ. <span style="color:#1E90FF;font-weight:800;">?</span></div><div style="font-size:15px;font-weight:800;color:'+(ebitFinM>=0?'#60a5fa':'#ef4444')+';margin-top:1px;">'+fmt(ebitFinM)+' <span style="font-size:9.5px;color:var(--text3);font-weight:700;">'+(fat>0?(ebitFinM/fat*100).toFixed(1)+'%':'')+'</span></div><div style="font-size:7.5px;color:var(--text3);">± resultado financeiro</div></div>'+
       '</div>'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Impostos do mês</span>'+
@@ -6201,12 +6203,12 @@ function renderRes(){
           '<div style="flex:1;padding:11px 14px;border-right:1px solid var(--border);">'+
             '<div style="font-size:8.5px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.6px;">💧 GCM · Geração de caixa <span onclick="kpiHelp(\'gcm\')" style="cursor:pointer;">?</span></div>'+
             '<div id="gcm-v-'+mk+'" style="font-size:18px;font-weight:800;color:'+(gcmM>=0?'#0ea5e9':'#ef4444')+';margin-top:3px;white-space:nowrap;">'+fmt(gcmM)+'</div>'+
-            '<div style="font-size:8px;color:var(--text3);margin-top:1px;">− invest. − pró-labore</div>'+
+            '<div style="font-size:8px;color:var(--text3);margin-top:1px;"><b id="gcm-pct-'+mk+'" style="color:#0ea5e9;">'+(fat>0?(gcmM/fat*100).toFixed(1)+'%':'')+'</b> · − invest − pró-labore</div>'+
           '</div>'+
           '<div style="flex:1;padding:11px 14px;">'+
             '<div style="font-size:8.5px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;">💰 Sobra em caixa <span onclick="kpiHelp(\'sobra\')" style="cursor:pointer;">?</span></div>'+
             '<div id="sob-v-'+mk+'" style="font-size:18px;font-weight:800;color:'+(sobraM>=0?'#a78bfa':'#ef4444')+';margin-top:3px;white-space:nowrap;">'+fmt(sobraM)+'</div>'+
-            '<div style="font-size:8px;color:var(--text3);margin-top:1px;">após retiradas</div>'+
+            '<div style="font-size:8px;color:var(--text3);margin-top:1px;"><b id="sob-pct-'+mk+'" style="color:#a78bfa;">'+(fat>0?(sobraM/fat*100).toFixed(1)+'%':'')+'</b> · após retiradas</div>'+
           '</div>'+
         '</div>'+
       '</div>'+
