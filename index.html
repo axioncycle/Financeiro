@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08o (% sobre faturamento em cada card do resultado)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08p (DRE da Analise atualizado: impostos Presumido completos + GCM e Sobra)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -9662,18 +9662,21 @@ function calcDRE(vendas){
   var margContrib=lucroBruto-despVar;
   var fixas=getFixasCusto(vendas);
   var ebitda=margContrib-fixas;
-  // DAS real from Resultado
-  var dasReal2=0;
+  // Impostos: mesmo cálculo da aba Resultado (DAS pré-ago; Presumido a partir de ago
+  // = PIS/COFINS + ICMS a recolher + IPI a recolher + IRPJ/CSLL)
+  var impTot2=0,invest2=0,proLab2=0,distr2=0;
   for(var mk2__ in months2){
-    var df2_=DB_DESP[mk2__];
-    if(df2_&&df2_.das>0) dasReal2+=df2_.das;
-    else{vendas.forEach(function(v){if(mkey2(v.date)===mk2__) dasReal2+=v.imp||0;});}
+    var mdI=DB_DESP[mk2__]||{};
+    var fatI=0,impI=0;
+    vendas.forEach(function(v){if(mkey2(v.date)===mk2__){fatI+=v.venda||0;impI+=v.imp||0;}});
+    impTot2+=(typeof mesImpTotal==='function')?mesImpTotal(mk2__,fatI,mdI,impI):(mdI.das||impI);
+    invest2+=((typeof investFromContainers==='function')?investFromContainers(mk2__):0)+((typeof _sumInvestItems==='function')?_sumInvestItems(mdI):0);
+    proLab2+=mdI.prolabore||0; distr2+=mdI.distribuicao||0;
   }
-  var lucroLiq=ebitda+totFin2-dasReal2;
-  // Pró-labore e distribuição de lucros — apenas para constar, NÃO entram no lucro líquido
-  var proLab2=0,distr2=0;
-  for(var mkP in months2){var dfp=DB_DESP[mkP];if(dfp){proLab2+=dfp.prolabore||0;distr2+=dfp.distribuicao||0;}}
-  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:dasReal2,lucroLiq:lucroLiq,qtd:qtd,prolabore:proLab2,distribuicao:distr2};
+  var lucroLiq=ebitda+totFin2-impTot2;
+  var gcm2=lucroLiq-invest2-proLab2;   // Geração de caixa
+  var sobra2=gcm2-distr2;              // Sobra após retiradas
+  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:impTot2,lucroLiq:lucroLiq,qtd:qtd,prolabore:proLab2,distribuicao:distr2,invest:invest2,gcm:gcm2,sobra:sobra2};
 }
 
 function fmtPct(num,den){
@@ -9696,8 +9699,13 @@ function renderD2DRE(dre){
     {label:'   − Custos fixos',val:-dre.fixas,pct:fmtPct(-dre.fixas,dre.fat),color:'#ef4444'},
     {label:'⚡ EBITDA',val:dre.ebitda,pct:fmtPct(dre.ebitda,dre.fat),color:'#f59e0b',bold:true},
     {label:'   ± Resultado Financeiro',val:dre.totFin2||0,pct:fmtPct(dre.totFin2||0,dre.fat),color:(dre.totFin2||0)>=0?'#22c55e':'#ef4444'},
-    {label:'   − Impostos (DAS)',val:-dre.imp,pct:fmtPct(-dre.imp,dre.fat),color:'#ef4444'},
+    {label:'   − Impostos (ICMS+IPI+PIS/COFINS+IRPJ)',val:-dre.imp,pct:fmtPct(-dre.imp,dre.fat),color:'#ef4444'},
     {label:'✅ Lucro Líquido',val:dre.lucroLiq,pct:fmtPct(dre.lucroLiq,dre.fat),color:dre.lucroLiq>=0?'#22c55e':'#ef4444',bold:true,big:true},
+    {label:'   − Investimentos',val:-(dre.invest||0),pct:fmtPct(-(dre.invest||0),dre.fat),color:'#ef4444'},
+    {label:'   − Pró-labore',val:-(dre.prolabore||0),pct:fmtPct(-(dre.prolabore||0),dre.fat),color:'#ef4444'},
+    {label:'💧 GCM · Geração de Caixa',val:(dre.gcm||0),pct:fmtPct((dre.gcm||0),dre.fat),color:(dre.gcm||0)>=0?'#0ea5e9':'#ef4444',bold:true},
+    {label:'   − Distribuição de lucros',val:-(dre.distribuicao||0),pct:fmtPct(-(dre.distribuicao||0),dre.fat),color:'#ef4444'},
+    {label:'💰 Sobra em caixa (após retiradas)',val:(dre.sobra||0),pct:fmtPct((dre.sobra||0),dre.fat),color:(dre.sobra||0)>=0?'#a78bfa':'#ef4444',bold:true},
   ];
   var h='<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">'+dre.qtd+' venda'+(dre.qtd!==1?'s':'')+' no período</div>';
   rows.forEach(function(r){
@@ -9712,14 +9720,8 @@ function renderD2DRE(dre){
     h+='<span style="font-size:'+fs+';font-weight:'+fw+';color:'+r.color+';min-width:110px;text-align:right;">'+fmt(r.val)+'</span>';
     h+='</div></div>';
   });
-  // Retiradas dos sócios — para constar, NÃO debitam o lucro líquido
-  if((dre.prolabore||0)>0||(dre.distribuicao||0)>0){
-    h+='<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">';
-    h+='<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Retiradas dos sócios · para constar (não debita)</div>';
-    if((dre.prolabore||0)>0) h+='<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:11px;color:#f59e0b;">💼 Pró-labore</span><span style="font-size:12px;font-weight:700;color:#f59e0b;">'+fmt(dre.prolabore)+'</span></div>';
-    if((dre.distribuicao||0)>0) h+='<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="font-size:11px;color:#a78bfa;">💸 Distribuição de lucros</span><span style="font-size:12px;font-weight:700;color:#a78bfa;">'+fmt(dre.distribuicao)+'</span></div>';
-    h+='</div>';
-  }
+  // (Pró-labore, distribuição, GCM e Sobra agora aparecem na própria cascata acima)
+  h+='<div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.4;">Lucro Líquido = resultado após impostos. GCM e Sobra são a visão de <b>caixa</b> (Pró-labore/Investimentos e Distribuição não reduzem o lucro, só o caixa).</div>';
   // Lucro por unidade
   if(dre.qtd>0){
     h+='<div style="margin-top:10px;padding:8px;background:#ffffff08;border-radius:8px;display:flex;justify-content:space-between;">';
