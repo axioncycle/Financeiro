@@ -1112,7 +1112,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08u (Investimento do GCM puxa pagamentos de conteiner por data em qualquer mes, inclusive antes de ago/Simples)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08v (Investimento do GCM ignora pagamentos com descricao PP = pagamento pessoal, dinheiro proprio, nao do caixa)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -4052,19 +4052,35 @@ function calcIrpjCsll(fat){
 }
 // Carrega os pagamentos de TODOS os contêineres do banco para o cache local,
 // para o Investimento automático (GCM) funcionar sem abrir a aba Custo de cada um.
+function _writeCustoCache(byC){
+  try{
+    var cs=(typeof loadContainers==='function')?loadContainers():[];
+    // Atualiza o cache de TODOS os contêineres — inclusive zerando os que ficaram sem pagamento (apagados)
+    for(var i=0;i<cs.length;i++){var cid=cs[i].id;var cur=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});cur.pagamentos=byC[cid]||[];ss('ax_custo_'+cid,cur);}
+  }catch(e){}
+}
 function preloadContainerPayments(cb){
   if(typeof dbGet!=='function'){if(cb)cb();return;}
   dbGet('container_pagamentos','order=data').then(function(rows){
+    var byC={},i,r;
     try{
-      var byC={},i,r;
-      if(Array.isArray(rows)) for(i=0;i<rows.length;i++){r=rows[i];var c=r.container_id;if(!byC[c])byC[c]=[];byC[c].push({data:r.data||'',valor:+r.valor||0});}
-      // Atualiza o cache de TODOS os contêineres — inclusive zerando os que ficaram sem pagamento (apagados)
-      var cs=(typeof loadContainers==='function')?loadContainers():[];
-      for(i=0;i<cs.length;i++){var cid=cs[i].id;var cur=sg('ax_custo_'+cid,{pagamentos:[],skuRows:[]});cur.pagamentos=byC[cid]||[];ss('ax_custo_'+cid,cur);}
+      if(Array.isArray(rows)) for(i=0;i<rows.length;i++){r=rows[i];var c=r.container_id;if(!byC[c])byC[c]=[];byC[c].push({data:r.data||'',valor:+r.valor||0,desc:''});}
     }catch(e){}
-    if(cb)cb();
+    // Carrega as descrições dos pagamentos (chave pag_desc_<cid> em configuracoes),
+    // na MESMA ordem por data — para poder excluir os pagamentos pessoais (PP) do Investimento/GCM.
+    dbGet('configuracoes','chave=like.pag_desc_*').then(function(drows){
+      try{
+        var dmap={},j,dr;
+        if(Array.isArray(drows)) for(j=0;j<drows.length;j++){dr=drows[j];var key=dr.chave||'';var cid2=key.slice('pag_desc_'.length);var arr=[];try{arr=JSON.parse(dr.valor||'[]');}catch(e){}dmap[cid2]=arr;}
+        for(var c2 in byC){var da=dmap[c2]||[];for(var k=0;k<byC[c2].length;k++){byC[c2][k].desc=da[k]||'';}}
+      }catch(e){}
+      _writeCustoCache(byC); if(cb)cb();
+    }).catch(function(){_writeCustoCache(byC); if(cb)cb();});
   }).catch(function(){if(cb)cb();});
 }
+// Pagamento pessoal (PP): descrição com o marcador "PP" (token isolado, ignora "app", "supply" etc.).
+// Esses pagamentos foram feitos com dinheiro pessoal — NÃO entram na linha Investimento do GCM.
+function _pagIsPP(desc){var d=(desc||'').toUpperCase();return /(^|[^A-Z])PP([^A-Z]|$)/.test(d);}
 // Soma dos pagamentos de contêiner com data no mês — vira Investimento p/ GCM.
 // Puxa por data em QUALQUER mês (inclusive antes de ago/Simples): pagar o fornecedor
 // é saída de caixa real, independe do regime tributário.
@@ -4075,6 +4091,7 @@ function investFromContainers(mk){
     var data=sg('ax_custo_'+cs[c].id,{pagamentos:[]});
     var pags=(data&&data.pagamentos)||[];
     for(i=0;i<pags.length;i++){
+      if(_pagIsPP(pags[i].desc)) continue; // pagamento pessoal (PP) — não conta como investimento do caixa
       if(((pags[i].data||'').slice(0,7))===mk) tot+=(+pags[i].valor||0);
     }
   }
