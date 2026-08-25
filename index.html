@@ -1112,7 +1112,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08t (Simulacao de Venda movida da aba Analise para Vendas, abaixo de Orcamento, recolhivel/minimizada)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08u (Investimento do GCM puxa pagamentos de conteiner por data em qualquer mes, inclusive antes de ago/Simples)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -4065,9 +4065,10 @@ function preloadContainerPayments(cb){
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
-// Soma dos pagamentos de contêiner com data no mês (a partir do Presumido) — vira Investimento p/ GCM
+// Soma dos pagamentos de contêiner com data no mês — vira Investimento p/ GCM.
+// Puxa por data em QUALQUER mês (inclusive antes de ago/Simples): pagar o fornecedor
+// é saída de caixa real, independe do regime tributário.
 function investFromContainers(mk){
-  if(mk<REGIME_PRESUMIDO_FROM) return 0;
   var cs=(typeof loadContainers==='function')?loadContainers():[];
   var tot=0,c,i;
   for(c=0;c<cs.length;c++){
