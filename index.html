@@ -581,34 +581,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 <div class="pg" id="pg-dash2">
   <!-- Cadência do ano: Receita · EBITDA · Lucro · GCM (Real vs Projeção) -->
   <div id="cad-kpis" style="margin:10px 0 12px;"></div>
-  <!-- Simulação de Venda -->
-  <div style="background:var(--card);border:1px solid #22c55e44;border-radius:14px;padding:14px;margin:10px 0 12px;">
-    <div style="font-size:10px;color:#22c55e;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">🧮 Simulação de Venda</div>
-    <div style="margin-bottom:8px;">
-      <label class="fl">🎯 Margem desejada (%) <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— preencha + Venda <b>ou</b> Custo; o outro é calculado</span></label>
-      <input class="fi" id="sim-margem" inputmode="decimal" placeholder="opcional — ex: 40" oninput="simVenda()">
-    </div>
-    <div style="margin-bottom:8px;">
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:var(--text2);font-weight:600;">
-        <input type="checkbox" id="sim-presumido" onchange="simPresToggle()" style="width:15px;height:15px;">
-        🧾 Impostos Presumido (auto) — ICMS + PIS/COFINS + IPI + IRPJ/CSLL
-      </label>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div><label class="fl">Preço de Venda (R$)</label><input class="fi" id="sim-preco" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('venda')"></div>
-      <div><label class="fl">Custo (R$)</label><input class="fi" id="sim-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('custo')"></div>
-      <div><label class="fl">Taxa <span id="sim-taxa-tg" onclick="simToggle('taxa')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'taxa')"><select class="fs" id="sim-taxa-pag" onchange="simSetTaxaPag(this.value)" style="margin-top:4px;font-size:11px;padding:5px 6px;width:100%;"></select></div>
-      <div><label class="fl">Imposto <span id="sim-imp-tg" onclick="simToggle('imp')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(%)</span></label><input class="fi" id="sim-imp" inputmode="decimal" placeholder="0" oninput="simInput(this,'imp')"></div>
-      <div><label class="fl">Comissão <span id="sim-com-tg" onclick="simToggle('com')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'com')"></div>
-      <div><label class="fl">Frete (R$)</label><input class="fi" id="sim-frete" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
-    </div>
-    <div style="margin-top:8px;position:relative;">
-      <label class="fl">🔎 Custo por SKU (opcional) — digite para puxar o custo cadastrado</label>
-      <input class="fi" id="sim-sku-search" placeholder="Digite o SKU..." autocomplete="off" oninput="simSkuSearch(this.value)">
-      <div id="sim-sku-sugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--modal-bg);border:1px solid var(--border);border-radius:8px;z-index:20;max-height:230px;overflow-y:auto;margin-top:2px;box-shadow:0 10px 28px rgba(0,0,0,.35);"></div>
-    </div>
-    <div id="sim-result" style="margin-top:12px;"></div>
-  </div>
+  <!-- (Simulação de Venda movida para a aba Vendas, abaixo de Orçamento) -->
   <!-- Period Filter -->
   <div style="padding:10px 0 6px;">
     <div style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;margin-bottom:6px;">PERÍODO DE ANÁLISE</div>
@@ -860,6 +833,39 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div style="min-width:0;"><div style="font-size:14px;font-weight:800;">🧾 Orçamento</div><div style="font-size:11px;color:var(--text3);margin-top:1px;">Gere um PDF de orçamento para o cliente</div></div>
     <button onclick="openOrcamento()" style="background:linear-gradient(135deg,#c9a227,#a8801f);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;">Gerar Orçamento</button>
   </div>
+  <!-- Simulação de Venda (recolhível, minimizada por padrão) -->
+  <div style="background:var(--card);border:1px solid #22c55e44;border-radius:14px;padding:14px;margin-bottom:10px;">
+    <div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:#22c55e;font-weight:800;letter-spacing:.5px;">🧮 Simulação de Venda <span style="font-size:9px;color:var(--text3);font-weight:600;letter-spacing:0;">— teste preço, custo e margem</span></span>
+      <span class="res-arrow" style="font-size:14px;color:var(--text3);">▾</span>
+    </div>
+    <div class="rsec" style="display:none;margin-top:12px;">
+    <div style="margin-bottom:8px;">
+      <label class="fl">🎯 Margem desejada (%) <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— preencha + Venda <b>ou</b> Custo; o outro é calculado</span></label>
+      <input class="fi" id="sim-margem" inputmode="decimal" placeholder="opcional — ex: 40" oninput="simVenda()">
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;color:var(--text2);font-weight:600;">
+        <input type="checkbox" id="sim-presumido" onchange="simPresToggle()" style="width:15px;height:15px;">
+        🧾 Impostos Presumido (auto) — ICMS + PIS/COFINS + IPI + IRPJ/CSLL
+      </label>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label class="fl">Preço de Venda (R$)</label><input class="fi" id="sim-preco" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('venda')"></div>
+      <div><label class="fl">Custo (R$)</label><input class="fi" id="sim-custo" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simSetEdited('custo')"></div>
+      <div><label class="fl">Taxa <span id="sim-taxa-tg" onclick="simToggle('taxa')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-taxa" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'taxa')"><select class="fs" id="sim-taxa-pag" onchange="simSetTaxaPag(this.value)" style="margin-top:4px;font-size:11px;padding:5px 6px;width:100%;"></select></div>
+      <div><label class="fl">Imposto <span id="sim-imp-tg" onclick="simToggle('imp')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(%)</span></label><input class="fi" id="sim-imp" inputmode="decimal" placeholder="0" oninput="simInput(this,'imp')"></div>
+      <div><label class="fl">Comissão <span id="sim-com-tg" onclick="simToggle('com')" style="cursor:pointer;color:#22c55e;font-weight:800;user-select:none;">(R$)</span></label><input class="fi" id="sim-com" inputmode="decimal" placeholder="0,00" oninput="simInput(this,'com')"></div>
+      <div><label class="fl">Frete (R$)</label><input class="fi" id="sim-frete" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);simVenda()"></div>
+    </div>
+    <div style="margin-top:8px;position:relative;">
+      <label class="fl">🔎 Custo por SKU (opcional) — digite para puxar o custo cadastrado</label>
+      <input class="fi" id="sim-sku-search" placeholder="Digite o SKU..." autocomplete="off" oninput="simSkuSearch(this.value)">
+      <div id="sim-sku-sugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--modal-bg);border:1px solid var(--border);border-radius:8px;z-index:20;max-height:230px;overflow-y:auto;margin-top:2px;box-shadow:0 10px 28px rgba(0,0,0,.35);"></div>
+    </div>
+    <div id="sim-result" style="margin-top:12px;"></div>
+    </div>
+  </div>
   <div class="card">
     <div class="stitle" style="margin-top:0">Nova Venda</div>
     <div class="fg"><label class="fl">Data</label><input class="fi" id="v-data" type="date" onchange="refreshImpUf();calcRes()"></div>
@@ -1106,7 +1112,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08s (Resultado: % de faturamento nas linhas Despesas Fixas, Extras e Impostos do mes, com atualizacao ao vivo)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08t (Simulacao de Venda movida da aba Analise para Vendas, abaixo de Orcamento, recolhivel/minimizada)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2756,7 +2762,7 @@ function goTo(p){
   }
   curPage=p;if(p==='dash2'){syncDespesasFromDB(function(){renderDash2();});return;}if(p==='caixa'){syncDespesasFromDB(function(){renderCaixa();});return;}
   if(p==='dash'){syncDespesasFromDB(function(){renderDash();});return;}
-  if(p==='vend'){fillOrigSelect();renderHist();}
+  if(p==='vend'){fillOrigSelect();renderHist();if(typeof simVenda==='function')simVenda();}
   if(p==='est') renderEst();
   if(p==='res'){
     syncDespesasFromDB(function(){preloadContainerPayments(function(){renderRes();});});
