@@ -1106,7 +1106,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08r (DRE Analise etapa B: Presumido separa impostos de venda x IRPJ; periodo misto mostra 2 cascatas Simples/Presumido)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08s (Resultado: % de faturamento nas linhas Despesas Fixas, Extras e Impostos do mes, com atualizacao ao vivo)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2509,6 +2509,7 @@ function refreshMesOut(mk){
   set('sob-v-'+mk,fmt(d.sobra),d.sobra>=0?'#a78bfa':'#ef4444');
   set('sob-s-'+mk,'GCM '+fmt(d.gcm)+' − Distribuição '+fmt(d.distrib));
   set('sob-pct-'+mk,(d.fat>0?(d.sobra/d.fat*100).toFixed(1)+'%':''));
+  if(d.imp!=null){set('imp-toth-'+mk,fmt(d.imp));set('imp-tothp-'+mk,(d.fat>0?(d.imp/d.fat*100).toFixed(1)+'%':''));}
 }
 // Edição AO VIVO de despesa fixa/extra: recalcula o total e o resultado sem reconstruir
 function fixaLive(mk,fi,el){
@@ -2520,6 +2521,7 @@ function fixaLive(mk,fi,el){
   var tot=0,k;for(k=0;k<md.fixas.length;k++){var f=md.fixas[k];if(f.nome!=='DAS'&&f.nome!=='das')tot+=parseFloat(f.valor)||0;}
   var e1=document.getElementById('fix-toth-'+mk);if(e1)e1.textContent=fmt(tot);
   var e2=document.getElementById('fix-tot-'+mk);if(e2)e2.textContent=fmt(tot);
+  var fatF=monthFat(mk);var ep=document.getElementById('fix-tothp-'+mk);if(ep)ep.textContent=(fatF>0?(tot/fatF*100).toFixed(1)+'%':'');
   refreshMesOut(mk);
 }
 function addInvestItem(mk){
@@ -2543,6 +2545,7 @@ function extraLive(mk,ei,el){
   var tot=0,k;for(k=0;k<md.extras.length;k++)tot+=parseFloat(md.extras[k].valor)||0;
   var e1=document.getElementById('ext-toth-'+mk);if(e1)e1.textContent=fmt(tot);
   var e2=document.getElementById('ext-tot-'+mk);if(e2)e2.textContent=fmt(tot);
+  var fatE=monthFat(mk);var ep=document.getElementById('ext-tothp-'+mk);if(ep)ep.textContent=(fatE>0?(tot/fatE*100).toFixed(1)+'%':'');
   refreshMesOut(mk);
 }
 
@@ -5982,7 +5985,7 @@ function renderRes(){
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🔁 Despesas Fixas</span>'+
-        '<span style="display:flex;align-items:center;gap:8px;"><span id="fix-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totF)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span id="fix-tothp-'+mk+'" style="font-size:9.5px;font-weight:700;color:var(--text3);">'+(fat>0?(totF/fat*100).toFixed(1)+'%':'')+'</span><span id="fix-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totF)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div class="rsec" style="display:none;margin-top:8px;">'+
       fixaRows+
@@ -5992,7 +5995,7 @@ function renderRes(){
       '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid #f97316;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
         '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;flex:1;">🧾 Despesas Extras</span>'+
-        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><span id="ext-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totE)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '<span style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><span id="ext-tothp-'+mk+'" style="font-size:9.5px;font-weight:700;color:var(--text3);">'+(fat>0?(totE/fat*100).toFixed(1)+'%':'')+'</span><span id="ext-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(totE)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div class="rsec" style="display:none;margin-top:8px;">'+
       extraRows+
@@ -6050,7 +6053,7 @@ function renderRes(){
       '</div>'+
       '<div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'+
         '<span style="font-size:8.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">🧾 Impostos do mês</span>'+
-        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(impMesTot)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
+        '<span style="display:flex;align-items:center;gap:8px;"><span id="imp-tothp-'+mk+'" style="font-size:9.5px;font-weight:700;color:var(--text3);">'+(fat>0?(impMesTot/fat*100).toFixed(1)+'%':'')+'</span><span id="imp-toth-'+mk+'" style="font-size:12px;font-weight:800;color:#ef4444;">'+fmt(impMesTot)+'</span><span class="res-arrow" style="font-size:12px;color:var(--text3);">▾</span></span>'+
       '</div>'+
       '<div class="rsec" style="display:none;margin-top:8px;">'+
       (isPresumido?'<div style="padding:8px 0;border-top:1px solid var(--border);margin-bottom:8px;">'+
