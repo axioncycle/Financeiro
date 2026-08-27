@@ -866,6 +866,34 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div id="sim-result" style="margin-top:12px;"></div>
     </div>
   </div>
+  <!-- Margem Ideal — Preço × Volume (recolhível) -->
+  <div style="background:var(--card);border:1px solid #a855f744;border-radius:14px;padding:14px;margin-bottom:10px;">
+    <div onclick="toggleResSec(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:#a855f7;font-weight:800;letter-spacing:.5px;">🎯 Margem Ideal <span style="font-size:9px;color:var(--text3);font-weight:600;letter-spacing:0;">— preço × volume × lucro</span></span>
+      <span class="res-arrow" style="font-size:14px;color:var(--text3);">▾</span>
+    </div>
+    <div class="rsec" style="display:none;margin-top:12px;">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5;">Descubra o preço que dá o <b>maior lucro</b>. Vender mais barato traz volume, mas cada real a mais no preço vira quase todo lucro. O ponto ótimo depende de quanto o volume cai quando você sobe o preço.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label class="fl">Custo do produto (R$)</label><input class="fi" id="mi-prod" inputmode="decimal" value="1.800,00" oninput="maskBRL(this);miCalc()"></div>
+      <div><label class="fl">Frete por par (R$)</label><input class="fi" id="mi-frete" inputmode="decimal" value="100,00" oninput="maskBRL(this);miCalc()"></div>
+      <div><label class="fl">Custos % sobre a venda</label><input class="fi" id="mi-var" inputmode="decimal" value="40,5" oninput="miCalc()"><div style="font-size:8.5px;color:var(--text3);margin-top:2px;">impostos + taxa/comissão</div></div>
+      <div><label class="fl">Custo fixo mensal (R$)</label><input class="fi" id="mi-fixo" inputmode="decimal" value="9.183,00" oninput="maskBRL(this);miCalc()"><div style="font-size:8.5px;color:var(--text3);margin-top:2px;">fixas + extras médias</div></div>
+      <div><label class="fl">Preço atual (R$)</label><input class="fi" id="mi-preco0" inputmode="decimal" value="4.800,00" oninput="maskBRL(this);miCalc()"></div>
+      <div><label class="fl">Volume atual (pares/mês)</label><input class="fi" id="mi-vol0" inputmode="decimal" value="50" oninput="miCalc()"></div>
+    </div>
+    <div style="margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;">
+      <label class="fl" style="margin-bottom:2px;">📉 Sensibilidade de preço</label>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text2);">A cada <b>+10%</b> no preço, o volume cai</span>
+        <input class="fi" id="mi-sens" inputmode="decimal" value="15" oninput="miCalc()" style="width:64px;text-align:center;font-weight:700;">
+        <span style="font-size:12px;color:var(--text2);">%</span>
+      </div>
+      <div style="font-size:8.5px;color:var(--text3);margin-top:4px;">Estimativa. 0% = ninguém deixa de comprar · 30%+ = muito sensível a preço.</div>
+    </div>
+    <div id="mi-result" style="margin-top:12px;"></div>
+    </div>
+  </div>
   <div class="card">
     <div class="stitle" style="margin-top:0">Nova Venda</div>
     <div class="fg"><label class="fl">Data</label><input class="fi" id="v-data" type="date" onchange="refreshImpUf();calcRes()"></div>
@@ -1112,7 +1140,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08v (Investimento do GCM ignora pagamentos com descricao PP = pagamento pessoal, dinheiro proprio, nao do caixa)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08w (Simulador de Margem Ideal na aba Vendas: preco x volume x lucro, acha o ponto de maior lucro pela sensibilidade de preco)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2762,7 +2790,7 @@ function goTo(p){
   }
   curPage=p;if(p==='dash2'){syncDespesasFromDB(function(){renderDash2();});return;}if(p==='caixa'){syncDespesasFromDB(function(){renderCaixa();});return;}
   if(p==='dash'){syncDespesasFromDB(function(){renderDash();});return;}
-  if(p==='vend'){fillOrigSelect();renderHist();if(typeof simVenda==='function')simVenda();}
+  if(p==='vend'){fillOrigSelect();renderHist();if(typeof simVenda==='function')simVenda();if(typeof miRestore==='function'){miRestore();miCalc();}}
   if(p==='est') renderEst();
   if(p==='res'){
     syncDespesasFromDB(function(){preloadContainerPayments(function(){renderRes();});});
@@ -10242,6 +10270,72 @@ function simToggle(k){
   simVenda();
 }
 function maskBRLval(v){var n=parseBRL(v)||0;return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+// ===== Simulador de Margem Ideal (preço × volume × lucro) =====
+function miCalc(){
+  var el=document.getElementById('mi-result'); if(!el) return;
+  var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  var prod=parseBRL(g('mi-prod'))||0, frete=parseBRL(g('mi-frete'))||0;
+  var t=(parseFloat(String(g('mi-var')).replace(',','.'))||0)/100;      // custos % sobre a venda
+  var F=parseBRL(g('mi-fixo'))||0;
+  var P0=parseBRL(g('mi-preco0'))||0, Q0=parseFloat(String(g('mi-vol0')).replace(',','.'))||0;
+  var sens=parseFloat(String(g('mi-sens')).replace(',','.'))||0;         // % de queda de volume por +10% de preço
+  var v=prod+frete;                                                      // custo fixo por unidade
+  if(P0<=0||Q0<=0){el.innerHTML='<div style="font-size:11px;color:var(--text3);">Informe preço e volume atuais.</div>';return;}
+  // Varre preços de −15% a +40% do preço atual, em passos de 5%
+  var rows=[],best=null;
+  for(var d=-15; d<=40.0001; d+=5){
+    var P=P0*(1+d/100);
+    var cm=P*(1-t)-v;                       // contribuição por par
+    var m=P>0?cm/P:0;                        // margem de contribuição
+    var q=Q0*(1-(sens/10)*((P-P0)/P0));      // volume projetado pela sensibilidade
+    if(q<0)q=0;
+    var fat=P*q;
+    var lucro=cm*q-F;
+    var r={d:d,P:P,cm:cm,m:m,q:q,fat:fat,lucro:lucro};
+    rows.push(r);
+    if(best===null||lucro>best.lucro)best=r;
+  }
+  var fmtBRL=function(n){return 'R$ '+Math.round(n).toLocaleString('pt-BR');};
+  var h='';
+  // Destaque do ponto ótimo
+  if(best){
+    var up=best.d;
+    h+='<div style="background:#a855f715;border:1px solid #a855f744;border-radius:10px;padding:12px 13px;margin-bottom:12px;">'+
+      '<div style="font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#a855f7;">★ Ponto de maior lucro</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;gap:10px;flex-wrap:wrap;">'+
+        '<div><div style="font-size:22px;font-weight:800;color:var(--text);">'+fmtBRL(best.P)+'</div><div style="font-size:10px;color:var(--text3);">preço por par '+(up>0?'(+'+up.toFixed(0)+'% vs atual)':(up<0?'('+up.toFixed(0)+'% vs atual)':'(preço atual)'))+'</div></div>'+
+        '<div style="text-align:right;"><div style="font-size:22px;font-weight:800;color:#22c55e;">'+fmtBRL(best.lucro)+'</div><div style="font-size:10px;color:var(--text3);">lucro/mês · margem '+(best.m*100).toFixed(1)+'%</div></div>'+
+      '</div>'+
+      '<div style="font-size:10.5px;color:var(--text2);margin-top:7px;border-top:1px solid var(--border);padding-top:6px;">≈ <b>'+best.q.toFixed(0)+' pares/mês</b> · faturamento '+fmtBRL(best.fat)+'</div>'+
+    '</div>';
+  }
+  // Tabela do sweep
+  h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11px;">'+
+    '<thead><tr style="color:var(--text3);text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">'+
+      '<th style="text-align:left;padding:4px 6px;">Preço</th><th style="padding:4px 6px;">Margem</th><th style="padding:4px 6px;">Pares</th><th style="padding:4px 6px;">Faturam.</th><th style="padding:4px 6px;">Lucro</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var isBest=(r===best);
+    var bg=isBest?'background:#a855f712;':'';
+    var lc=r.lucro>=0?'#22c55e':'#ef4444';
+    h+='<tr style="border-top:1px solid var(--border);'+bg+'">'+
+      '<td style="text-align:left;padding:5px 6px;font-weight:'+(isBest?'800':'600')+';color:var(--text);">'+(isBest?'★ ':'')+fmtBRL(r.P)+'<span style="color:var(--text3);font-weight:400;font-size:9px;"> '+(r.d>0?'+':'')+r.d.toFixed(0)+'%</span></td>'+
+      '<td style="text-align:right;padding:5px 6px;color:var(--text2);">'+(r.m*100).toFixed(1)+'%</td>'+
+      '<td style="text-align:right;padding:5px 6px;color:var(--text2);font-variant-numeric:tabular-nums;">'+r.q.toFixed(0)+'</td>'+
+      '<td style="text-align:right;padding:5px 6px;color:var(--text2);font-variant-numeric:tabular-nums;">'+fmtBRL(r.fat)+'</td>'+
+      '<td style="text-align:right;padding:5px 6px;font-weight:'+(isBest?'800':'700')+';color:'+lc+';font-variant-numeric:tabular-nums;">'+fmtBRL(r.lucro)+'</td>'+
+    '</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.5;">Lucro = (contribuição por par × pares) − custo fixo. O volume projetado usa sua estimativa de sensibilidade. Ajuste a sensibilidade para ver como o ponto ótimo se move — quanto menos o volume cai, mais alto compensa o preço.</div>';
+  el.innerHTML=h;
+  try{localStorage.setItem('ax_margsim',JSON.stringify({prod:g('mi-prod'),frete:g('mi-frete'),varp:g('mi-var'),fixo:g('mi-fixo'),preco0:g('mi-preco0'),vol0:g('mi-vol0'),sens:g('mi-sens')}));}catch(e){}
+}
+function miRestore(){
+  try{var s=JSON.parse(localStorage.getItem('ax_margsim')||'null');if(!s)return;
+    var set=function(id,val){var e=document.getElementById(id);if(e&&val!=null&&val!=='')e.value=val;};
+    set('mi-prod',s.prod);set('mi-frete',s.frete);set('mi-var',s.varp);set('mi-fixo',s.fixo);set('mi-preco0',s.preco0);set('mi-vol0',s.vol0);set('mi-sens',s.sens);
+  }catch(e){}
+}
 function simInput(el,k){if(simMode[k]==='R$'){maskBRL(el);}else{el.value=el.value.replace(/[^0-9.,]/g,'');}simVenda();}
 // Preenche o select de formas de pagamento da simulação com a tabela de taxas da aba Vendas (PAG_TAXA)
 function simFillPag(){
