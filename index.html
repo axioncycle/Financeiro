@@ -1140,7 +1140,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08w (Simulador de Margem Ideal na aba Vendas: preco x volume x lucro, acha o ponto de maior lucro pela sensibilidade de preco)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08x (Comparacao por canal: % do faturamento, % de margem e consolidado Site+WhatsApp na lista Por Canal e no Ticket Medio)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -3065,16 +3065,32 @@ function renderDash(){
   var fv12=vendas.filter(function(v){return new Date((v.date||'').slice(0,10)+'T12:00:00Z')>=cutoff12;});
 
   function buildCanal(arr,label){
-    var cm={};
+    var cm={},totFat=0,totLucro=0;
     for(i=0;i<arr.length;i++){
       var v=arr[i];
       if(!cm[v.canal]) cm[v.canal]={fat:0,qtd:0,lucro:0};
       cm[v.canal].fat+=v.venda;cm[v.canal].qtd++;cm[v.canal].lucro+=v.lucroLL;
+      totFat+=v.venda;totLucro+=v.lucroLL;
     }
+    // Ordena por faturamento (maior primeiro) para facilitar a comparação
+    var keys=Object.keys(cm).sort(function(a,b){return cm[b].fat-cm[a].fat;});
     var cl='';
-    for(k in cm){
-      var d=cm[k];
-      cl+='<div class="li"><div class="li-l">'+badgeCanal(k)+'<div class="li-sb" style="margin-top:4px;">'+d.qtd+' venda'+(d.qtd>1?'s':'')+' · '+label+'</div></div><div class="li-r"><div class="li-v bl">'+fmt(d.fat)+'</div><div class="li-d">'+fmt(d.lucro)+' lucro</div></div></div>';
+    for(var ci=0;ci<keys.length;ci++){
+      k=keys[ci];var d=cm[k];
+      var pctFat=totFat>0?(d.fat/totFat*100):0;      // participação no faturamento
+      var pctLuc=totLucro>0?(d.lucro/totLucro*100):0; // participação no lucro
+      var marg=d.fat>0?(d.lucro/d.fat*100):0;         // margem do canal
+      cl+='<div class="li"><div class="li-l">'+badgeCanal(k)+'<div class="li-sb" style="margin-top:4px;">'+d.qtd+' venda'+(d.qtd>1?'s':'')+' · '+label+'</div></div><div class="li-r"><div class="li-v bl">'+fmt(d.fat)+' <span style="font-size:10px;color:var(--text3);font-weight:700;">'+pctFat.toFixed(0)+'%</span></div><div class="li-d">'+fmt(d.lucro)+' lucro · '+marg.toFixed(0)+'% marg</div></div></div>';
+    }
+    // Consolidado Site + WhatsApp (venda direta) vs Mercado Livre
+    var si=cm['Site'],wa=cm['WhatsApp'];
+    if(si||wa){
+      var dfat=(si?si.fat:0)+(wa?wa.fat:0);
+      var dluc=(si?si.lucro:0)+(wa?wa.lucro:0);
+      var dqtd=(si?si.qtd:0)+(wa?wa.qtd:0);
+      var dpct=totFat>0?(dfat/totFat*100):0;
+      var dmarg=dfat>0?(dluc/dfat*100):0;
+      cl+='<div class="li" style="border-top:1px dashed var(--border);background:#22c55e0d;"><div class="li-l"><span style="display:inline-block;font-size:9px;font-weight:800;color:#22c55e;background:#22c55e22;border-radius:5px;padding:2px 7px;">🟢 SITE + WHATSAPP</span><div class="li-sb" style="margin-top:4px;">venda direta · '+dqtd+' venda'+(dqtd>1?'s':'')+' · '+label+'</div></div><div class="li-r"><div class="li-v bl">'+fmt(dfat)+' <span style="font-size:10px;color:var(--text3);font-weight:700;">'+dpct.toFixed(0)+'%</span></div><div class="li-d">'+fmt(dluc)+' lucro · '+dmarg.toFixed(0)+'% marg</div></div></div>';
     }
     return cl;
   }
@@ -12878,29 +12894,39 @@ function renderTicketCanalChart(){
   var canais=Object.keys(cMap).sort(function(a,b){
     return (cMap[b].fat/Math.max(1,cMap[b].qtd))-(cMap[a].fat/Math.max(1,cMap[a].qtd));
   });
+  var totFatT=0;canais.forEach(function(c){totFatT+=cMap[c].fat;});
   var maxTicket=Math.max.apply(null,canais.map(function(c){return cMap[c].fat/Math.max(1,cMap[c].qtd);}));
   var COLS={'Mercado Livre':'#ffd700','Site':'#1E90FF','WhatsApp':'#a855f7'};
   var h='';
-  canais.forEach(function(canal){
-    var ticket=cMap[canal].fat/Math.max(1,cMap[canal].qtd);
-    var qtd=cMap[canal].qtd;
+  var bar=function(nome,ticket,qtd,pctFat,col){
     var pct=maxTicket>0?(ticket/maxTicket*100):0;
-    var col=COLS[canal]||'#888';
-    h+='<div style="margin-bottom:12px;">'
+    return '<div style="margin-bottom:12px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
         +'<div>'
-          +'<span style="font-size:12px;font-weight:700;color:var(--text);">'+canal+'</span>'
-          +'<span style="font-size:9px;color:var(--text3);margin-left:6px;">'+qtd+' vendas</span>'
+          +'<span style="font-size:12px;font-weight:700;color:var(--text);">'+nome+'</span>'
+          +'<span style="font-size:9px;color:var(--text3);margin-left:6px;">'+qtd+' vendas · '+pctFat.toFixed(0)+'% do fat</span>'
         +'</div>'
         +'<span style="font-size:16px;font-weight:800;color:'+col+';">'+fmt(ticket)+'</span>'
       +'</div>'
       +'<div style="background:var(--bg3);border-radius:6px;height:10px;overflow:hidden;">'
         +'<div style="width:'+pct.toFixed(1)+'%;height:100%;border-radius:6px;'
-          +'background:linear-gradient(90deg,'+col+','+col+'66);'
-          +'transition:width 0.3s;"></div>'
+          +'background:linear-gradient(90deg,'+col+','+col+'66);transition:width 0.3s;"></div>'
       +'</div>'
     +'</div>';
+  };
+  canais.forEach(function(canal){
+    var ticket=cMap[canal].fat/Math.max(1,cMap[canal].qtd);
+    var pctFat=totFatT>0?(cMap[canal].fat/totFatT*100):0;
+    h+=bar(canal,ticket,cMap[canal].qtd,pctFat,COLS[canal]||'#888');
   });
+  // Consolidado Site + WhatsApp (venda direta)
+  var si=cMap['Site'],wa=cMap['WhatsApp'];
+  if(si||wa){
+    var dfat=(si?si.fat:0)+(wa?wa.fat:0),dqtd=(si?si.qtd:0)+(wa?wa.qtd:0);
+    var dticket=dfat/Math.max(1,dqtd),dpct=totFatT>0?(dfat/totFatT*100):0;
+    h+='<div style="border-top:1px dashed var(--border);padding-top:10px;margin-top:2px;">'
+      +bar('🟢 Site + WhatsApp',dticket,dqtd,dpct,'#22c55e')+'</div>';
+  }
   el.innerHTML=h||'<div style="color:var(--text3);font-size:12px;padding:8px;">Sem dados</div>';
 }
 
