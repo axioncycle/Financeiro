@@ -1048,8 +1048,8 @@ function vgGastoCard(g){
           '<button onclick="vgAddPasseio('+g.id+')" style="background:rgba(168,85,247,.16);border:1px solid var(--accent);color:var(--accent);font-size:15px;font-weight:700;cursor:pointer;padding:4px 11px;border-radius:8px;">+</button>'+
         '</div>'+
       '</div>':'')+
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
-        (hasSplit?'<span style="font-size:10px;color:var(--text3);flex-shrink:0;">Controle de pagamento por pessoa ↑</span>':'<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;flex-shrink:0;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>')+
+      '<div style="display:flex;justify-content:'+(hasSplit?'flex-end':'space-between')+';align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
+        (hasSplit?'':'<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;flex-shrink:0;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>')+
         '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'+
           '<button onclick="openSplit('+g.id+')" title="Dividir pagamento" style="background:rgba(96,165,250,.14);border:1px solid #60a5fa66;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">👥 Dividir</button>'+
           '<button onclick="editItem('+g.id+')" title="Editar" style="background:rgba(168,85,247,.12);border:1px solid var(--accent);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">✎</button>'+
