@@ -1019,6 +1019,7 @@ function vgToggleCard(id){vgExpanded[id]=!vgExpanded[id];render();}
 function vgGastoCard(g){
   var col=!vgExpanded[g.id];
   var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');var usd=+g.qtd||0;var accent=info.pg?'#22c55e':'var(--accent)';
+  var hasSplit=info.split&&info.split.length;
   var loc=info.local?'<span style="font-size:9px;font-weight:700;color:var(--accent);background:rgba(168,85,247,.16);border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle;white-space:nowrap;">'+esc(info.local)+'</span>':'';
   return '<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:11px;padding:9px 11px;margin-bottom:7px;">'+
     '<div style="display:flex;align-items:center;gap:8px;">'+
@@ -1036,7 +1037,7 @@ function vgGastoCard(g){
     (col?'':
       (info.split&&info.split.length?'<div style="margin-top:6px;background:var(--bg2);border-radius:8px;padding:6px 9px;font-size:11px;">'+
         '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">👥 Divisão</div>'+
-        info.split.map(function(p){return '<div style="display:flex;justify-content:space-between;padding:1px 0;"><span style="color:'+(p.pg?'#22c55e':'var(--text2)')+';">'+(p.pg?'✔ ':'')+esc(p.nome||'—')+'</span><span style="font-weight:700;color:'+(p.pg?'#22c55e':'var(--text)')+';">'+fmt(p.valor)+'</span></div>';}).join('')+
+        info.split.map(function(p,pi){return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;"><span style="color:'+(p.pg?'#22c55e':'var(--text2)')+';min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(p.pg?'✔ ':'')+esc(p.nome||'—')+'</span><span style="display:flex;align-items:center;gap:8px;flex-shrink:0;"><span style="font-weight:700;color:'+(p.pg?'#22c55e':'var(--text)')+';">'+fmt(p.valor)+'</span><button onclick="vgTogglePessoaPg('+g.id+','+pi+')" title="'+(p.pg?'Pago — toque para desmarcar':'Marcar como pago')+'" style="background:'+(p.pg?'#22c55e':'var(--bg3)')+';border:1px solid '+(p.pg?'#22c55e':'var(--border)')+';color:'+(p.pg?'#fff':'var(--text3)')+';font-size:10px;font-weight:800;cursor:pointer;padding:3px 9px;border-radius:7px;line-height:1.4;letter-spacing:.3px;">'+(p.pg?'PG ✓':'PG')+'</button></span></div>';}).join('')+
       '</div>':'')+
       ((/passeio/i.test(g.categoria||'')||info.items.length)?'<div style="margin-top:6px;background:var(--bg2);border-radius:8px;padding:7px 9px;">'+
         '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">🎟️ Passeios</div>'+
@@ -1048,7 +1049,7 @@ function vgGastoCard(g){
         '</div>'+
       '</div>':'')+
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">'+
-        '<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;flex-shrink:0;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>'+
+        (hasSplit?'<span style="font-size:10px;color:var(--text3);flex-shrink:0;">Controle de pagamento por pessoa ↑</span>':'<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:'+(info.pg?'#22c55e':'var(--text2)')+';cursor:pointer;flex-shrink:0;"><input type="checkbox" '+(info.pg?'checked':'')+' onchange="vgTogglePg('+g.id+')" style="width:19px;height:19px;accent-color:#22c55e;cursor:pointer;">'+(info.pg?'Pago':'Pagar')+'</label>')+
         '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">'+
           '<button onclick="openSplit('+g.id+')" title="Dividir pagamento" style="background:rgba(96,165,250,.14);border:1px solid #60a5fa66;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">👥 Dividir</button>'+
           '<button onclick="editItem('+g.id+')" title="Editar" style="background:rgba(168,85,247,.12);border:1px solid var(--accent);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:9px;">✎</button>'+
@@ -1311,6 +1312,9 @@ function vgReadSplit(){var out=[];var c=document.getElementById('vg-split-list')
 function vgHideAdd(){var f=document.getElementById('vg-addform'),b=document.getElementById('vg-add-btn');if(f)f.style.display='none';if(b)b.style.display='block';}
 function vgLocalChange(sid,nid){var s=document.getElementById(sid),n=document.getElementById(nid);if(!s||!n)return;if(s.value==='Outro'){n.style.display='block';n.focus();}else n.style.display='none';}
 function vgTogglePg(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,!info.pg,info.local,info.split,info.items,info.res)},function(){render();});}
+// Marca/desmarca o pagamento de UMA pessoa na divisão. O gasto inteiro fica "pago"
+// automaticamente quando todas as pessoas da divisão estão pagas.
+function vgTogglePessoaPg(id,i){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);if(!info.split||!info.split[i])return;info.split[i].pg=!info.split[i].pg;var allPaid=info.split.length>0&&info.split.every(function(p){return !!p.pg;});updItem(id,{obs:vgSetObs(info.fim,allPaid,info.local,info.split,info.items,info.res)},function(){render();});}
 function vgToggleRes(id){var g=ITEMS.find(function(x){return x.id===id;});if(!g)return;var info=vgInfo(g);updItem(id,{obs:vgSetObs(info.fim,info.pg,info.local,info.split,info.items,!info.res)},function(){render();});}
 function _vgSumItems(items){var s=0,i;for(i=0;i<items.length;i++)s+=(+items[i].valor||0);return Math.round(s*100)/100;}
 function vgAddPasseio(id){
