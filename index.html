@@ -1140,7 +1140,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08x (Comparacao por canal: % do faturamento, % de margem e consolidado Site+WhatsApp na lista Por Canal e no Ticket Medio)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08y (Despesas fixas padrao atualizadas: Contador Matriz/MG/SP, Operador logistico, Tiny Matriz/MG, Aluguel, INSS, ML, Site Vowt = R$5.662,92 auto-cadastradas a cada mes novo)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2350,11 +2350,19 @@ var PAG_TAXA={
   "Credito 10x":12.07,"Credito 11x":12.84,"Credito 12x":13.60
 };
 
+// Despesas fixas padrão — cadastradas automaticamente em todo mês novo (ao virar o mês).
+// Editar aqui altera o modelo para os PRÓXIMOS meses (não mexe nos meses já criados).
 var FIXAS_P=[
-  {nome:"Contador",valor:383.00},{nome:"Aluguel",valor:650.00},
+  {nome:"Contador Matriz",valor:2190.00},
+  {nome:"Contador Filial MG",valor:480.00},
+  {nome:"Contador Filial SP",valor:480.00},
+  {nome:"Operador logístico MG",valor:1200.00},
+  {nome:"Tiny Matriz",valor:116.00},
+  {nome:"Tiny MG",valor:119.71},
+  {nome:"Aluguel",valor:650.00},
   {nome:"INSS",valor:178.31},
-  {nome:"Tiny",valor:84.90},{nome:"Marketing",valor:0},
-  {nome:"Manutencao Site",valor:147.90}
+  {nome:"Mercado Livre",valor:99.00},
+  {nome:"Site Vowt",valor:149.90}
 ];
 
 function getAllSKUs(){
