@@ -1140,8 +1140,21 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08y (Despesas fixas padrao atualizadas: Contador Matriz/MG/SP, Operador logistico, Tiny Matriz/MG, Aluguel, INSS, ML, Site Vowt = R$5.662,92 auto-cadastradas a cada mes novo)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08z (Editor do modelo de despesas fixas recorrentes na tela: adicionar/editar/remover itens; salvo em localStorage e aplicado automaticamente a cada mes novo)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
+    </div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;">
+    <div onclick="var b=document.getElementById('cfgfx-body');var op=b.style.display==='none';b.style.display=op?'block':'none';if(op){_fixasPad=null;fixasPadraoRender();}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
+      <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;">🔁 Despesas fixas recorrentes</span>
+      <span style="font-size:11px;color:var(--text3);">modelo do mês ▾</span>
+    </div>
+    <div id="cfgfx-body" style="display:none;padding:0 14px 14px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.4;">Estas despesas são cadastradas <b>automaticamente</b> em todo mês novo. Editar aqui vale para os <b>próximos</b> meses — não altera os meses já criados.</div>
+      <div id="cfgfx-list"></div>
+      <button onclick="fixasPadraoAdd()" style="width:100%;background:var(--bg3);border:1px dashed var(--border);color:var(--text2);border-radius:9px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;margin-top:2px;">+ Adicionar despesa</button>
+      <div id="cfgfx-total" style="font-size:12px;font-weight:800;color:var(--text);text-align:right;margin:10px 0;"></div>
+      <button class="btn" onclick="fixasPadraoSave()" style="width:100%;">Salvar modelo</button>
     </div>
   </div>
   <div id="res-anual" style="background:var(--card);border:1px solid #1E90FF33;border-radius:12px;padding:14px;margin-bottom:14px;"></div>
@@ -2351,8 +2364,9 @@ var PAG_TAXA={
 };
 
 // Despesas fixas padrão — cadastradas automaticamente em todo mês novo (ao virar o mês).
-// Editar aqui altera o modelo para os PRÓXIMOS meses (não mexe nos meses já criados).
-var FIXAS_P=[
+// Modelo editável pela tela (aba Resultado → Despesas fixas recorrentes), salvo em localStorage.
+// Editar altera o modelo para os PRÓXIMOS meses (não mexe nos meses já criados).
+var FIXAS_P_DEFAULT=[
   {nome:"Contador Matriz",valor:2190.00},
   {nome:"Contador Filial MG",valor:480.00},
   {nome:"Contador Filial SP",valor:480.00},
@@ -2364,6 +2378,7 @@ var FIXAS_P=[
   {nome:"Mercado Livre",valor:99.00},
   {nome:"Site Vowt",valor:149.90}
 ];
+var FIXAS_P=(function(){try{var v=JSON.parse(localStorage.getItem('ax_fixas_padrao')||'null');return (Array.isArray(v)&&v.length)?v:FIXAS_P_DEFAULT.slice();}catch(e){return FIXAS_P_DEFAULT.slice();}})();
 
 function getAllSKUs(){
   var over=loadSkuOver();
@@ -5707,6 +5722,37 @@ function loadDespesasFromDB(mk,cb){
   }).catch(function(){cb(null);});
 }
 
+// ===== Editor do modelo de despesas fixas recorrentes (FIXAS_P) =====
+var _fixasPad=null;
+function _fixasPadTotal(){var t=0;(_fixasPad||[]).forEach(function(f){t+=+f.valor||0;});return t;}
+function fixasPadraoRender(){
+  if(!_fixasPad) _fixasPad=FIXAS_P.map(function(f){return {nome:f.nome,valor:+f.valor||0};});
+  var el=document.getElementById('cfgfx-list'); if(!el) return;
+  var h='';
+  _fixasPad.forEach(function(f,i){
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'
+      +'<input value="'+esc(f.nome)+'" oninput="fixasPadraoUpd('+i+',\'nome\',this.value)" placeholder="Nome da despesa" style="flex:1;min-width:0;font-size:12px;background:var(--input);border:1px solid var(--input-border);border-radius:7px;padding:7px 9px;color:var(--text);outline:none;">'
+      +'<input value="'+(f.valor?fmtN(f.valor):'')+'" inputmode="decimal" oninput="maskBRL(this);fixasPadraoUpd('+i+',\'valor\',this.value)" placeholder="R$" style="width:92px;flex-shrink:0;font-size:12px;background:var(--input);border:1px solid var(--input-border);border-radius:7px;padding:7px 9px;color:var(--text);text-align:right;outline:none;">'
+      +'<button onclick="fixasPadraoDel('+i+')" title="Remover" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;line-height:1;padding:0 4px;flex-shrink:0;">×</button>'
+    +'</div>';
+  });
+  el.innerHTML=h||'<div style="font-size:11px;color:var(--text3);padding:6px 0;">Nenhuma despesa no modelo. Toque em + Adicionar.</div>';
+  var te=document.getElementById('cfgfx-total'); if(te) te.textContent='Total do modelo: '+fmt(_fixasPadTotal());
+}
+function fixasPadraoUpd(i,field,val){
+  if(!_fixasPad||!_fixasPad[i])return;
+  if(field==='valor'){_fixasPad[i].valor=parseBRL(val)||0; var te=document.getElementById('cfgfx-total'); if(te) te.textContent='Total do modelo: '+fmt(_fixasPadTotal());}
+  else _fixasPad[i].nome=val;
+}
+function fixasPadraoAdd(){ if(!_fixasPad)_fixasPad=[]; _fixasPad.push({nome:'',valor:0}); fixasPadraoRender(); }
+function fixasPadraoDel(i){ if(!_fixasPad)return; _fixasPad.splice(i,1); fixasPadraoRender(); }
+function fixasPadraoSave(){
+  var clean=(_fixasPad||[]).map(function(f){return {nome:(f.nome||'').trim(),valor:+f.valor||0};}).filter(function(f){return f.nome;});
+  FIXAS_P=clean.slice();
+  try{localStorage.setItem('ax_fixas_padrao',JSON.stringify(clean));}catch(e){}
+  _fixasPad=null; fixasPadraoRender();
+  if(typeof toast==='function') toast('Modelo de despesas fixas salvo ✓');
+}
 function fillTaxCfg(){
   var ae=document.activeElement, ids=['cfg-regime','cfg-icms','cfg-pc','cfg-ipi'];
   if(ae&&ids.indexOf(ae.id)>=0) return; // não sobrescreve enquanto edita
