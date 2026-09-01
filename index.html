@@ -1140,7 +1140,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09a (Modelo de despesas fixas recorrentes sincronizado na nuvem: editar num aparelho vale em todos; salvo em configuracoes/fixas_padrao)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09b (Corrige auto-preenchimento: mes novo que chega vazio pela nuvem (ex: outubro) tambem recebe as despesas fixas padrao; so preenche mes 100% em branco)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -5602,6 +5602,21 @@ function restoreStock(local,skuId,containerId){
   saveEstoque(cid,skuId,local,newQ).catch(function(e){console.warn("restoreStock error:",e);});
 }
 
+// True quando o mês não tem NENHUM lançamento de despesa (mês em branco).
+// Usado para preencher as despesas fixas padrão em meses novos que chegaram vazios
+// pela nuvem (o mês vira no calendário e ainda não tem fixas).
+function _despMesEmBranco(md){
+  if(!md) return true;
+  return (!md.fixas||!md.fixas.length)&&(!md.extras||!md.extras.length)&&(!md.financeiro||!md.financeiro.length)
+    &&!(+md.das)&&!(+md.prolabore)&&!(+md.distribuicao)
+    &&!(md.prolaboreItems&&md.prolaboreItems.length)&&!(md.distribuicaoItems&&md.distribuicaoItems.length)
+    &&md.icms_deb==null&&md.ipi_deb==null&&!(+md.icms_cred)&&!(+md.ipi_cred)
+    &&!md.irpjcsll&&!md._t_das&&!md._t_irpjcsll;
+}
+function _seedFixasPadrao(){
+  var i,fixas=[];for(i=0;i<FIXAS_P.length;i++)fixas.push({nome:FIXAS_P[i].nome,valor:+FIXAS_P[i].valor||0});
+  return fixas.filter(function(f){return f.nome!=='DAS'&&f.nome!=='das';});
+}
 function getMDesp(mk){
   // Prefer DB_DESP (from Supabase) over localStorage
   if(DB_DESP[mk]){
@@ -5613,16 +5628,20 @@ function getMDesp(mk){
     if(DB_DESP[mk].distribuicao===undefined) DB_DESP[mk].distribuicao=0;
     if(!DB_DESP[mk].distribuicaoItems) DB_DESP[mk].distribuicaoItems=[];
     if(DB_DESP[mk].das===undefined) DB_DESP[mk].das=0;
+    // Mês novo que chegou vazio (sem fixas e sem nenhum lançamento) → preenche o modelo padrão
+    if(!DB_DESP[mk]._fxseed&&!DB_DESP[mk].fixas.length&&_despMesEmBranco(DB_DESP[mk])){
+      DB_DESP[mk].fixas=_seedFixasPadrao();DB_DESP[mk]._fxseed=1;
+      if(typeof saveDespDB==='function')saveDespDB(mk,DB_DESP[mk]);
+    }
     return DB_DESP[mk];
   }
   var d=loadDesp();
   if(!d[mk]){
-    var fixas=[],i;
-    for(i=0;i<FIXAS_P.length;i++) fixas.push({nome:FIXAS_P[i].nome,valor:FIXAS_P[i].valor});
-    // Filter out DAS from fixas (legacy cleanup)
-    fixas=fixas.filter(function(f){return f.nome!=='DAS'&&f.nome!=='das';});
-    d[mk]={fixas:fixas,extras:[],financeiro:[],das:0};
+    d[mk]={fixas:_seedFixasPadrao(),extras:[],financeiro:[],das:0,_fxseed:1};
     saveDespDB(mk,d[mk]);
+  }else if(!d[mk]._fxseed&&(!d[mk].fixas||!d[mk].fixas.length)&&_despMesEmBranco(d[mk])){
+    // Mês já existente mas em branco (chegou vazio) → preenche o modelo padrão
+    d[mk].fixas=_seedFixasPadrao();d[mk]._fxseed=1;saveDespDB(mk,d[mk]);
   }
   if(!d[mk].financeiro) d[mk].financeiro=[];
   if(d[mk].prolabore===undefined) d[mk].prolabore=0;
