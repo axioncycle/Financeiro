@@ -1140,12 +1140,12 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-08z (Editor do modelo de despesas fixas recorrentes na tela: adicionar/editar/remover itens; salvo em localStorage e aplicado automaticamente a cada mes novo)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09a (Modelo de despesas fixas recorrentes sincronizado na nuvem: editar num aparelho vale em todos; salvo em configuracoes/fixas_padrao)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;">
-    <div onclick="var b=document.getElementById('cfgfx-body');var op=b.style.display==='none';b.style.display=op?'block':'none';if(op){_fixasPad=null;fixasPadraoRender();}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
+    <div onclick="var b=document.getElementById('cfgfx-body');var op=b.style.display==='none';b.style.display=op?'block':'none';if(op){_fixasPad=null;fixasPadraoRender();if(typeof loadFixasPadraoFromDB==='function')loadFixasPadraoFromDB();}" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;">
       <span style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;">🔁 Despesas fixas recorrentes</span>
       <span style="font-size:11px;color:var(--text3);">modelo do mês ▾</span>
     </div>
@@ -2221,6 +2221,8 @@ function initDB(cb){
   dbGet('configuracoes','chave=eq.dash2_filter').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){d2SelPeriod=rows[0].valor;}
   }).catch(function(){});
+  // Modelo de despesas fixas recorrentes (sincronizado entre aparelhos)
+  loadFixasPadraoFromDB();
   dbGet('configuracoes','chave=eq.dash_filter').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){selMonth=rows[0].valor;}
   }).catch(function(){});
@@ -5750,8 +5752,26 @@ function fixasPadraoSave(){
   var clean=(_fixasPad||[]).map(function(f){return {nome:(f.nome||'').trim(),valor:+f.valor||0};}).filter(function(f){return f.nome;});
   FIXAS_P=clean.slice();
   try{localStorage.setItem('ax_fixas_padrao',JSON.stringify(clean));}catch(e){}
+  // Sincroniza entre aparelhos via Supabase (tabela configuracoes)
+  if(typeof dbUpsert==='function'){try{dbUpsert('configuracoes',{chave:'fixas_padrao',valor:JSON.stringify(clean)});}catch(e){}}
   _fixasPad=null; fixasPadraoRender();
   if(typeof toast==='function') toast('Modelo de despesas fixas salvo ✓');
+}
+// Carrega o modelo salvo na nuvem (se houver) e substitui o local — para editar num aparelho e valer em todos.
+function loadFixasPadraoFromDB(){
+  if(typeof dbGet!=='function') return;
+  dbGet('configuracoes','chave=eq.fixas_padrao').then(function(rows){
+    try{
+      if(Array.isArray(rows)&&rows.length&&rows[0].valor){
+        var arr=JSON.parse(rows[0].valor);
+        if(Array.isArray(arr)&&arr.length){
+          FIXAS_P=arr.map(function(f){return {nome:(f.nome||'').trim(),valor:+f.valor||0};}).filter(function(f){return f.nome;});
+          try{localStorage.setItem('ax_fixas_padrao',JSON.stringify(FIXAS_P));}catch(e){}
+          if(document.getElementById('cfgfx-list')&&document.getElementById('cfgfx-body')&&document.getElementById('cfgfx-body').style.display!=='none'){_fixasPad=null;fixasPadraoRender();}
+        }
+      }
+    }catch(e){}
+  }).catch(function(){});
 }
 function fillTaxCfg(){
   var ae=document.activeElement, ids=['cfg-regime','cfg-icms','cfg-pc','cfg-ipi'];
