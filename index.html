@@ -1089,6 +1089,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     </select>
     <button id="srch-pend" onclick="toggleSrchPend()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #ef444455;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">⏳ Aguardando envio</button>
     <button id="srch-imp0" onclick="toggleSrchImp0()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #f59e0b55;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">🧾 Imposto zerado</button>
+    <button id="srch-pdf" onclick="exportVendasPDF()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #1E90FF55;background:#1E90FF18;color:#1E90FF;cursor:pointer;white-space:nowrap;">📄 Exportar PDF</button>
   </div>
   <div id="srch-info" style="font-size:10px;color:var(--text3);margin-bottom:6px;display:none;"></div>
   <div id="sync-pending-bar" style="display:none;background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -1140,7 +1141,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09c (Botao 'Enviar para um mes' no modelo de despesas fixas: adiciona as fixas ao mes escolhido sem duplicar, mesmo que o mes ja tenha extras; auto-preenchimento fragil por mes-em-branco removido)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09d (Exportar PDF na aba Vendas respeitando o filtro atual: status Aguardando envio, canal, datas, vendedor, busca — exporta exatamente o que a lista mostra, com totais)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -4531,12 +4532,12 @@ function toggleSrchImp0(){
   if(b){if(window._srchImp0){b.style.background='#f59e0b';b.style.color='#111';b.style.borderColor='#f59e0b';}else{b.style.background='var(--bg2)';b.style.color='var(--text2)';b.style.borderColor='#f59e0b55';}}
   renderHist();
 }
-function renderHist(){
+// Filtro compartilhado da lista de vendas — usado pela tela E pela exportação de PDF,
+// garantindo que o PDF exporte exatamente o que está sendo mostrado com o filtro.
+function getHistFiltered(){
   var vendas=loadVendas();
-  var el=document.getElementById('v-hist');
-  var inf=document.getElementById('srch-info');
-  var nome=(document.getElementById('srch-nome').value||'').toLowerCase().trim();
-  var data=(document.getElementById('srch-data').value||'').trim();
+  var nome=((document.getElementById('srch-nome')||{}).value||'').toLowerCase().trim();
+  var data=((document.getElementById('srch-data')||{}).value||'').trim();
   var dataDe=(document.getElementById('srch-data-de')?document.getElementById('srch-data-de').value:'').trim();
   var dataAte=(document.getElementById('srch-data-ate')?document.getElementById('srch-data-ate').value:'').trim();
   var canal=(document.getElementById('srch-canal')?document.getElementById('srch-canal').value:'').trim();
@@ -4558,20 +4559,38 @@ function renderHist(){
     if(window._srchImp0&&(+v.imp||0)!==0) continue;
     fv.push(v);
   }
-  var hasFilter=nome||data||dataDe||dataAte||canal||vendedor||window._srchPend||window._srchImp0;
-  var ordem=(document.getElementById('srch-ordem')||{}).value||'data';
-  if(ordem==='recentes'){
-    fv.sort(function(a,b){return (b.createdAt||b.id||0)-(a.createdAt||a.id||0);});
-  } else {
-    fv.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
-  }
+  var ordem=((document.getElementById('srch-ordem')||{}).value)||'data';
+  if(ordem==='recentes') fv.sort(function(a,b){return (b.createdAt||b.id||0)-(a.createdAt||a.id||0);});
+  else fv.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  var parts=[];
+  if(nome)parts.push('busca: "'+nome+'"');
+  if(canal)parts.push('canal: '+canal);
+  if(vendedor)parts.push('vendedor: '+vendedor);
+  if(data)parts.push('data: '+fmtDate(data));
+  else if(dataDe&&dataAte)parts.push('período: '+fmtDate(dataDe)+' a '+fmtDate(dataAte));
+  else if(dataDe)parts.push('a partir de '+fmtDate(dataDe));
+  else if(dataAte)parts.push('até '+fmtDate(dataAte));
+  if(window._srchPend)parts.push('Aguardando envio');
+  if(window._srchImp0)parts.push('Imposto zerado');
+  return {fv:fv,total:vendas.length,label:parts.length?parts.join(' · '):'Todas as vendas',hasFilter:parts.length>0};
+}
+function renderHist(){
+  var el=document.getElementById('v-hist');
+  var inf=document.getElementById('srch-info');
+  var R=getHistFiltered();
+  var fv=R.fv,i;
+  var nome=((document.getElementById('srch-nome')||{}).value||'').toLowerCase().trim();
+  var data=((document.getElementById('srch-data')||{}).value||'').trim();
+  var dataDe=(document.getElementById('srch-data-de')?document.getElementById('srch-data-de').value:'').trim();
+  var dataAte=(document.getElementById('srch-data-ate')?document.getElementById('srch-data-ate').value:'').trim();
+  var hasFilter=R.hasFilter;
   if(hasFilter){
     inf.style.display='block';
     var filterDesc='';
     if(dataDe&&dataAte) filterDesc=' de '+fmtDate(dataDe)+' a '+fmtDate(dataAte);
     else if(dataDe) filterDesc=' a partir de '+fmtDate(dataDe);
     else if(dataAte) filterDesc=' até '+fmtDate(dataAte);
-    inf.textContent=fv.length+' resultado'+(fv.length!==1?'s':'')+filterDesc+(vendas.length!==fv.length?' (de '+vendas.length+' vendas)':'');
+    inf.textContent=fv.length+' resultado'+(fv.length!==1?'s':'')+filterDesc+(R.total!==fv.length?' (de '+R.total+' vendas)':'');
   } else {inf.style.display='none';}
   if(!fv.length){el.innerHTML='<div class="empty">Nenhuma venda'+(nome||data?' encontrada com esse filtro':' ainda.')+'</div>';return;}
   var html='';
@@ -4585,6 +4604,60 @@ function renderHist(){
     var vProd=v.produto||'—';html+='<div class="li"'+(v.pendente?' style="border-left:2px solid #ef4444;"':'')+'><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div>'+pendInfo+'<div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+fmt(v.venda)+'</div></div></div>';
   }
   el.innerHTML=html;
+}
+
+// Exporta em PDF exatamente as vendas que o filtro atual está mostrando.
+function exportVendasPDF(){
+  var R=getHistFiltered();
+  var fv=R.fv;
+  if(!fv.length){ if(typeof toast==='function')toast('Nenhuma venda no filtro atual',true); return; }
+  var dateStr=new Date().toLocaleDateString('pt-BR');
+  var d=function(v){v=String(v==null?'':v).trim();return v?esc(v):'—';};
+  var rows='',totVenda=0,totLucro=0,nPend=0;
+  fv.forEach(function(v){
+    totVenda+=(+v.venda||0);totLucro+=(+v.lucroLL||0);if(v.pendente)nPend++;
+    var st=v.pendente?'<span style="color:#c0392b;font-weight:700;">⏳ Aguardando'+(v.pendenteMotivo?' ('+esc(v.pendenteMotivo)+')':'')+'</span>':'<span style="color:#166534;">Enviada</span>';
+    var lc=(+v.lucroLL||0)>=0?'#166534':'#c0392b';
+    rows+='<tr>'+
+      '<td class="c">'+d(fmtDate(v.date))+'</td>'+
+      '<td>'+d(v.cliente)+'</td>'+
+      '<td>'+d(v.produto)+(v.origem?' <span style="color:#999;">· '+esc(v.origem)+'</span>':'')+'</td>'+
+      '<td>'+d(v.canal)+'</td>'+
+      '<td>'+d(v.vendedor)+'</td>'+
+      '<td class="num">'+fmt(v.venda)+'</td>'+
+      '<td class="num" style="color:'+lc+';">'+fmt(v.lucroLL)+'</td>'+
+      '<td>'+st+'</td>'+
+    '</tr>';
+  });
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Vendas Axion Cycle — '+dateStr+'</title>'+
+    '<style>@page{size:A4 landscape;margin:10mm;}*{box-sizing:border-box;margin:0;padding:0;}'+
+    'body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:20px 24px;}'+
+    'h1{font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:2px;}'+
+    '.subtitle{font-size:11px;color:#555;margin-bottom:14px;}'+
+    '.subtitle b{color:#1E90FF;}'+
+    'table{width:100%;border-collapse:collapse;}'+
+    'th{background:#1a1a2e;color:#fff;font-size:9px;font-weight:700;padding:6px;text-align:left;}'+
+    'th.num,td.num{text-align:right;white-space:nowrap;}th.c,td.c{text-align:center;white-space:nowrap;}'+
+    'td{padding:5px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;}'+
+    'td.num{font-weight:600;}'+
+    'tr:nth-child(even) td{background:#f8fafc;}'+
+    'tfoot td{background:#eff6ff;color:#1d4ed8;font-weight:800;border-top:2px solid #e2e8f0;font-size:11px;}'+
+    '@media print{body{padding:10px;}.noprint{display:none;}}'+
+    '</style></head><body>'+
+    '<h1>Relatório de Vendas</h1>'+
+    '<div class="subtitle">Axion Cycle · Filtro: <b>'+esc(R.label)+'</b> · '+fv.length+' venda'+(fv.length!==1?'s':'')+(nPend?' ('+nPend+' aguardando envio)':'')+' · Gerado em '+dateStr+'</div>'+
+    '<table><thead><tr><th class="c">Data</th><th>Cliente</th><th>Produto</th><th>Canal</th><th>Vendedor</th><th class="num">Venda</th><th class="num">Lucro</th><th>Status</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td colspan="5">TOTAL ('+fv.length+' venda'+(fv.length!==1?'s':'')+')</td><td class="num">'+fmt(totVenda)+'</td><td class="num">'+fmt(totLucro)+'</td><td></td></tr></tfoot>'+
+    '</table>'+
+    '<div class="noprint" style="position:fixed;bottom:20px;right:20px;display:flex;gap:8px;">'+
+    '<button onclick="window.print()" style="background:#1a1a2e;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
+    '<button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;">Fechar</button>'+
+    '</div></body></html>';
+  var win=window.open('','_blank');
+  if(!win){ if(typeof toast==='function')toast('Permita pop-ups para exportar PDF',true); return; }
+  win.document.write(html);win.document.close();win.focus();
+  setTimeout(function(){try{win.print();}catch(e){}},600);
 }
 
 // ── IMPORT CSV ────────────────────────────────────────────────────────────
