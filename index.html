@@ -1082,8 +1082,8 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     </select>
     <input class="fi" id="srch-vendedor" type="text" placeholder="Filtrar vendedor..." oninput="renderHist()" style="flex:1;font-size:12px;padding:8px;">
   </div>
-  <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
-    <select class="fi" id="srch-ordem" onchange="renderHist()" style="flex:1;font-size:12px;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+  <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">
+    <select class="fi" id="srch-ordem" onchange="renderHist()" style="flex:1 1 100%;font-size:12px;padding:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;">
       <option value="data">Ordenar por data</option>
       <option value="recentes">Últimas adicionadas</option>
     </select>
