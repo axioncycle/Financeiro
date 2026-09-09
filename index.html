@@ -1120,6 +1120,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <button id="e-tabs-toggle" onclick="toggleEstTabs()" title="Expandir / recolher contêineres" style="flex-shrink:0;width:36px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:15px;font-weight:700;cursor:pointer;line-height:1;">⤢</button>
   </div>
   <div class="stitle" id="e-title">Estoque Geral</div>
+  <div id="e-geral-tools" style="display:none;margin-bottom:10px;">
+    <input id="e-geral-search" class="fi" placeholder="🔎 Buscar SKU..." oninput="renderEstGeralList()" autocomplete="off" style="font-size:13px;padding:9px 11px;margin-bottom:8px;">
+    <div id="e-geral-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+  </div>
   <div id="e-list"></div>
 </div>
 
@@ -1141,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09h (Remove o botao × do Estoque Geral — era perigoso por apagar o SKU de TODOS os conteineres; funcao removerSkuEstoque mantida sem uso)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09i (Estoque Geral agrupado por categoria: chips por categoria com subtotal, busca de SKU e secoes recolhiveis com subtotal de unidades)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -5014,6 +5018,72 @@ function removerSkuEstoque(skuId,nome){
   if(typeof toast==='function') toast('Removido do estoque: '+(nome||''));
   renderEst();
 }
+// ── Estoque Geral agrupado por CATEGORIA (chips + busca + seções recolhíveis) ──
+var estGeralCat='__all__';       // categoria selecionada nos chips
+var estGeralCollapse={};         // categorias recolhidas
+var _CAT_META={RIM:{label:'Rim brake',cor:'#1E90FF'},DISC:{label:'Disc brake',cor:'#22c55e'},GRAVEL:{label:'Gravel',cor:'#f59e0b'},MTB:{label:'MTB',cor:'#a855f7'}};
+var _CAT_ORDER=['RIM','DISC','GRAVEL','MTB'];
+function _catMeta(c){return _CAT_META[c]||{label:(c||'Outros'),cor:'#8b93a1'};}
+function setEstGeralCat(c){estGeralCat=c;renderEstGeralList();}
+function toggleEstGeralCat(c){estGeralCollapse[c]=!estGeralCollapse[c];renderEstGeralList();}
+function renderEstGeralList(){
+  var listEl=document.getElementById('e-list'); if(!listEl) return;
+  var locais=loadLocais(), skus=getAllSKUs();
+  var busca=((document.getElementById('e-geral-search')||{}).value||'').toLowerCase().trim();
+  // Agrupa por categoria os SKUs com estoque
+  var groups={},catTot={},i,j;
+  for(i=0;i<skus.length;i++){
+    var s=skus[i],totS=0,per=[];
+    for(j=0;j<locais.length;j++){var q=getQtyLocal(locais[j],s.id);if(q>0)per.push({local:locais[j],q:q});totS+=q;}
+    if(totS===0) continue;
+    var cat=(s.cat||'Outros');
+    catTot[cat]=(catTot[cat]||0)+totS;
+    if(busca&&s.nome.toLowerCase().indexOf(busca)<0) continue;
+    if(estGeralCat!=='__all__'&&cat!==estGeralCat) continue;
+    if(!groups[cat]) groups[cat]=[];
+    groups[cat].push({sku:s,totS:totS,per:per});
+  }
+  // Chips (total geral + por categoria) — usa catTot (independente da busca)
+  var chipsEl=document.getElementById('e-geral-chips');
+  if(chipsEl){
+    var totAll=0; for(var ck in catTot) totAll+=catTot[ck];
+    var chip=function(key,txt,cor,active){return '<button onclick="setEstGeralCat(\''+key+'\')" style="font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;cursor:pointer;border:1px solid '+(active?cor:'var(--border)')+';background:'+(active?cor+'22':'var(--bg2)')+';color:'+(active?cor:'var(--text2)')+';">'+txt+'</button>';};
+    var ch=chip('__all__','Tudo '+totAll,'#1E90FF',estGeralCat==='__all__');
+    var cats=Object.keys(catTot).sort(function(a,b){var ia=_CAT_ORDER.indexOf(a),ib=_CAT_ORDER.indexOf(b);if(ia<0)ia=99;if(ib<0)ib=99;return ia-ib||a.localeCompare(b);});
+    cats.forEach(function(c){var m=_catMeta(c);ch+=chip(c,m.label+' '+catTot[c],m.cor,estGeralCat===c);});
+    chipsEl.innerHTML=ch;
+  }
+  // Seções por categoria
+  listEl.innerHTML='';
+  var orderCats=Object.keys(groups).sort(function(a,b){var ia=_CAT_ORDER.indexOf(a),ib=_CAT_ORDER.indexOf(b);if(ia<0)ia=99;if(ib<0)ib=99;return ia-ib||a.localeCompare(b);});
+  if(!orderCats.length){listEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;">Nenhum SKU'+(busca?' com "'+esc(busca)+'"':' em estoque')+'.</div>';return;}
+  orderCats.forEach(function(cat){
+    var m=_catMeta(cat), arr=groups[cat];
+    var sub=0; arr.forEach(function(x){sub+=x.totS;});
+    var col=estGeralCollapse[cat];
+    var head=document.createElement('div');
+    head.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+m.cor+';border-radius:9px;padding:9px 12px;margin:10px 0 6px;';
+    head.onclick=(function(c){return function(){toggleEstGeralCat(c);};})(cat);
+    head.innerHTML='<span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:'+m.cor+';">'+esc(m.label)+' <span style="color:var(--text3);font-weight:600;">· '+arr.length+' SKU'+(arr.length>1?'s':'')+'</span></span>'
+      +'<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:800;color:'+m.cor+';">'+sub+' un</span><span style="color:var(--text3);font-size:12px;">'+(col?'▾':'▴')+'</span></span>';
+    listEl.appendChild(head);
+    if(col) return;
+    arr.forEach(function(x){
+      var s=x.sku, totS=x.totS;
+      var dot=totS<=2?'#f59e0b':'#22c55e';
+      var item=document.createElement('div');item.className='li';item.style.flexDirection='column';item.style.alignItems='stretch';
+      var hrow=document.createElement('div');hrow.style.cssText='display:flex;align-items:center;gap:8px;';
+      var dotEl=document.createElement('div');dotEl.style.cssText='width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0;';
+      var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';nm.textContent=s.nome;
+      var badge=document.createElement('div');badge.style.cssText='background:#1E90FF22;border:1px solid #1E90FF44;border-radius:6px;padding:2px 10px;font-size:14px;font-weight:800;color:#1E90FF;';badge.textContent=totS;
+      hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(badge);
+      var bd=document.createElement('div');bd.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;';
+      x.per.forEach(function(p){var sp=document.createElement('span');sp.style.cssText='font-size:9px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--text2);';sp.textContent=p.local+': '+p.q;bd.appendChild(sp);});
+      item.appendChild(hrow);if(bd.children.length) item.appendChild(bd);
+      listEl.appendChild(item);
+    });
+  });
+}
 function renderEst(){
   var cs=loadContainers();
   var locais=loadLocais();
@@ -5052,6 +5122,7 @@ function renderEst(){
   listEl.innerHTML='';
   if(estView==='__geral__'){
     document.getElementById('e-title').textContent='Estoque Geral';
+    var tg=document.getElementById('e-geral-tools'); if(tg) tg.style.display='block';
     var totG=0,altG=0;
     for(i=0;i<skus.length;i++){
       var s=skus[i],totS=0,j;
@@ -5062,27 +5133,10 @@ function renderEst(){
     }
     document.getElementById('e-tot').textContent=totG+' un';
     document.getElementById('e-alt').textContent=altG+' SKUs';
-    for(i=0;i<skus.length;i++){
-      var s=skus[i],totS=0,j;
-      for(j=0;j<locais.length;j++) totS+=getQtyLocal(locais[j],s.id);
-      if(totS===0) continue; // hide SKUs with no stock in Geral
-      var dot=totS<=2?'#f59e0b':'#22c55e';
-      var item=document.createElement('div');item.className='li';item.style.flexDirection='column';item.style.alignItems='stretch';
-      var hrow=document.createElement('div');hrow.style.cssText='display:flex;align-items:center;gap:8px;';
-      var dotEl=document.createElement('div');dotEl.style.cssText='width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0;';
-      var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';nm.textContent=s.nome;
-      var badge=document.createElement('div');badge.style.cssText='background:#1E90FF22;border:1px solid #1E90FF44;border-radius:6px;padding:2px 10px;font-size:14px;font-weight:800;color:#1E90FF;';badge.textContent=totS;
-      hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(badge);
-      var bd=document.createElement('div');bd.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;';
-      for(j=0;j<locais.length;j++){
-        var q=getQtyLocal(locais[j],s.id);
-        if(q>0){var sp=document.createElement('span');sp.style.cssText='font-size:9px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--text2);';sp.textContent=locais[j]+': '+q;bd.appendChild(sp);}
-      }
-      item.appendChild(hrow);if(bd.children.length) item.appendChild(bd);
-      listEl.appendChild(item);
-    }
+    renderEstGeralList();
     return;
   }
+  var tg2=document.getElementById('e-geral-tools'); if(tg2) tg2.style.display='none';
   // Container view
   var cont=null;
   for(i=0;i<cs.length;i++){if(cs[i].id===estView){cont=cs[i];break;}}
