@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09i (Estoque Geral agrupado por categoria: chips por categoria com subtotal, busca de SKU e secoes recolhiveis com subtotal de unidades)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09j (Ver venda: campo Garantia abaixo de Vendedor — reserva de gasto com garantia que reduz margem/lucro; sincronizado entre aparelhos via configuracoes)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2235,6 +2235,8 @@ function initDB(cb){
   }).catch(function(){});
   // Modelo de despesas fixas recorrentes (sincronizado entre aparelhos)
   loadFixasPadraoFromDB();
+  // Garantia por venda (sincronizada entre aparelhos)
+  loadVendaGarantia(function(){if(typeof renderHist==='function'&&curPage==='vend')renderHist();});
   dbGet('configuracoes','chave=eq.dash_filter').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){selMonth=rows[0].valor;}
   }).catch(function(){});
@@ -2256,7 +2258,17 @@ function initDB(cb){
 function sg(k,d){try{var v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch(e){return d;}}
 function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
-function loadVendas(){return DB_READY?DB_VENDAS:(sg("ax_v6_vendas",[]));}
+// Garantia por venda — reserva de gasto com garantia. Guardada num mapa {idVenda:valor}
+// em configuracoes (sincroniza entre aparelhos), carimbada nas vendas ao carregar.
+var _vendaGarantia=(function(){try{return JSON.parse(localStorage.getItem('ax_venda_garantia')||'{}')||{};}catch(e){return {};}})();
+function loadVendaGarantia(cb){
+  if(typeof dbGet!=='function'){if(cb)cb();return;}
+  dbGet('configuracoes','chave=eq.venda_garantia').then(function(rows){
+    try{if(Array.isArray(rows)&&rows[0]&&rows[0].valor){_vendaGarantia=JSON.parse(rows[0].valor)||{};localStorage.setItem('ax_venda_garantia',JSON.stringify(_vendaGarantia));}}catch(e){}
+    if(cb)cb();
+  }).catch(function(){if(cb)cb();});
+}
+function loadVendas(){var arr=DB_READY?DB_VENDAS:(sg("ax_v6_vendas",[]));try{for(var i=0;i<arr.length;i++){if(arr[i])arr[i].garantia=+(_vendaGarantia[String(arr[i].id)])||0;}}catch(e){}return arr;}
 function saveVendas(v,changed){
   DB_VENDAS=v;
   // localStorage no longer primary — Supabase is source of truth
@@ -12325,8 +12337,22 @@ function salvarDataVenda(val){
 }
 
 function _recalcVenda(v){
-  v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-(v.frete||0))*100)/100;
+  v.lucroSI=Math.round((v.venda-(v.custo||0)-(v.taxa||0)-(v.com||0)-(v.frete||0)-(v.garantia||0))*100)/100;
   v.lucroLL=Math.round((v.lucroSI-(v.imp||0))*100)/100;
+}
+function salvarGarantiaVenda(rawVal){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  v.garantia=parseBRL(rawVal||'0')||0;
+  _vendaGarantia[String(v.id)]=v.garantia;
+  try{localStorage.setItem('ax_venda_garantia',JSON.stringify(_vendaGarantia));}catch(e){}
+  if(typeof dbUpsert==='function'){try{dbUpsert('configuracoes',{chave:'venda_garantia',valor:JSON.stringify(_vendaGarantia)});}catch(e){}}
+  _recalcVenda(v);
+  saveVendas(vendas,v);
+  refreshAfterVendaEdit();
+  toast('Garantia atualizada!');
 }
 
 function salvarVendaVenda(rawVal){
@@ -12473,6 +12499,16 @@ function buildVerVendaHTML(rows){
         +'</div>';
       return;
     }
+    if(r.garantia){
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">'
+        +'<span style="font-size:11px;color:var(--text2);">🛡️ Garantia</span>'
+        +'<span style="display:flex;align-items:center;">'+_pctTag(r)
+        +'<input type="text" inputmode="decimal" value="'+(r.garantiaVal?fmtN(r.garantiaVal):'')+'" placeholder="0,00" '
+        +'style="width:100px;background:var(--input);border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:4px 8px;color:#ef4444;font-size:12px;text-align:right;outline:none;" '
+        +'oninput="maskBRL(this)" onfocus="this._ov=this.value" onblur="if(this.value!==this._ov)salvarGarantiaVenda(this.value)">'+'</span>'
+        +'</div>';
+      return;
+    }
     if(r.note){
       h+='<div style="font-size:9.5px;color:var(--text3);line-height:1.4;padding:2px 0 4px;">'+esc(r.note)+'</div>';
       return;
@@ -12490,7 +12526,7 @@ function buildVerVendaHTML(rows){
 
 function _buildVerVendaRows(v){
   var comPct=v.comPct||0;
-  var margContrib=v.venda-(v.taxa||0)-(v.com||0)-(v.custo||0)-(v.frete||0);
+  var margContrib=v.venda-(v.taxa||0)-(v.com||0)-(v.custo||0)-(v.frete||0)-(v.garantia||0);
   var margPct=v.venda>0?(margContrib/v.venda*100):0;
   var markup=(v.custo||0)>0?(v.venda/v.custo):0;
   var markupPct=(v.custo||0)>0?((v.venda-v.custo)/v.custo*100):0;
@@ -12512,6 +12548,7 @@ function _buildVerVendaRows(v){
     {label:'🚚 Frete',frete:true,freteVal:v.frete||0,pct:_pctVenda(v.frete,v.venda)},
     {label:'💼 Comissão',com:true,comVal:v.com||0,pct:_pctVenda(v.com,v.venda)},
     {label:'🧑‍💼 Vendedor',vendedor:true,vendedorVal:v.vendedor||''},
+    {label:'🛡️ Garantia',garantia:true,garantiaVal:v.garantia||0,pct:_pctVenda(v.garantia,v.venda)},
     {label:'🧾 DAS/Imposto',das:true,dasVal:v.imp||0,pct:_pctVenda(v.imp,v.venda)},
     null,
     {label:'🎯 Marg. Contribuição',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true},
