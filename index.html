@@ -1141,7 +1141,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09e (Ver venda: quando imposto em branco no Presumido, mostra Liquido ESTIMADO pela aliquota media (nao chama de Lucro Liquido); imposto real segue apurado por mes no Resultado)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09f (Corrige estoque fantasma: ao remover SKU de um conteiner e salvar, apaga do banco (container_skus + estoque_distribuicao) os SKUs que sairam, para nao voltarem no estoque geral)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -7964,6 +7964,7 @@ function saveCustoData(cid,data){
         if(String(cs[ci3].id)!==String(cid)) continue;
         var cont3=cs[ci3];
         for(var sk3 in cont3.skus){if(cont3.skus[sk3]) cont3.skus[sk3].custoQty=0;}
+        var curIds={};
         for(k2=0;k2<data.skuRows.length;k2++){
           var sr=data.skuRows[k2];
           if(!sr.skuNome||sr.skuNome==='__manage__') continue;
@@ -7972,11 +7973,29 @@ function saveCustoData(cid,data){
               var sid3=allS[j3].id;
               if(!cont3.skus[sid3]) cont3.skus[sid3]={custo:0,custoQty:0,un:{}};
               cont3.skus[sid3].custoQty=parseInt(sr.qty)||0;
+              curIds[String(sid3)]=1;
               saveContainerSku(cid,parseInt(sid3),cont3.skus[sid3].custo||0,cont3.skus[sid3].custoQty);
               break;
             }
           }
         }
+        // Remove do banco (e da memória) os SKUs que saíram do contêiner —
+        // senão as linhas antigas voltam a aparecer no estoque geral ao recarregar.
+        (function(contRef){
+          if(typeof dbGet!=='function') return;
+          dbGet('container_skus','container_id=eq.'+cid).then(function(rows){
+            if(!Array.isArray(rows)) return;
+            var mudou=false;
+            rows.forEach(function(r){
+              if(curIds[String(r.sku_id)]) return; // ainda faz parte do contêiner
+              dbDel('container_skus','container_id=eq.'+cid+'&sku_id=eq.'+(+r.sku_id));
+              dbDel('estoque_distribuicao','container_id=eq.'+cid+'&sku_id=eq.'+(+r.sku_id));
+              if(contRef.skus[r.sku_id]){contRef.skus[r.sku_id].custoQty=0;contRef.skus[r.sku_id].un={};}
+              mudou=true;
+            });
+            if(mudou&&typeof renderEst==='function'&&curPage==='est') renderEst();
+          }).catch(function(){});
+        })(cont3);
         DB_CONTAINERS=cs;
         break;
       }
