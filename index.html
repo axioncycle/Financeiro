@@ -1141,7 +1141,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09f (Corrige estoque fantasma: ao remover SKU de um conteiner e salvar, apaga do banco (container_skus + estoque_distribuicao) os SKUs que sairam, para nao voltarem no estoque geral)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09g (Botao × no Estoque Geral para remover um SKU: zera em todos os conteineres e apaga do banco; nao afeta vendas)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -4995,6 +4995,25 @@ function setEstView(v){estView=v;renderEst();}
 
 var estTabsExpanded=false;
 function toggleEstTabs(){estTabsExpanded=!estTabsExpanded;renderEst();}
+// Remove um SKU do estoque geral: zera a distribuição e a quantidade planejada em TODOS
+// os contêineres e apaga do banco (container_skus + estoque_distribuicao). Não mexe nas vendas.
+function removerSkuEstoque(skuId,nome){
+  if(!confirm('Remover "'+(nome||'este SKU')+'" do estoque?\nZera esse SKU em todos os contêineres e apaga do banco. As vendas já lançadas não são afetadas.')) return;
+  var cs=loadContainers(),changed=false,i;
+  for(i=0;i<cs.length;i++){
+    var sk=cs[i].skus&&cs[i].skus[skuId];
+    if(!sk) continue;
+    sk.custoQty=0; sk.un={};
+    changed=true;
+    if(typeof dbDel==='function'){
+      dbDel('container_skus','container_id=eq.'+cs[i].id+'&sku_id=eq.'+parseInt(skuId));
+      dbDel('estoque_distribuicao','container_id=eq.'+cs[i].id+'&sku_id=eq.'+parseInt(skuId));
+    }
+  }
+  if(changed){ if(typeof saveContainers==='function')saveContainers(cs); DB_CONTAINERS=cs; }
+  if(typeof toast==='function') toast('Removido do estoque: '+(nome||''));
+  renderEst();
+}
 function renderEst(){
   var cs=loadContainers();
   var locais=loadLocais();
@@ -5053,7 +5072,9 @@ function renderEst(){
       var dotEl=document.createElement('div');dotEl.style.cssText='width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0;';
       var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';nm.textContent=s.nome;
       var badge=document.createElement('div');badge.style.cssText='background:#1E90FF22;border:1px solid #1E90FF44;border-radius:6px;padding:2px 10px;font-size:14px;font-weight:800;color:#1E90FF;';badge.textContent=totS;
-      hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(badge);
+      var delBtn=document.createElement('button');delBtn.textContent='×';delBtn.title='Remover do estoque';delBtn.style.cssText='background:none;border:none;color:#ef4444;font-size:20px;line-height:1;cursor:pointer;padding:0 4px;flex-shrink:0;';
+      delBtn.onclick=(function(sid,nomeS){return function(e){e.stopPropagation();removerSkuEstoque(sid,nomeS);};})(s.id,s.nome);
+      hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(badge);hrow.appendChild(delBtn);
       var bd=document.createElement('div');bd.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;';
       for(j=0;j<locais.length;j++){
         var q=getQtyLocal(locais[j],s.id);
