@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09o (Invoice: coluna ITEM Name puxa NCM + SKU (codigo) + EAN do cadastro)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09p (Invoice: ITEM Name em linha unica (Roda | NCM | SKU | EAN); descricao igual ao Packing List (PT+EN+中文) com cor Logo Valve/Grey/White/Holographic)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -8711,7 +8711,10 @@ var PL_IMPORTERS={
 function _plImporter(){var s=(document.getElementById('pl-importer')||{}).value;return PL_IMPORTERS[s]||PL_IMPORTERS.MG;}
 // Descrição completa do produto para o Packing List, gerada do nome do SKU (PT + EN + 中文).
 function _plCorEN(c){return {'Preto':'Black','Cinza':'Grey','Branco':'White','Holográfica':'Holographic'}[c]||c;}
-function _plDescr(skuNome){
+function _plCorLogo(c){return {'Preto':'Logo Valve','Cinza':'Logo Grey','Branco':'Logo White','Holográfica':'Logo Holographic'}[c]||'';}
+// Descrição completa (PT + EN + 中文). useLogo=true → cor vira a versão do fornecedor
+// (Logo Valve/Grey/White/Holographic) em vez de Preto/Black etc. — usado na Invoice.
+function _plDescr(skuNome,useLogo){
   var raw=String(skuNome||'').trim();
   var up=raw.toUpperCase(),cor='';
   if(/\bBLACK\b|\bPRETO\b|\bPRETA\b/.test(up))cor='Preto';
@@ -8720,8 +8723,10 @@ function _plDescr(skuNome){
   else if(/HOLOGR|\bHOLO\b/.test(up))cor='Holográfica';
   // Núcleo = nome sem as palavras de cor (tipo + medida + variação)
   var core=raw.replace(/\b(black|preto|preta|cinza|grey|gray|branco|branca|white|holográfica|holografica|holo)\b/gi,'').replace(/\s{2,}/g,' ').trim();
-  var pt='Roda de carbono para bicicleta '+core+' - Axion Cycle'+(cor?(' - Cor: '+cor):'');
-  var en='Carbon fiber + metal bicycle wheel, '+core+', Axion Cycle'+(cor?(' - color: '+_plCorEN(cor)):'');
+  var corPT=useLogo?_plCorLogo(cor):cor;
+  var corEN=useLogo?_plCorLogo(cor):_plCorEN(cor);
+  var pt='Roda de carbono para bicicleta '+core+' - Axion Cycle'+(corPT?(' - Cor: '+corPT):'');
+  var en='Carbon fiber + metal bicycle wheel, '+core+', Axion Cycle'+(corEN?(' - color: '+corEN):'');
   var zh='碳纤维+金属自行车轮 '+core;
   return pt+'\n//\n'+en+'\n//\n'+zh;
 }
@@ -8812,17 +8817,9 @@ var INV_STAMP_B64='iVBORw0KGgoAAAANSUhEUgAAAQQAAAEEBAMAAAA8Jlc5AAAAMFBMVEXDDCLGC
 function _xb64ToBytes(b64){var bin=atob(b64);var len=bin.length;var u=new Uint8Array(len);for(var i=0;i<len;i++)u[i]=bin.charCodeAt(i);return u;}
 
 // Converte o nome do SKU para a descrição do invoice (marca própria + cor->logo)
-// Descrição da Invoice — SOMENTE em inglês. Cor vira a versão do fornecedor:
-// BLACK→Logo Valve, CINZA→Logo Grey, BRANCO→Logo White, Holográfica→Logo Holographic.
-function invConvDesc(nome){
-  var raw=String(nome||'').trim(),up=raw.toUpperCase(),logo='';
-  if(/\bBLACK\b|\bPRETO\b|\bPRETA\b/.test(up))logo='Logo Valve';
-  else if(/\bCINZA\b|\bGREY\b|\bGRAY\b/.test(up))logo='Logo Grey';
-  else if(/\bBRANCO\b|\bBRANCA\b|\bWHITE\b/.test(up))logo='Logo White';
-  else if(/HOLOGR|\bHOLO\b/.test(up))logo='Logo Holographic';
-  var core=raw.replace(/\b(black|preto|preta|cinza|grey|gray|branco|branca|white|holográfica|holografica|holo)\b/gi,'').replace(/\s{2,}/g,' ').trim();
-  return 'Carbon fiber + metal bicycle wheel, '+core+', Axion Cycle'+(logo?' '+logo:'')+' (own brand)';
-}
+// Descrição da Invoice — igual à do Packing List (PT + EN + 中文), com a cor na
+// versão do fornecedor (BLACK→Logo Valve, CINZA→Logo Grey, BRANCO→Logo White, Holográfica→Logo Holographic).
+function invConvDesc(nome){return _plDescr(nome,true);}
 function invDateStr(){
   var t=today().split('-'),y=t[0],mi=+t[1]-1,dd=+t[2];
   var mo=['January','February','March','April','May','June','July','August','September','October','November','December'][mi];
@@ -8908,7 +8905,7 @@ function exportContainerInvoiceXls(){
     var parts=['Roda de Bicicleta','NCM: '+(m.ncm||'8714.99.90')];
     if(m.codigo) parts.push('SKU: '+m.codigo);
     if(m.ean) parts.push('EAN: '+m.ean);
-    return parts.join('\n');
+    return parts.join(' | ');
   }
   function S(v,s,cs){return {v:v,t:'s',s:s,cs:cs};}
   function N(v,s,cs){return {v:v,t:'n',s:s,cs:cs};}
