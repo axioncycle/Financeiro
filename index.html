@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09p (Invoice: ITEM Name em linha unica (Roda | NCM | SKU | EAN); descricao igual ao Packing List (PT+EN+中文) com cor Logo Valve/Grey/White/Holographic)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09q (Cadastro SKU: botao 'Editar todos' abre grade em massa (conforme filtro) com EAN/NCM/codigo/caixa/peso/USD editaveis e um unico Salvar tudo)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -1715,6 +1715,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
             <div onclick="skcExport('xls')" style="padding:10px 12px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;">📊 Excel</div>
           </div>
         </div>
+        <button onclick="skcToggleBulk()" id="skc-bulk-btn" style="padding:8px 12px;border-radius:8px;border:1px solid #a855f744;background:#a855f722;color:#a855f7;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✏️ Editar todos</button>
         <button onclick="skcToggleAdd()" id="skc-add-btn" style="padding:8px 14px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Novo SKU</button>
       </div>
     </div>
@@ -2337,6 +2338,7 @@ function loadDesp(){try{var v=localStorage.getItem('ax_desp');return v?JSON.pars
 function saveDesp(v){try{localStorage.setItem('ax_desp',JSON.stringify(v||DB_DESP||{}));}catch(e){}}
 function loadSkuOver(){return sg('ax_v6_sover',{});}
 function saveSkuOver(v){
+  try{ss('ax_v6_sover',v);}catch(e){}
   dbUpsert('configuracoes',{chave:'ax_v6_sover',valor:JSON.stringify(v)});
 }
 
@@ -8342,6 +8344,7 @@ function renderSkuCadastro(){
   var sum=document.getElementById('skc-summary');
   if(sum){var comUsd=all.filter(function(s){return (s.usd||0)>0;}).length;sum.innerHTML=filtered.length+' de '+all.length+' SKUs · '+comUsd+' com preço · R$ = USD × '+fmtN(ref)+' × fator '+fmtN(fator);}
   if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;">Nenhum SKU encontrado</div>';return;}
+  if(skcBulk){ list.innerHTML=skcBulkHTML(filtered); return; }
   var h='';
   filtered.forEach(function(s){
     if(String(skcEditId)===String(s.id)){h+=skcEditRow(s);return;}
@@ -8362,6 +8365,63 @@ function renderSkuCadastro(){
     '</div>';
   });
   list.innerHTML=h;
+}
+// ── Edição em massa dos SKUs (respeita o filtro) ─────────────────────────
+var skcBulk=false;
+function skcToggleBulk(){
+  skcBulk=!skcBulk;
+  var b=document.getElementById('skc-bulk-btn');
+  if(b){b.textContent=skcBulk?'✖ Fechar edição':'✏️ Editar todos';b.style.background=skcBulk?'#ef444422':'#a855f722';b.style.color=skcBulk?'#ef4444':'#a855f7';b.style.borderColor=skcBulk?'#ef444444':'#a855f744';}
+  skcEditId=null;
+  renderSkuCadastro();
+}
+function skcBulkHTML(filtered){
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
+    +'<div style="font-size:10px;color:var(--text3);line-height:1.4;">Edite os campos de cada SKU e salve tudo de uma vez. Mostrando <b>'+filtered.length+'</b> SKU'+(filtered.length!==1?'s':'')+' (conforme o filtro).</div>'
+    +'<button onclick="skcBulkSaveAll()" style="padding:8px 16px;border-radius:8px;border:none;background:#22c55e;color:#04120a;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">💾 Salvar tudo</button>'
+    +'</div>';
+  var inp=function(id,val,ph,w){return '<input id="'+id+'" value="'+String(val==null?'':val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="width:'+w+';box-sizing:border-box;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 7px;color:var(--text);font-size:11px;outline:none;">';};
+  filtered.forEach(function(s){
+    h+='<div style="border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin-bottom:6px;background:var(--bg2);">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;white-space:normal;word-break:break-word;line-height:1.25;">'+esc(s.nome)+' <span style="font-size:9px;color:var(--text3);font-weight:600;">'+esc(s.cat||'—')+(s.custom?' · custom':'')+'</span></div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;">'
+        +'<div style="flex:1;min-width:120px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">EAN</div>'+inp('skb-ean-'+s.id,s.ean,'7891234567890','100%')+'</div>'
+        +'<div style="flex:1;min-width:90px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">NCM</div>'+inp('skb-ncm-'+s.id,s.ncm,'8714.99.90','100%')+'</div>'
+        +'<div style="flex:1;min-width:110px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Código SKU</div>'+inp('skb-codigo-'+s.id,s.codigo,'ZR50C-25-UD','100%')+'</div>'
+        +'<div style="flex:1;min-width:110px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Tam. caixa</div>'+inp('skb-caixa-'+s.id,s.caixa,'72x20x65 cm','100%')+'</div>'
+        +'<div style="flex:1;min-width:70px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Peso</div>'+inp('skb-peso-'+s.id,s.peso,'1,8 kg','100%')+'</div>'
+        +'<div style="flex:1;min-width:70px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">USD</div>'+inp('skb-usd-'+s.id,(s.usd||'')===0?'':s.usd,'0.00','100%')+'</div>'
+      +'</div>'
+    +'</div>';
+  });
+  h+='<button onclick="skcBulkSaveAll()" style="width:100%;padding:11px;border-radius:9px;border:none;background:#22c55e;color:#04120a;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px;">💾 Salvar tudo</button>';
+  return h;
+}
+function skcBulkSaveAll(){
+  var all=getAllCustoSKUs();
+  var filtered=skcGetFiltered(all);
+  var over=loadSkuOver();
+  var custom=sg('ax_v6_cskus',[]);
+  var g=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():null;};
+  var n=0;
+  filtered.forEach(function(s){
+    var ean=g('skb-ean-'+s.id),ncm=g('skb-ncm-'+s.id),codigo=g('skb-codigo-'+s.id),caixa=g('skb-caixa-'+s.id),peso=g('skb-peso-'+s.id),usdR=g('skb-usd-'+s.id);
+    if(ean===null&&ncm===null&&codigo===null&&caixa===null&&peso===null&&usdR===null) return; // inputs não presentes
+    var usd=parseFloat(String(usdR==null?(s.usd||0):usdR).replace(',','.'))||0;
+    if(s.custom){
+      for(var i=0;i<custom.length;i++){if(String(custom[i].id)===String(s.id)){custom[i].ean=ean;custom[i].ncm=ncm;custom[i].codigo=codigo;custom[i].caixa=caixa;custom[i].peso=peso;custom[i].usd=usd;break;}}
+    }else{
+      over[s.id]={nome:s.nome,cat:s.cat,usd:usd,ean:ean,ncm:ncm,codigo:codigo,caixa:caixa,peso:peso,pix:0,custo:0};
+    }
+    n++;
+  });
+  saveSkuOver(over);
+  try{ss('ax_v6_cskus',custom);}catch(e){}
+  dbUpsert('configuracoes',{chave:'ax_v6_cskus',valor:JSON.stringify(custom)});
+  if(typeof renderEst==='function')renderEst();
+  if(typeof renderSkuRows==='function')renderSkuRows();
+  renderSkuCadastro();
+  toast('Salvo: '+n+' SKU'+(n!==1?'s':'')+' ✓');
 }
 function skcSaveEdit(id,builtin){
   var nome=(document.getElementById('skc-ed-nome')||{value:''}).value.trim();
