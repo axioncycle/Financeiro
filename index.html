@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09m (Packing List/Invoice: seletor de importador antes de gerar — Filial MG (default) ou Matriz DF)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09n (Invoice: descricao SO em ingles, cor do fornecedor — BLACK=Logo Valve, CINZA=Logo Grey, BRANCO=Logo White, Holografica=Logo Holographic)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -8812,14 +8812,16 @@ var INV_STAMP_B64='iVBORw0KGgoAAAANSUhEUgAAAQQAAAEEBAMAAAA8Jlc5AAAAMFBMVEXDDCLGC
 function _xb64ToBytes(b64){var bin=atob(b64);var len=bin.length;var u=new Uint8Array(len);for(var i=0;i<len;i++)u[i]=bin.charCodeAt(i);return u;}
 
 // Converte o nome do SKU para a descrição do invoice (marca própria + cor->logo)
+// Descrição da Invoice — SOMENTE em inglês. Cor vira a versão do fornecedor:
+// BLACK→Logo Valve, CINZA→Logo Grey, BRANCO→Logo White, Holográfica→Logo Holographic.
 function invConvDesc(nome){
-  var d=String(nome||'').trim();
-  d=d.replace(/\bblacks?\b/ig,'Logo Valve')
-     .replace(/\b(cinza|grey|gray)\b/ig,'Logo Grey')
-     .replace(/\b(branco|white)\b/ig,'Logo White');
-  var pre=/roda\s+axion\s+cycle/i.test(d)?'':'Roda Axion Cycle ';
-  var suf=/marca\s+pr[oó]pria/i.test(d)?'':' (marca própria)';
-  return pre+d+suf;
+  var raw=String(nome||'').trim(),up=raw.toUpperCase(),logo='';
+  if(/\bBLACK\b|\bPRETO\b|\bPRETA\b/.test(up))logo='Logo Valve';
+  else if(/\bCINZA\b|\bGREY\b|\bGRAY\b/.test(up))logo='Logo Grey';
+  else if(/\bBRANCO\b|\bBRANCA\b|\bWHITE\b/.test(up))logo='Logo White';
+  else if(/HOLOGR|\bHOLO\b/.test(up))logo='Logo Holographic';
+  var core=raw.replace(/\b(black|preto|preta|cinza|grey|gray|branco|branca|white|holográfica|holografica|holo)\b/gi,'').replace(/\s{2,}/g,' ').trim();
+  return 'Carbon fiber + metal bicycle wheel, '+core+', Axion Cycle'+(logo?' '+logo:'')+' (own brand)';
 }
 function invDateStr(){
   var t=today().split('-'),y=t[0],mi=+t[1]-1,dd=+t[2];
