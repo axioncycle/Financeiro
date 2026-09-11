@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09n (Invoice: descricao SO em ingles, cor do fornecedor — BLACK=Logo Valve, CINZA=Logo Grey, BRANCO=Logo White, Holografica=Logo Holographic)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09o (Invoice: coluna ITEM Name puxa NCM + SKU (codigo) + EAN do cadastro)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -8902,8 +8902,14 @@ function exportContainerInvoiceXls(){
   var rows=(skuRows||[]).filter(function(r){return r.skuNome&&r.skuNome!=='__manage__'&&(parseInt(r.qty,10)||0)>0;});
   if(!rows.length){toast('Nenhum SKU com quantidade para exportar',true);return;}
   var d=invDateStr();
-  var ncmMap={};getAllCustoSKUs().forEach(function(s){if(s.nome)ncmMap[s.nome]=s.ncm||'';});
-  function ncmLabel(nome){var n=ncmMap[nome]||'8714.99.90';return 'Roda de Bicicleta - NCM: '+n;}
+  var metaMap={};getAllCustoSKUs().forEach(function(s){if(s.nome)metaMap[s.nome]=s;});
+  function ncmLabel(nome){
+    var m=metaMap[nome]||{};
+    var parts=['Roda de Bicicleta','NCM: '+(m.ncm||'8714.99.90')];
+    if(m.codigo) parts.push('SKU: '+m.codigo);
+    if(m.ean) parts.push('EAN: '+m.ean);
+    return parts.join('\n');
+  }
   function S(v,s,cs){return {v:v,t:'s',s:s,cs:cs};}
   function N(v,s,cs){return {v:v,t:'n',s:s,cs:cs};}
   function F(f,v,s){return {f:f,v:v,s:s};}
