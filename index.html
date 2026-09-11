@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09j (Ver venda: campo Garantia abaixo de Vendedor — reserva de gasto com garantia que reduz margem/lucro; sincronizado entre aparelhos via configuracoes)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09k (Packing List: coluna Descricao gera texto completo automatico (PT + EN + 中文) a partir do SKU, com tipo/medida/cor)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -8699,6 +8699,22 @@ function buildPackingXlsx(model,cols){
     {name:'xl/worksheets/sheet1.xml',data:_xenc(sheet)}
   ]);
 }
+// Descrição completa do produto para o Packing List, gerada do nome do SKU (PT + EN + 中文).
+function _plCorEN(c){return {'Preto':'Black','Cinza':'Grey','Branco':'White','Holográfica':'Holographic'}[c]||c;}
+function _plDescr(skuNome){
+  var raw=String(skuNome||'').trim();
+  var up=raw.toUpperCase(),cor='';
+  if(/\bBLACK\b|\bPRETO\b|\bPRETA\b/.test(up))cor='Preto';
+  else if(/\bCINZA\b|\bGREY\b|\bGRAY\b/.test(up))cor='Cinza';
+  else if(/\bBRANCO\b|\bBRANCA\b|\bWHITE\b/.test(up))cor='Branco';
+  else if(/HOLOGR|\bHOLO\b/.test(up))cor='Holográfica';
+  // Núcleo = nome sem as palavras de cor (tipo + medida + variação)
+  var core=raw.replace(/\b(black|preto|preta|cinza|grey|gray|branco|branca|white|holográfica|holografica|holo)\b/gi,'').replace(/\s{2,}/g,' ').trim();
+  var pt='Roda de carbono para bicicleta '+core+' - Axion Cycle'+(cor?(' - Cor: '+cor):'');
+  var en='Carbon fiber + metal bicycle wheel, '+core+', Axion Cycle'+(cor?(' - color: '+_plCorEN(cor)):'');
+  var zh='碳纤维+金属自行车轮 '+core;
+  return pt+'\n//\n'+en+'\n//\n'+zh;
+}
 function exportPackingListXls(){
   var rows=(skuRows||[]).filter(function(r){return r.skuNome&&r.skuNome!=='__manage__'&&(parseInt(r.qty,10)||0)>0;});
   if(!rows.length){toast('Nenhum SKU com quantidade para exportar',true);return;}
@@ -8739,7 +8755,7 @@ function exportPackingListXls(){
       S(idx===0?SUPPLIER:'',5),                  /*E supplier*/
       S('自行车轮',4),                            /*F product name CN*/
       S('bicycle wheel',4),                      /*G product name EN*/
-      S(r.skuNome,5),                            /*H descrição do produto (puxa SKU)*/
+      S(_plDescr(r.skuNome),5),                  /*H descrição completa (PT/EN/中文) gerada do SKU*/
       S(MATERIAL,5),                             /*I material*/
       S('',4),                                   /*J photo*/
       N(q,6),                                    /*K total cartons (qtd de caixas)*/
