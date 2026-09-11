@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09k (Packing List: coluna Descricao gera texto completo automatico (PT + EN + 中文) a partir do SKU, com tipo/medida/cor)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09l (Packing List: atualiza importador para filial MG — CNPJ 57.022.714/0002-07 e endereco Contagem-MG)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -8783,8 +8783,8 @@ function exportPackingListXls(){
   M.push([]);
   M.push([S('INVOICE NUMBER',9),S('',10)]);
   M.push([S('IMPORTER',9),S('PDR BIKE SHOP LTDA',10)]);
-  M.push([S('CNPJ',9),S('57.022.714/0001-18',10)]);
-  M.push([S('ADDRESS',9,1),S('Setor Sia Q 3C A/E5 S/N Sala 103 Anexo Entrada 34 Sia Brasília DF 71200-035',10,6)]);
+  M.push([S('CNPJ',9),S('57.022.714/0002-07',10)]);
+  M.push([S('ADDRESS',9,1),S('Av Jose Faria da Rocha, 3546 - Setor Parte RR33-PP9, Eldorado, Contagem-MG 32.310-210',10,6)]);
   M.push([]);
   M.push([S('NCM',3),S('DESCRIPTION',3,3)]);
   M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
