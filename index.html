@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09l (Packing List: atualiza importador para filial MG — CNPJ 57.022.714/0002-07 e endereco Contagem-MG)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09m (Packing List/Invoice: seletor de importador antes de gerar — Filial MG (default) ou Matriz DF)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -1561,6 +1561,10 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-top:2px;">Planejamento de Compra</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <select id="pl-importer" title="Importador do Packing List / Invoice" style="padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;">
+          <option value="MG">Importador: Filial MG</option>
+          <option value="DF">Importador: Matriz DF</option>
+        </select>
         <button onclick="exportContainerInvoiceXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #f59e0b55;background:#f59e0b22;color:#f59e0b;font-size:12px;font-weight:700;cursor:pointer;">🧾 Invoice</button>
         <button onclick="exportPackingListXls()" style="padding:7px 12px;border-radius:8px;border:1px solid #22c55e44;background:#22c55e22;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;">📦 Packing List</button>
         <button onclick="openImportSku()" style="padding:7px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;">📥 Importar</button>
@@ -8699,6 +8703,12 @@ function buildPackingXlsx(model,cols){
     {name:'xl/worksheets/sheet1.xml',data:_xenc(sheet)}
   ]);
 }
+// Perfis de importador (matriz DF / filial MG) usados no Packing List / Invoice.
+var PL_IMPORTERS={
+  MG:{nome:'PDR BIKE SHOP LTDA',cnpj:'57.022.714/0002-07',end:'Av Jose Faria da Rocha, 3546 - Setor Parte RR33-PP9, Eldorado, Contagem-MG 32.310-210'},
+  DF:{nome:'PDR BIKE SHOP LTDA',cnpj:'57.022.714/0001-18',end:'Setor Sia Q 3C A/E5 S/N Sala 103 Anexo Entrada 34 Sia Brasília DF 71200-035'}
+};
+function _plImporter(){var s=(document.getElementById('pl-importer')||{}).value;return PL_IMPORTERS[s]||PL_IMPORTERS.MG;}
 // Descrição completa do produto para o Packing List, gerada do nome do SKU (PT + EN + 中文).
 function _plCorEN(c){return {'Preto':'Black','Cinza':'Grey','Branco':'White','Holográfica':'Holographic'}[c]||c;}
 function _plDescr(skuNome){
@@ -8782,9 +8792,10 @@ function exportPackingListXls(){
   // Bloco do importador
   M.push([]);
   M.push([S('INVOICE NUMBER',9),S('',10)]);
-  M.push([S('IMPORTER',9),S('PDR BIKE SHOP LTDA',10)]);
-  M.push([S('CNPJ',9),S('57.022.714/0002-07',10)]);
-  M.push([S('ADDRESS',9,1),S('Av Jose Faria da Rocha, 3546 - Setor Parte RR33-PP9, Eldorado, Contagem-MG 32.310-210',10,6)]);
+  var _imp=_plImporter();
+  M.push([S('IMPORTER',9),S(_imp.nome,10)]);
+  M.push([S('CNPJ',9),S(_imp.cnpj,10)]);
+  M.push([S('ADDRESS',9,1),S(_imp.end,10,6)]);
   M.push([]);
   M.push([S('NCM',3),S('DESCRIPTION',3,3)]);
   M.push([S('8714.99.90',4),S('Roda de Bicicleta',5,3)]);
@@ -8901,8 +8912,9 @@ function exportContainerInvoiceXls(){
   M.push({h:120,cells:[S('Banking information:',8,1),S("SWIFT/BIC Code: CHASHKHH (CHASHKHHXXX * If 11 characters are required)\nAccount Number: 63007932761\nAccount Name: Xiamen Sanlian Billiton Technology Co.,Ltd\nBank Name: JPMorgan Chase Bank N.A., Hong Kong Branch\nBank Address: 18/F, 20/F, 22-29/F, CHATER HOUSE, 8 CONNAUGHT ROAD CENTRAL, HONG KONG\nCountry/Region: Hong Kong\nType of Account: Business Account\nBank Code: 007\nBranch Code: 863",9,4)]});
   M.push([S('INV.NO. : '+d.inv,4,3),S('ORIGINAL',5,2)]);
   M.push([S('COMMERCIAL INVOICE',3,5)]);
-  M.push([S('Customer  Name: PDR BIKE SHOP LTDA - 57.022.714/0001-18',6,3),S('Date: '+d.date,16,2)]);
-  M.push([S('ADD:  Setor Sia Q 3C A/E5 S/N Sala 103 Anexo Entrada 34 Sia Brasília DF 71200-035',6,5)]);
+  var _imp=_plImporter();
+  M.push([S('Customer  Name: '+_imp.nome+' - '+_imp.cnpj,6,3),S('Date: '+d.date,16,2)]);
+  M.push([S('ADD:  '+_imp.end,6,5)]);
   M.push([S('ATTN:   Edilene Prado         Tel: +55 61 9173-9544',6,5)]);
   M.push([S('Delivery Terms:',6,3),S('Unit:  USD',16,2)]);
   M.push([S('We have the pleasure in quoting you the following price:',6,5)]);
