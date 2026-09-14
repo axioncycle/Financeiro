@@ -1702,12 +1702,12 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
 
   <!-- Cadastro / Edição de SKU -->
   <div style="background:var(--card);border:1px solid #22c55e44;border-radius:14px;padding:16px;margin-bottom:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
       <div>
         <div style="font-size:10px;color:#22c55e;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">Cadastro</div>
         <div style="font-size:16px;font-weight:800;color:#f0f0f0;margin-top:2px;">SKUs &amp; Preços</div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
         <div style="position:relative;">
           <button onclick="skcToggleExport()" id="skc-exp-btn" style="padding:8px 12px;border-radius:8px;border:1px solid #1E90FF44;background:#1E90FF22;color:#1E90FF;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">⬇ Exportar</button>
           <div id="skc-exp-menu" style="display:none;position:absolute;right:0;top:112%;background:var(--modal-bg);border:1px solid var(--border);border-radius:8px;z-index:30;overflow:hidden;min-width:132px;box-shadow:0 8px 24px rgba(0,0,0,.35);">
