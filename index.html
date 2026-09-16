@@ -1145,7 +1145,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09q (Cadastro SKU: botao 'Editar todos' abre grade em massa (conforme filtro) com EAN/NCM/codigo/caixa/peso/USD editaveis e um unico Salvar tudo)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09r (Venda Devolvida: toggle no Ver venda — desconsidera no financeiro, retorna estoque, registra custo da devolucao (prejuizo); visivel na lista com selo; banco guarda os valores originais)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -1228,6 +1228,15 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     </div>
     <div id="ver-v-motivo-wrap" style="display:none;margin-top:8px;">
       <textarea id="ver-v-motivo" placeholder="Motivo da pendência de envio..." onchange="salvarVerMotivo(this.value)" style="width:100%;background:var(--input);border:1px solid #ef444466;border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:52px;"></textarea>
+    </div>
+    <div style="margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;white-space:nowrap;user-select:none;">
+        <input type="checkbox" id="ver-v-devol" onchange="toggleVerDevolvido()" style="width:16px;height:16px;accent-color:#ef4444;">↩️ Devolvido
+      </label>
+    </div>
+    <div id="ver-v-devol-wrap" style="display:none;margin-top:8px;">
+      <label class="fl" style="display:block;margin-bottom:4px;">Custo da devolução (R$) — frete de retorno, taxa não estornada, etc.</label>
+      <input id="ver-v-devcusto" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this)" onblur="salvarVerDevCusto(this.value)" style="width:100%;box-sizing:border-box;background:var(--input);border:1px solid #ef444466;border-radius:8px;padding:8px 10px;color:#ef4444;font-size:14px;font-weight:700;text-align:right;outline:none;">
     </div>
     <div id="ver-v-body" style="margin-top:8px;"></div>
     <button class="btn btn-s" onclick="closeModal('m-ver-venda')" style="margin-top:10px;width:100%;">Fechar</button>
@@ -1886,12 +1895,15 @@ function loadVendasDB(cb){
   }).catch(function(){cb([]);});
 }
 function saveVendaDB(v){
+  // Venda devolvida guarda o efeito zerado em memória — mas no banco gravamos SEMPRE
+  // os valores ORIGINAIS (de v._devO), para nunca perder os dados reais da venda.
+  var fv=(v.devolvido&&v._devO)?v._devO:v;
   var row={
     id:v.id,date:(v.date||'').slice(0,10),cliente:v.cliente,canal:v.canal,produto:v.produto,
     prod_id:v.prodId,origem:v.origem,container_id:v.containerId,
-    venda:v.venda,custo:v.custo,taxa_pct:v.taxaPct,taxa:v.taxa,
-    imp_pct:v.impPct,imp:v.imp,com_pct:v.comPct,com:v.com,frete:v.frete,
-    lucro_si:v.lucroSI,lucro_ll:v.lucroLL,duplo:v.duplo||false,
+    venda:fv.venda,custo:fv.custo,taxa_pct:v.taxaPct,taxa:fv.taxa,
+    imp_pct:v.impPct,imp:fv.imp,com_pct:v.comPct,com:fv.com,frete:fv.frete,
+    lucro_si:fv.lucroSI,lucro_ll:fv.lucroLL,duplo:v.duplo||false,
     pag1_tipo:v.pag1tipo||'',pag1_val:v.pag1val||0,pag1_taxa:v.pag1taxa||0,
     pag2_tipo:v.pag2tipo||'',pag2_val:v.pag2val||0,pag2_taxa:v.pag2taxa||0,
     pendente:v.pendente||false,pendente_motivo:v.pendenteMotivo||''
@@ -2242,6 +2254,8 @@ function initDB(cb){
   loadFixasPadraoFromDB();
   // Garantia por venda (sincronizada entre aparelhos)
   loadVendaGarantia(function(){if(typeof renderHist==='function'&&curPage==='vend')renderHist();});
+  // Devoluções por venda (sincronizadas entre aparelhos)
+  loadVendaDevol(function(){if(typeof refreshApp==='function'){}if(typeof renderHist==='function'&&curPage==='vend')renderHist();});
   dbGet('configuracoes','chave=eq.dash_filter').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){selMonth=rows[0].valor;}
   }).catch(function(){});
@@ -2273,7 +2287,34 @@ function loadVendaGarantia(cb){
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
-function loadVendas(){var arr=DB_READY?DB_VENDAS:(sg("ax_v6_vendas",[]));try{for(var i=0;i<arr.length;i++){if(arr[i])arr[i].garantia=+(_vendaGarantia[String(arr[i].id)])||0;}}catch(e){}return arr;}
+// Devolução por venda — {idVenda:{dev:true,custo:R$}} em configuracoes (sincroniza).
+// Venda devolvida é DESCONSIDERADA no financeiro (receita 0) e vira prejuízo = custo da devolução.
+var _vendaDevol=(function(){try{return JSON.parse(localStorage.getItem('ax_venda_devol')||'{}')||{};}catch(e){return {};}})();
+function loadVendaDevol(cb){
+  if(typeof dbGet!=='function'){if(cb)cb();return;}
+  dbGet('configuracoes','chave=eq.venda_devol').then(function(rows){
+    try{if(Array.isArray(rows)&&rows[0]&&rows[0].valor){_vendaDevol=JSON.parse(rows[0].valor)||{};localStorage.setItem('ax_venda_devol',JSON.stringify(_vendaDevol));}}catch(e){}
+    if(cb)cb();
+  }).catch(function(){if(cb)cb();});
+}
+function loadVendas(){
+  var arr=DB_READY?DB_VENDAS:(sg("ax_v6_vendas",[]));
+  try{for(var i=0;i<arr.length;i++){
+    var v=arr[i]; if(!v) continue;
+    v.garantia=+(_vendaGarantia[String(v.id)])||0;
+    // Snapshot dos valores originais (uma vez) para poder restaurar/exibir e proteger o banco
+    if(v._devO===undefined) v._devO={venda:+v.venda||0,custo:+v.custo||0,taxa:+v.taxa||0,com:+v.com||0,frete:+v.frete||0,imp:+v.imp||0,lucroSI:+v.lucroSI||0,lucroLL:+v.lucroLL||0};
+    var dv=_vendaDevol[String(v.id)], o=v._devO;
+    v.devolvido=!!(dv&&dv.dev); v.devCusto=v.devolvido?(+dv.custo||0):0;
+    if(v.devolvido){
+      v.venda=0;v.custo=0;v.taxa=0;v.com=0;v.frete=0;v.imp=0;
+      v.lucroSI=-(v.devCusto);v.lucroLL=-(v.devCusto);
+    }else{
+      v.venda=o.venda;v.custo=o.custo;v.taxa=o.taxa;v.com=o.com;v.frete=o.frete;v.imp=o.imp;v.lucroSI=o.lucroSI;v.lucroLL=o.lucroLL;
+    }
+  }}catch(e){}
+  return arr;
+}
 function saveVendas(v,changed){
   DB_VENDAS=v;
   // localStorage no longer primary — Supabase is source of truth
@@ -4623,7 +4664,10 @@ function renderHist(){
     if(v.duplo) pagInfo='<span style="font-size:9px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b33;border-radius:10px;padding:1px 5px;font-weight:700;">'+v.pag1tipo+' '+fmt(v.pag1val)+'('+((v.pag1taxa||0))+'%) + '+v.pag2tipo+' '+fmt(v.pag2val)+'('+((v.pag2taxa||0))+'%)</span>';
     var pendInfo='';
     if(v.pendente) pendInfo='<div style="margin-top:4px;font-size:10px;color:#ef4444;font-weight:700;border:1.5px solid #ef4444;border-radius:8px;padding:3px 8px;display:inline-block;background:#ef444414;">⏳ Aguardando envio'+(v.pendenteMotivo?': '+esc(v.pendenteMotivo):'')+'</div>';
-    var vProd=v.produto||'—';html+='<div class="li"'+(v.pendente?' style="border-left:2px solid #ef4444;"':'')+'><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div>'+pendInfo+'<div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+fmt(v.venda)+'</div></div></div>';
+    var devInfo='';
+    if(v.devolvido) devInfo='<div style="margin-top:4px;font-size:10px;color:#ef4444;font-weight:700;border:1.5px solid #ef4444;border-radius:8px;padding:3px 8px;display:inline-block;background:#ef444414;">↩️ Devolvido'+((v.devCusto||0)>0?' · custo '+fmt(v.devCusto):'')+'</div>';
+    var vendaDisp=(v.devolvido&&v._devO)?'<span style="text-decoration:line-through;color:var(--text3);">'+fmt(v._devO.venda)+'</span>':fmt(v.venda);
+    var vProd=v.produto||'—';html+='<div class="li"'+((v.pendente||v.devolvido)?' style="border-left:2px solid #ef4444;"':'')+'><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div>'+pendInfo+devInfo+'<div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+vendaDisp+'</div></div></div>';
   }
   el.innerHTML=html;
 }
@@ -5286,6 +5330,7 @@ function renderEst(){
       for(var vsi=0;vsi<DB_VENDAS.length;vsi++){
         var vv=DB_VENDAS[vsi];
         if(String(vv.prodId)!==String(skus[si].id)) continue;
+        if(_vendaDevol[String(vv.id)]&&_vendaDevol[String(vv.id)].dev) continue; // devolvida → volta ao estoque
         // Match por containerId direto
         if(vv.containerId&&vv.containerId===cont.id){soldQty++;continue;}
         // Fallback: venda sem containerId só conta no contêiner mais antigo com esse SKU
@@ -5561,6 +5606,7 @@ function exportEstoquePDF(scope){
       for(var vi=0;vi<DB_VENDAS.length;vi++){
         var vx=DB_VENDAS[vi];
         if(String(vx.prodId)!==String(sk2.id)) continue;
+        if(_vendaDevol[String(vx.id)]&&_vendaDevol[String(vx.id)].dev) continue; // devolvida
         if(vx.containerId&&vx.containerId===cont.id) soldQ++;
       }
       var inStk=Math.max(0,skData.custoQty-soldQ);
@@ -12618,6 +12664,9 @@ function buildVerVendaHTML(rows){
 }
 
 function _buildVerVendaRows(v){
+  var _devFlag=!!v.devolvido, _devC=+v.devCusto||0;
+  // Se devolvida, exibe o detalhamento com os valores ORIGINAIS da venda (guardados em _devO)
+  if(_devFlag&&v._devO){var o=v._devO;v=Object.assign({},v,{venda:o.venda,custo:o.custo,taxa:o.taxa,com:o.com,frete:o.frete,imp:o.imp,lucroSI:o.lucroSI,lucroLL:o.lucroLL});}
   var comPct=v.comPct||0;
   var margContrib=v.venda-(v.taxa||0)-(v.com||0)-(v.custo||0)-(v.frete||0)-(v.garantia||0);
   var margPct=v.venda>0?(margContrib/v.venda*100):0;
@@ -12660,6 +12709,13 @@ function _buildVerVendaRows(v){
     // Antes do Presumido, sem imposto lançado → é margem de contribuição (antes de impostos)
     rows.push({label:'✅ Líquido (antes de impostos)',val:fmt(margContrib)+' ('+margPct.toFixed(1)+'%)',color:margContrib>=0?'#22c55e':'#ef4444',bold:true,big:true});
   }
+  if(_devFlag){
+    rows.push(null);
+    rows.push({label:'↩️ VENDA DEVOLVIDA',val:'desconsiderada',color:'#ef4444',bold:true});
+    rows.push({label:'Custo da devolução',val:'− '+fmt(_devC),color:'#ef4444'});
+    rows.push({label:'Resultado da devolução',val:fmt(-_devC),color:'#ef4444',bold:true,big:true});
+    rows.push({label:'',val:'',note:'Estoque retornado. Não conta no faturamento, lucro nem impostos — os valores acima são o histórico da venda original.'});
+  }
   if(v.duplo){
     rows.push(null);
     rows.push({label:'💳 Pagamento 1',val:v.pag1tipo+' '+fmt(v.pag1val)+' ('+v.pag1taxa+'%)'});
@@ -12687,7 +12743,52 @@ function verVendaBody(id){
   if(chk) chk.checked=!!v.pendente;
   if(wrap) wrap.style.display=v.pendente?'block':'none';
   if(mot) mot.value=v.pendenteMotivo||'';
+  // Estado "devolvido"
+  var dch=document.getElementById('ver-v-devol');
+  var dwr=document.getElementById('ver-v-devol-wrap');
+  var dcu=document.getElementById('ver-v-devcusto');
+  if(dch) dch.checked=!!v.devolvido;
+  if(dwr) dwr.style.display=v.devolvido?'block':'none';
+  if(dcu) dcu.value=(v.devCusto>0)?fmtN(v.devCusto):'';
   body.innerHTML=buildVerVendaHTML(_buildVerVendaRows(v));
+}
+// Marca/desmarca devolução. Retorna o estoque (restoreStock) e desconsidera no financeiro.
+function toggleVerDevolvido(){
+  if(!_verVendaId) return;
+  var vendas=loadVendas();
+  var v=vendas.find(function(vv){return vv.id===_verVendaId;});
+  if(!v) return;
+  var chk=document.getElementById('ver-v-devol');
+  var novo=chk?chk.checked:false;
+  var id=String(v.id);
+  if(novo){
+    if(!_vendaDevol[id]) _vendaDevol[id]={dev:true,custo:0}; else _vendaDevol[id].dev=true;
+    // devolve a unidade ao estoque (mesmo par do consumeFIFO feito na venda)
+    if(v.origem&&v.prodId&&typeof restoreStock==='function') restoreStock(v.origem,v.prodId,v.containerId);
+  }else{
+    if(_vendaDevol[id]) _vendaDevol[id].dev=false;
+    // retira de novo do estoque (a venda voltou a valer)
+    if(v.origem&&v.prodId&&typeof consumeFIFO==='function') consumeFIFO(v.origem,v.prodId,1);
+  }
+  _persistDevol();
+  var dwr=document.getElementById('ver-v-devol-wrap'); if(dwr) dwr.style.display=novo?'block':'none';
+  refreshAfterVendaEdit();
+  verVendaBody(_verVendaId);
+  toast(novo?'Venda marcada como devolvida ↩️ (estoque retornado)':'Devolução desfeita');
+}
+function salvarVerDevCusto(rawVal){
+  if(!_verVendaId) return;
+  var id=String(_verVendaId);
+  if(!_vendaDevol[id]) _vendaDevol[id]={dev:true,custo:0};
+  _vendaDevol[id].custo=parseBRL(rawVal||'0')||0;
+  _persistDevol();
+  refreshAfterVendaEdit();
+  verVendaBody(_verVendaId);
+  toast('Custo da devolução salvo!');
+}
+function _persistDevol(){
+  try{localStorage.setItem('ax_venda_devol',JSON.stringify(_vendaDevol));}catch(e){}
+  if(typeof dbUpsert==='function'){try{dbUpsert('configuracoes',{chave:'venda_devol',valor:JSON.stringify(_vendaDevol)});}catch(e){}}
 }
 function toggleVerPendente(){
   if(!_verVendaId) return;
