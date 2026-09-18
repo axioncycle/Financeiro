@@ -1,0 +1,618 @@
+<title>Axion Cycle</title>
+<meta name="description" content="Rodas de carbono de alta performance com certificação INMETRO, 2 anos de garantia e suporte no Brasil. Disc Brake, Rim Brake, gravel, MTB e triathlon.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ============ TOKENS (Design System Fase 2) ============ */
+:root{
+  --bg:#FFFFFF; --bg-sunken:#EEF1F6; --surface:#FFFFFF; --surface-2:#F5F7FB; --panel:#FFFFFF;
+  --line:#E1E6EF; --line-strong:#C8D0DC;
+  --text:#0A0D14; --text-muted:#525C6B; --text-faint:#8791A1; --secondary:#525C6B;
+  --accent:#1466E0; --accent-bright:#2F86FF; --accent-deep:#0B47A6; --on-accent:#FFFFFF;
+  --accent-wash:rgba(20,102,224,.08); --accent-line:rgba(20,102,224,.35);
+  --success:#118A4E; --success-wash:rgba(17,138,78,.10);
+  --danger:#CE2534; --danger-wash:rgba(206,37,52,.09); --warning:#B4791A;
+  --carbon-1:#0A0C11; --carbon-2:#14171F;
+  --shadow-sm:0 1px 2px rgba(11,17,28,.06),0 1px 3px rgba(11,17,28,.05);
+  --shadow-md:0 8px 24px rgba(11,17,28,.10); --shadow-lift:0 16px 40px rgba(11,17,28,.16);
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-pill:999px;
+  --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-8:64px;
+  --ease:cubic-bezier(.22,.61,.36,1); --maxw:1140px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A0C11; --bg-sunken:#06080D; --surface:#12151C; --surface-2:#171B23; --panel:#14171F;
+  --line:#262C38; --line-strong:#333B49; --text:#F4F7FB; --text-muted:#A2AAB8; --text-faint:#6E7686;
+  --accent:#2D86FF; --accent-bright:#5AA4FF; --accent-deep:#1560C4; --on-accent:#04070D;
+  --accent-wash:rgba(45,134,255,.12); --accent-line:rgba(45,134,255,.42);
+  --success:#31C77F; --success-wash:rgba(49,199,127,.14);
+  --danger:#FF5A66; --danger-wash:rgba(255,90,102,.13); --warning:#E7A93C;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 10px 30px rgba(0,0,0,.5); --shadow-lift:0 18px 44px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0A0C11; --bg-sunken:#06080D; --surface:#12151C; --surface-2:#171B23; --panel:#14171F;
+  --line:#262C38; --line-strong:#333B49; --text:#F4F7FB; --text-muted:#A2AAB8; --text-faint:#6E7686;
+  --accent:#2D86FF; --accent-bright:#5AA4FF; --accent-deep:#1560C4; --on-accent:#04070D;
+  --accent-wash:rgba(45,134,255,.12); --accent-line:rgba(45,134,255,.42);
+  --success:#31C77F; --success-wash:rgba(49,199,127,.14);
+  --danger:#FF5A66; --danger-wash:rgba(255,90,102,.13); --warning:#E7A93C;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 10px 30px rgba(0,0,0,.5); --shadow-lift:0 18px 44px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:"Saira","IBM Plex Sans",system-ui,sans-serif;line-height:1.06;margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0} a{color:inherit;text-decoration:none} img{max-width:100%}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:var(--maxw);margin-inline:auto;padding-inline:20px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.eyebrow{font-family:"Saira",sans-serif;font-weight:700;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.dim{color:var(--text-muted)} .faint{color:var(--text-faint)}
+.confirm{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--warning);border:1px solid var(--warning);border-radius:var(--r-sm);padding:1px 5px;white-space:nowrap}
+
+/* trustbar + header */
+.trustbar{background:var(--carbon-1);color:#c9d2e0;font-size:11.5px;letter-spacing:.04em}
+.trustbar .wrap{display:flex;gap:8px 20px;flex-wrap:wrap;align-items:center;justify-content:center;padding-block:7px}
+.trustbar span{color:#8a94a6} .trustbar b{color:#fff;font-weight:600}
+.header{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+.header .wrap{display:flex;align-items:center;gap:22px;padding-block:13px}
+.logo{font-family:"Saira",sans-serif;font-weight:800;font-size:21px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.logo .mk{width:22px;height:22px;color:var(--accent)}
+.nav{display:flex;gap:24px;margin-left:6px}
+.nav a{font-family:"Saira",sans-serif;font-weight:600;font-size:13.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);position:relative;padding-block:6px;transition:color .2s var(--ease)}
+.nav a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:2px;background:var(--accent);transition:right .25s var(--ease)}
+.nav a:hover{color:var(--text)} .nav a:hover::after{right:0}
+.tools{margin-left:auto;display:flex;align-items:center;gap:9px}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s var(--ease)}
+.icon-btn:hover{border-color:var(--accent-line);color:var(--accent)} .icon-btn svg{width:18px;height:18px}
+.burger{display:none}
+.mobile-nav{display:none;border-bottom:1px solid var(--line);background:var(--bg)}
+.mobile-nav a{display:block;font-family:"Saira",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:14px;padding:13px 20px;border-top:1px solid var(--line)}
+
+/* buttons */
+.btn{font-family:"Saira",sans-serif;font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 24px;border-radius:var(--r-md);border:1px solid transparent;cursor:pointer;transition:transform .18s var(--ease),background .2s,border-color .2s,box-shadow .2s;white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:0 6px 18px var(--accent-wash)}
+.btn-primary:hover{background:var(--accent-bright);transform:translateY(-2px);box-shadow:0 12px 26px var(--accent-wash)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:transparent;color:var(--text);border-color:var(--line-strong)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+.btn-wa{background:#1FA855;color:#fff} .btn-wa:hover{background:#25b862;transform:translateY(-2px)}
+.btn-sm{padding:10px 16px;font-size:12.5px} .btn-block{width:100%} .btn[disabled]{opacity:.42;cursor:not-allowed;transform:none!important}
+.on-dark .btn-secondary{color:#EAF0F8;border-color:rgba(255,255,255,.28)}
+.on-dark .btn-secondary:hover{color:var(--accent-bright);border-color:var(--accent-bright)}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:"Saira",sans-serif;font-weight:600;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill);border:1px solid var(--line-strong);color:var(--text-muted)}
+.badge svg{width:13px;height:13px}
+.badge-inmetro{background:var(--carbon-1);color:#fff;border-color:transparent}
+.badge-accent{background:var(--accent-wash);border-color:var(--accent-line);color:var(--accent)}
+.pbadge{font-family:"Saira",sans-serif;font-weight:700;font-size:10px;letter-spacing:.07em;text-transform:uppercase;padding:4px 8px;border-radius:var(--r-sm)}
+.pb-disc{background:var(--accent);color:var(--on-accent)} .pb-rim{background:var(--carbon-2);color:#fff}
+
+/* sections */
+section.block{padding-block:72px}
+.sec-head{display:flex;flex-direction:column;gap:12px;margin-bottom:36px;max-width:64ch}
+.sec-head.center{margin-inline:auto;text-align:center;align-items:center}
+.sec-head h2{font-size:clamp(28px,4.5vw,44px);font-weight:800;text-transform:uppercase}
+.grid{display:grid;gap:20px}.g-2{grid-template-columns:repeat(2,1fr)}.g-3{grid-template-columns:repeat(3,1fr)}.g-4{grid-template-columns:repeat(4,1fr)}
+.callout{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;font-size:13.5px}
+.center-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+
+/* HERO */
+.hero{background:var(--carbon-1);color:#F4F7FB;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(1100px 520px at 76% 20%,rgba(45,134,255,.22),transparent 60%),repeating-linear-gradient(115deg,rgba(255,255,255,.02) 0 2px,transparent 2px 7px);pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding-block:84px}
+.hero h1{font-size:clamp(42px,7vw,76px);font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin:16px 0 18px}
+.hero h1 em{font-style:normal;color:var(--accent-bright)}
+.hero .lead{color:#B9C2D2;font-size:18px;max-width:44ch}
+.hero .cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+.hero .trust-inline{display:flex;gap:10px;flex-wrap:wrap;margin-top:32px}
+.hero .trust-inline .badge{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:#c9d2e0}
+.hero .trust-inline .badge-inmetro{background:var(--accent);color:#04070d;border:0}
+.pay-inline{margin-top:16px;font-family:"Saira",sans-serif;font-weight:600;font-size:13px;letter-spacing:.04em;color:#8fb6 f0;color:#93b8ef;text-transform:uppercase}
+.wheel-stage{display:grid;place-items:center;position:relative}
+.wheel-stage .halo{position:absolute;width:80%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(45,134,255,.3),transparent 65%);filter:blur(8px)}
+.wheel-svg{width:min(100%,460px);height:auto;position:relative;filter:drop-shadow(0 26px 54px rgba(0,0,0,.6))}
+.ph-note{position:absolute;bottom:4px;right:6px;font-size:10px;color:#77808f;background:rgba(0,0,0,.35);padding:3px 8px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,.08)}
+
+/* trust strip */
+.trust-strip{border-block:1px solid var(--line);background:var(--surface-2)}
+.trust-strip .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding-block:22px}
+.trust-item{display:flex;align-items:center;gap:12px;justify-content:center}
+.trust-item svg{width:24px;height:24px;color:var(--accent);flex:none}
+.trust-item b{font-family:"Saira",sans-serif;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.03em;display:block}
+.trust-item span{font-size:12px;color:var(--text-muted)}
+
+/* product cards */
+.p-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;transition:.25s var(--ease)}
+.p-card:hover{border-color:var(--accent-line);transform:translateY(-4px);box-shadow:var(--shadow-lift)}
+.p-media{position:relative;aspect-ratio:4/3;background:radial-gradient(120% 90% at 70% 20%,#1a1f2b,#0b0e14);display:grid;place-items:center;overflow:hidden}
+.p-media .tag-tl{position:absolute;top:12px;left:12px}.p-media .tag-tr{position:absolute;top:12px;right:12px}
+.p-media .whl{width:76%;transition:transform .5s var(--ease)}
+.p-card:hover .whl{transform:rotate(24deg) scale(1.03)}
+.p-body{padding:18px;display:flex;flex-direction:column;gap:11px;flex:1}
+.p-name{font-family:"Saira",sans-serif;font-weight:700;font-size:18px}
+.p-feat{font-size:13px;color:var(--text-muted)}
+.p-attrs{display:flex;gap:7px;flex-wrap:wrap}
+.p-attr{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text-muted);border:1px solid var(--line);border-radius:var(--r-sm);padding:3px 7px}
+.p-price{margin-top:auto;display:flex;flex-direction:column;gap:2px}
+.p-price .now{font-family:"Saira",sans-serif;font-weight:800;font-size:22px;display:flex;align-items:center;gap:8px}
+.p-price .pay{font-size:12px;color:var(--text-muted)} .p-price .pix{color:var(--success);font-weight:600}
+.p-actions{display:flex;gap:9px}
+
+/* category cards */
+.cat-card{position:relative;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);background:linear-gradient(135deg,#141a26,#0b0e14);color:#fff;padding:26px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;transition:.25s var(--ease)}
+.cat-card:hover{transform:translateY(-3px);border-color:var(--accent-line);box-shadow:var(--shadow-md)}
+.cat-card .eyebrow{color:var(--accent-bright)}
+.cat-card h3{font-size:24px;text-transform:uppercase;margin-top:6px}
+.cat-card .arw{position:absolute;top:22px;right:22px;color:var(--accent-bright)}
+
+/* QUIZ */
+.quiz{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.quiz-head{display:flex;align-items:center;gap:14px;padding:18px 22px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.steps{display:flex;gap:7px;margin-left:auto}
+.steps i{width:26px;height:4px;border-radius:3px;background:var(--line-strong);transition:.3s var(--ease)}
+.steps i.on{background:var(--accent)}
+.quiz-body{padding:26px 22px}
+.quiz-step{display:none}.quiz-step.on{display:block}
+.quiz-q{font-family:"Saira",sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;margin-bottom:18px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.opt{border:1px solid var(--line-strong);border-radius:var(--r-md);padding:16px;cursor:pointer;font-family:"Saira",sans-serif;font-weight:600;font-size:15px;text-transform:uppercase;letter-spacing:.03em;transition:.18s var(--ease);background:var(--surface);text-align:center}
+.opt:hover{border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:var(--accent-wash);color:var(--accent)}
+.quiz-foot{display:flex;gap:12px;align-items:center;padding:18px 22px;border-top:1px solid var(--line);flex-wrap:wrap}
+.quiz-foot .back{margin-right:auto}
+.quiz-result{display:none;padding:26px 22px}
+.quiz-result.on{display:block}
+.res-list{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.res-chip{border:1px solid var(--accent-line);background:var(--accent-wash);color:var(--accent);border-radius:var(--r-pill);padding:8px 14px;font-family:"Saira",sans-serif;font-weight:600;font-size:13px}
+
+/* comparador */
+.cmp-pick{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+.cmp-pick button{font-family:"Saira",sans-serif;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;border:1px solid var(--line-strong);background:var(--surface);color:var(--text-muted);border-radius:var(--r-pill);padding:8px 13px;cursor:pointer;transition:.18s var(--ease)}
+.cmp-pick button:hover{border-color:var(--accent);color:var(--accent)}
+.cmp-pick button.sel{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.cmp-pick button:disabled{opacity:.4;cursor:not-allowed}
+.cmp{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg)}
+.cmp table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+.cmp th,.cmp td{padding:13px 15px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;vertical-align:middle}
+.cmp th:last-child,.cmp td:last-child{border-right:0}
+.cmp thead th{background:var(--surface-2);font-family:"Saira",sans-serif;font-size:15px}
+.cmp .rowlab{font-family:"Saira",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:12px;color:var(--text-muted);width:150px}
+.cmp td.val{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:13px}
+
+/* gallery / social placeholders */
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.gal .tile{aspect-ratio:1;border-radius:var(--r-md);border:1px dashed var(--line-strong);background:linear-gradient(135deg,#141a26,#0b0e14);display:grid;place-items:center;color:#6e7686;font-size:12px;text-align:center;padding:10px}
+.gal .tile.big{grid-row:span 2;aspect-ratio:auto}
+.social-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.review{border:1px dashed var(--line-strong);border-radius:var(--r-lg);padding:20px;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
+.review .stars{display:flex;gap:3px;color:var(--line-strong)}
+.review .stars svg{width:16px;height:16px}
+.review .ph-line{height:10px;border-radius:3px;background:var(--surface-2)}
+.review .who{display:flex;align-items:center;gap:10px;margin-top:auto}
+.review .who .av{width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line)}
+
+/* engineering */
+.eng-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.eng-cell{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:3px}
+.eng-cell .k{font-family:"Saira",sans-serif;font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint)}
+.eng-cell .v{font-family:"IBM Plex Mono",monospace;font-size:18px;font-weight:500;line-height:1.15}
+
+/* content cards */
+.post{border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--panel);transition:.25s var(--ease);display:flex;flex-direction:column}
+.post:hover{transform:translateY(-3px);border-color:var(--accent-line);box-shadow:var(--shadow-md)}
+.post .thumb{aspect-ratio:16/9;background:linear-gradient(135deg,#141a26,#0b0e14);display:grid;place-items:center;color:#5c6473;font-size:12px}
+.post .pb{padding:16px;display:flex;flex-direction:column;gap:8px}
+.post h4{font-size:16px}
+
+/* FAQ */
+.faq details{border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);margin-bottom:12px;overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:17px 20px;display:flex;align-items:center;gap:14px;font-family:"Saira",sans-serif;font-weight:600;font-size:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .ic{margin-left:auto;color:var(--accent);transition:transform .25s var(--ease);flex:none}
+.faq details[open] summary .ic{transform:rotate(45deg)}
+.faq .ans{padding:0 20px 18px;color:var(--text-muted)}
+
+/* compat + final cta banners */
+.banner{border-radius:var(--r-lg);overflow:hidden;background:var(--carbon-1);color:#F4F7FB;position:relative;padding:48px 40px;text-align:center}
+.banner::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 300px at 50% 0,rgba(45,134,255,.22),transparent 60%);pointer-events:none}
+.banner h2{font-size:clamp(28px,4.5vw,48px);text-transform:uppercase;position:relative}
+.banner p{color:#B9C2D2;position:relative;max-width:52ch;margin:14px auto 0}
+.banner .center-cta{position:relative}
+
+/* footer */
+.foot{background:var(--carbon-1);color:#C4CDDB;border-top:1px solid #20262f;margin-top:0}
+.foot .wrap{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:26px;padding-block:52px}
+.foot h4{font-family:"Saira",sans-serif;color:#fff;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.foot a{display:block;color:#9aa6b6;font-size:13.5px;padding:5px 0;transition:color .2s}
+.foot a:hover{color:var(--accent-bright)}
+.foot .logo{color:#fff;margin-bottom:14px}
+.foot .base{border-top:1px solid #20262f;padding-block:20px;font-size:12px;color:#6d7789;display:flex;gap:14px;justify-content:space-between;flex-wrap:wrap}
+
+/* floating WhatsApp + mobile CTA */
+.wa-float{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:70;width:56px;height:56px;border-radius:50%;background:#1FA855;color:#fff;display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;transition:transform .2s var(--ease)}
+.wa-float:hover{transform:scale(1.06)} .wa-float svg{width:28px;height:28px}
+.mobile-cta{display:none}
+
+@media (max-width:960px){
+  .nav{display:none} .burger{display:grid}
+  .hero .wrap{grid-template-columns:1fr;gap:26px;padding-block:60px} .wheel-stage{order:-1}
+  .trust-strip .wrap{grid-template-columns:repeat(2,1fr)}
+  .g-4{grid-template-columns:repeat(2,1fr)} .g-3{grid-template-columns:repeat(2,1fr)}
+  .gal{grid-template-columns:repeat(2,1fr)} .social-grid{grid-template-columns:1fr}
+  .foot .wrap{grid-template-columns:1fr 1fr}
+}
+@media (max-width:600px){
+  .g-2,.g-3,.g-4{grid-template-columns:1fr}
+  .trust-strip .wrap{grid-template-columns:1fr 1fr}
+  .foot .wrap{grid-template-columns:1fr}
+  .hero h1{font-size:40px} section.block{padding-block:52px}
+  .wa-float{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+  .mobile-cta{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:65;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+  .mobile-cta .btn{flex:1;padding:13px}
+  body{padding-bottom:74px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<!-- ================= TRUSTBAR + HEADER ================= -->
+<div class="trustbar"><div class="wrap">
+  <span><b>INMETRO</b> 008991/2025</span><span>·</span>
+  <span><b>2 anos</b> de garantia</span><span>·</span>
+  <span><b>+700</b> rodas entregues</span><span>·</span>
+  <span><b>Suporte</b> no Brasil</span><span>·</span>
+  <span><b>12x</b> sem juros · <b>5% OFF</b> no PIX</span>
+</div></div>
+<header class="header"><div class="wrap">
+  <a class="logo" href="#top"><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/><path d="M12 3.4 12 9.6M12 14.4 12 20.6M3.4 12 9.6 12M14.4 12 20.6 12"/></svg> AXION</a>
+  <nav class="nav">
+    <a href="#produtos">Rodas</a><a href="#quiz">Encontre sua roda</a><a href="#comparador">Comparador</a>
+    <a href="#porque">Sobre</a><a href="#faq">FAQ</a><a href="#contato">Contato</a>
+  </nav>
+  <div class="tools">
+    <button class="icon-btn" id="themeBtn" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+    <button class="icon-btn burger" id="burger" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <a class="btn btn-primary btn-sm" href="#quiz">Escolher minha roda</a>
+  </div>
+</div>
+<nav class="mobile-nav" id="mobileNav" hidden>
+  <a href="#produtos">Rodas</a><a href="#quiz">Encontre sua roda</a><a href="#comparador">Comparador</a>
+  <a href="#porque">Por que Axion</a><a href="#engenharia">Engenharia</a><a href="#faq">FAQ</a><a href="#contato">Contato</a>
+</nav>
+</header>
+
+<a id="top"></a>
+<!-- ================= 1. HERO ================= -->
+<section class="hero on-dark"><div class="wrap">
+  <div>
+    <span class="eyebrow" style="color:var(--accent-bright)">Rodas de carbono · alta performance</span>
+    <h1>Seu upgrade<br><em>começa aqui.</em></h1>
+    <p class="lead">Performance de alto nível, segurança certificada e suporte de verdade no Brasil.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#quiz">Escolher minha roda <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="btn btn-secondary" href="#quiz">Encontrar a roda ideal</a>
+    </div>
+    <div class="trust-inline">
+      <span class="badge badge-inmetro">INMETRO</span>
+      <span class="badge">Garantia de 2 anos</span>
+      <span class="badge">+700 rodas entregues</span>
+      <span class="badge">Suporte no Brasil</span>
+    </div>
+    <div class="pay-inline">12x sem juros · 5% OFF no PIX</div>
+  </div>
+  <div class="wheel-stage">
+    <div class="halo"></div>
+    <svg class="wheel-svg" id="heroWheel" viewBox="0 0 400 400" aria-label="Roda de carbono de perfil aerodinâmico (ilustração placeholder)"></svg>
+    <span class="ph-note">Placeholder — foto real do produto [CONFIRMAR]</span>
+  </div>
+</div></section>
+
+<!-- ================= 2. TRUST BAR ================= -->
+<div class="trust-strip"><div class="wrap">
+  <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg><div><b>INMETRO</b><span>Registro 008991/2025</span></div></div>
+  <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/></svg><div><b>2 anos</b><span>de garantia</span></div></div>
+  <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h10"/></svg><div><b>+700</b><span>rodas entregues</span></div></div>
+  <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5z"/></svg><div><b>Suporte</b><span>no Brasil</span></div></div>
+</div></div>
+
+<!-- ================= 3. PRODUTOS EM DESTAQUE ================= -->
+<section class="block" id="produtos"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Vitrine</span><h2>Encontre sua próxima roda</h2>
+  <p class="dim">Linha completa Disc Brake e Rim Brake. <span class="confirm">preços e specs [CONFIRMAR]</span> — dados oficiais pendentes da Fase 1.</p></div>
+  <div class="grid g-4" id="featured"></div>
+  <div class="center-cta"><a class="btn btn-secondary" href="#comparador">Ver todas as rodas <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+
+  <div class="grid g-4" style="margin-top:34px">
+    <a class="cat-card" href="#comparador"><svg class="arw" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="eyebrow">Por freio</span><h3>Disc Brake</h3></a>
+    <a class="cat-card" href="#comparador"><svg class="arw" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="eyebrow">Por freio</span><h3>Rim Brake</h3></a>
+    <a class="cat-card" href="#quiz"><svg class="arw" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="eyebrow">Por uso</span><h3>Gravel</h3></a>
+    <a class="cat-card" href="#quiz"><svg class="arw" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="eyebrow">Por uso</span><h3>MTB · Triathlon</h3></a>
+  </div>
+</div></section>
+
+<!-- ================= 4. QUIZ ================= -->
+<section class="block" id="quiz" style="background:var(--surface-2)"><div class="wrap">
+  <div class="sec-head center"><span class="eyebrow">Guia de compra</span><h2>Qual roda é para você?</h2>
+  <p class="dim">Encontre o modelo ideal para sua bike, modalidade e objetivo.</p></div>
+  <div class="quiz" style="max-width:760px;margin-inline:auto">
+    <div class="quiz-head"><span class="eyebrow" id="stepLabel">Etapa 1 de 4</span><div class="steps"><i class="on"></i><i></i><i></i><i></i></div></div>
+    <div class="quiz-body">
+      <div class="quiz-step on" data-step="0">
+        <div class="quiz-q">Qual é sua modalidade?</div>
+        <div class="opts" data-key="modalidade">
+          <div class="opt">Road</div><div class="opt">Triathlon</div><div class="opt">Contra-relógio</div><div class="opt">Gravel</div><div class="opt">MTB</div>
+        </div>
+      </div>
+      <div class="quiz-step" data-step="1">
+        <div class="quiz-q">Qual sistema de freio?</div>
+        <div class="opts" data-key="freio"><div class="opt">Disc Brake</div><div class="opt">Rim Brake</div></div>
+      </div>
+      <div class="quiz-step" data-step="2">
+        <div class="quiz-q">Qual é seu objetivo?</div>
+        <div class="opts" data-key="objetivo"><div class="opt">Treino</div><div class="opt">Performance</div><div class="opt">Competição</div><div class="opt">Aerodinâmica</div><div class="opt">Equilíbrio</div></div>
+      </div>
+      <div class="quiz-step" data-step="3">
+        <div class="quiz-q">Faixa de investimento</div>
+        <div class="opts" data-key="faixa"><div class="opt">Entrada</div><div class="opt">Intermediária</div><div class="opt">Alta performance</div><div class="opt">Sem preferência</div></div>
+        <p class="faint" style="font-size:12px;margin-top:12px">Faixas de preço serão vinculadas à tabela oficial <span class="confirm">[CONFIRMAR]</span>.</p>
+      </div>
+    </div>
+    <div class="quiz-foot">
+      <button class="btn btn-secondary btn-sm back" id="quizBack" disabled>Voltar</button>
+      <button class="btn btn-primary btn-sm" id="quizNext" disabled>Próximo</button>
+    </div>
+    <div class="quiz-result">
+      <div class="quiz-q">Seleção sugerida para você</div>
+      <p class="dim" style="font-size:14px">Filtramos pela sua escolha de freio. A recomendação final por perfil/objetivo depende das specs oficiais <span class="confirm">[CONFIRMAR]</span> — por isso, confirme com um especialista antes de comprar.</p>
+      <div class="res-list" id="resList"></div>
+      <div class="center-cta" style="justify-content:flex-start;margin-top:8px">
+        <a class="btn btn-primary" href="#produtos">Ver rodas sugeridas</a>
+        <a class="btn btn-wa" href="#contato"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2z"/></svg> Falar com um especialista</a>
+        <button class="btn btn-secondary" id="quizRestart">Refazer</button>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ================= 5. POR QUE AXION ================= -->
+<section class="block" id="porque"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Confiança</span><h2>Por que Axion?</h2></div>
+  <div class="grid g-3">
+    <div class="callout"><h3 style="font-size:17px;font-family:Saira">INMETRO</h3><p class="dim" style="font-size:13.5px;margin-top:6px">Registro nº 008991/2025 — certificação ativa.</p></div>
+    <div class="callout"><h3 style="font-size:17px;font-family:Saira">Garantia de 2 anos</h3><p class="dim" style="font-size:13.5px;margin-top:6px">Proteção para a sua compra.</p></div>
+    <div class="callout"><h3 style="font-size:17px;font-family:Saira">+700 rodas entregues</h3><p class="dim" style="font-size:13.5px;margin-top:6px">Experiência comprovada em vendas.</p></div>
+    <div class="callout"><h3 style="font-size:17px;font-family:Saira">Suporte no Brasil</h3><p class="dim" style="font-size:13.5px;margin-top:6px">Atendimento antes e depois da compra.</p></div>
+    <div class="callout"><h3 style="font-size:17px;font-family:Saira">Qualidade + performance</h3><p class="dim" style="font-size:13.5px;margin-top:6px">Produtos para ciclistas que buscam evolução.</p></div>
+    <div class="callout"><h3 style="font-size:17px;font-family:Saira">Preço justo</h3><p class="dim" style="font-size:13.5px;margin-top:6px">Alta performance sem virar produto barato.</p></div>
+  </div>
+</div></section>
+
+<!-- ================= 6. ENGENHARIA ================= -->
+<section class="block" id="engenharia" style="background:var(--carbon-1);color:#F4F7FB"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow" style="color:var(--accent-bright)">Tecnologia</span><h2 style="color:#fff">Engenharia que você sente na estrada.</h2>
+  <p style="color:#B9C2D2">Cada roda é construída com foco em rigidez, leveza e aerodinâmica. <span class="confirm">specs por modelo [CONFIRMAR]</span> — nunca aplicamos a spec de um modelo a outro.</p></div>
+  <div class="eng-grid" style="--panel:#12151c;--line:#242b37">
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Material</span><span class="v" style="color:#fff">Carbono Toray T700 <span class="confirm">[CONFIRMAR]</span></span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Cubo</span><span class="v" style="color:#fff">Ratchet 36T <span class="confirm">[CONFIRMAR]</span></span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Rolamentos</span><span class="v" style="color:#fff">Cerâmicos híbridos <span class="confirm">[CONFIRMAR]</span></span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Perfil</span><span class="v" style="color:#fff">Por modelo <span class="confirm">[CONFIRMAR]</span></span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Largura interna</span><span class="v" style="color:#fff"><span class="confirm">[CONFIRMAR]</span></span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Aerodinâmica</span><span class="v" style="color:#fff">Perfil otimizado</span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Pneu</span><span class="v" style="color:#fff">Clincher / Tubeless Ready <span class="confirm">[CONFIRMAR]</span></span></div>
+    <div class="eng-cell" style="background:#12151c"><span class="k" style="color:#7c8698">Peso máx.</span><span class="v" style="color:#fff">até 125 kg <span class="confirm">[CONFIRMAR]</span></span></div>
+  </div>
+</div></section>
+
+<!-- ================= 7. COMPARADOR ================= -->
+<section class="block" id="comparador" style="background:var(--surface-2)"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Decisão</span><h2>Ainda em dúvida? Compare as rodas.</h2>
+  <p class="dim">Selecione até 3 modelos. Valores por modelo <span class="confirm">[CONFIRMAR]</span> — ao confirmar a tabela oficial, esta comparação passa a exibir os dados reais.</p></div>
+  <div class="cmp-pick" id="cmpPick"></div>
+  <div class="cmp"><table id="cmpTable"><tbody></tbody></table></div>
+  <div class="center-cta" style="justify-content:flex-start"><a class="btn btn-primary" href="#produtos">Comparar modelos</a><a class="btn btn-wa" href="#contato"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2z"/></svg> Falar com um especialista</a></div>
+</div></section>
+
+<!-- ================= 8. PROVA SOCIAL (estrutura pronta) ================= -->
+<section class="block" id="prova"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Prova social</span><h2>+700 rodas entregues.</h2>
+  <p class="dim">Estrutura pronta para <b>avaliações e fotos reais</b> de clientes. <span class="confirm">conteúdo real [CONFIRMAR]</span> — nenhum depoimento fictício será exibido.</p></div>
+  <div class="social-grid">
+    <div class="review"><div class="stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg></div><div class="ph-line" style="width:100%"></div><div class="ph-line" style="width:88%"></div><div class="ph-line" style="width:70%"></div><div class="who"><div class="av"></div><div class="faint" style="font-size:12px">Espaço para avaliação real [CONFIRMAR]</div></div></div>
+    <div class="review"><div class="stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg></div><div class="ph-line" style="width:100%"></div><div class="ph-line" style="width:80%"></div><div class="ph-line" style="width:64%"></div><div class="who"><div class="av"></div><div class="faint" style="font-size:12px">Espaço para avaliação real [CONFIRMAR]</div></div></div>
+    <div class="review"><div class="stars"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6 6 .9-4.5 4.3 1 6.3L12 16.9 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg></div><div class="ph-line" style="width:100%"></div><div class="ph-line" style="width:92%"></div><div class="ph-line" style="width:56%"></div><div class="who"><div class="av"></div><div class="faint" style="font-size:12px">Espaço para avaliação real [CONFIRMAR]</div></div></div>
+  </div>
+</div></section>
+
+<!-- ================= 9. AXION NA VIDA REAL ================= -->
+<section class="block" id="vidareal"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Na estrada</span><h2>Axion na vida real</h2>
+  <p class="dim">Galeria das rodas em bicicletas reais (road, triathlon, performance, treino, competição). <span class="confirm">fotos reais [CONFIRMAR]</span> — sem imagens genéricas passando por clientes.</p></div>
+  <div class="gal">
+    <div class="tile big">Foto lifestyle<br>[CONFIRMAR]</div>
+    <div class="tile">Road [CONFIRMAR]</div><div class="tile">Triathlon [CONFIRMAR]</div>
+    <div class="tile">Detalhe cubo [CONFIRMAR]</div><div class="tile">Competição [CONFIRMAR]</div>
+    <div class="tile">Perfil aero [CONFIRMAR]</div>
+  </div>
+</div></section>
+
+<!-- ================= 10. COMPATIBILIDADE ================= -->
+<section class="block"><div class="wrap">
+  <div class="banner">
+    <span class="eyebrow" style="color:var(--accent-bright)">Compatibilidade</span>
+    <h2>Essa roda serve na minha bike?</h2>
+    <p>Antes de comprar, confirme a compatibilidade da sua bicicleta: freio (Disc/Rim), eixo, freehub, número de velocidades, Center Lock, pneu e tamanho. <span class="confirm">opções por modelo [CONFIRMAR]</span></p>
+    <div class="center-cta"><a class="btn btn-primary" href="#contato">Verificar compatibilidade</a><a class="btn btn-wa" href="#contato"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2z"/></svg> Falar com um especialista</a></div>
+  </div>
+</div></section>
+
+<!-- ================= 11. CONTEÚDO ================= -->
+<section class="block" id="conteudo" style="background:var(--surface-2)"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Conteúdo</span><h2>Conheça melhor suas rodas</h2>
+  <p class="dim">Materiais para escolher com segurança. <span class="confirm">artigos [CONFIRMAR]</span> — placeholders até a publicação dos conteúdos.</p></div>
+  <div class="grid g-3">
+    <a class="post" href="#"><div class="thumb">Imagem [CONFIRMAR]</div><div class="pb"><span class="eyebrow">Guia</span><h4>50mm vs 55mm vs 60mm</h4><p class="dim" style="font-size:13px">Como o perfil muda leveza e aerodinâmica.</p></div></a>
+    <a class="post" href="#"><div class="thumb">Imagem [CONFIRMAR]</div><div class="pb"><span class="eyebrow">Guia</span><h4>Disc Brake vs Rim Brake</h4><p class="dim" style="font-size:13px">Qual sistema faz sentido para você.</p></div></a>
+    <a class="post" href="#"><div class="thumb">Imagem [CONFIRMAR]</div><div class="pb"><span class="eyebrow">Técnico</span><h4>Largura interna e tubeless</h4><p class="dim" style="font-size:13px">Por que a largura importa na escolha do pneu.</p></div></a>
+  </div>
+  <div class="center-cta" style="justify-content:flex-start"><a class="btn btn-secondary" href="#">Ver o blog</a></div>
+</div></section>
+
+<!-- ================= 12. FAQ ================= -->
+<section class="block" id="faq"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Dúvidas</span><h2>Perguntas frequentes</h2></div>
+  <div class="faq" style="max-width:820px">
+    <details open><summary>Qual roda é ideal para minha bike?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Use o guia "Qual roda é para você?" e o comparador. Para confirmar a escolha e a compatibilidade, fale com um especialista no WhatsApp.</div></details>
+    <details><summary>As rodas possuem garantia?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Sim — 2 anos de garantia contra defeitos de fabricação, com suporte no Brasil.</div></details>
+    <details><summary>A Axion possui certificação INMETRO?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Sim — Registro nº 008991/2025.</div></details>
+    <details><summary>As rodas são tubeless?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">São Clincher / Tubeless Ready. Itens que acompanham (fita/válvula) e detalhes por modelo: [CONFIRMAR].</div></details>
+    <details><summary>Qual pneu posso utilizar?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Depende da largura interna do modelo. Recomendação por modelo: [CONFIRMAR].</div></details>
+    <details><summary>Quais freehubs estão disponíveis?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Opções de freehub (Shimano HG / SRAM XDR / Campagnolo): [CONFIRMAR].</div></details>
+    <details><summary>A roda é compatível com Shimano?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Compatibilidade de freehub por modelo: [CONFIRMAR]. Confirme com um especialista informando seu grupo e nº de velocidades.</div></details>
+    <details><summary>Quantas velocidades?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Depende do freehub escolhido: [CONFIRMAR].</div></details>
+    <details><summary>Como funciona a garantia?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">2 anos contra defeitos de fabricação. Cobertura detalhada e acionamento: [CONFIRMAR].</div></details>
+    <details><summary>Qual o prazo de envio?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Prazo e política de frete: [CONFIRMAR].</div></details>
+    <details><summary>Posso falar com um especialista?<svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Sim — atendimento no Brasil via WhatsApp, antes e depois da compra.</div></details>
+  </div>
+</div></section>
+
+<!-- ================= 13. CTA FINAL ================= -->
+<section class="block" id="contato"><div class="wrap">
+  <div class="banner">
+    <span class="eyebrow" style="color:var(--accent-bright)">Pronto para evoluir?</span>
+    <h2>Sua próxima roda<br>começa aqui.</h2>
+    <p>Escolha o modelo ideal ou fale com quem entende de roda. Suporte de verdade, no Brasil.</p>
+    <div class="center-cta"><a class="btn btn-primary" href="#quiz">Escolher minha roda</a><a class="btn btn-wa" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2z"/></svg> Falar com um especialista</a></div>
+    <p class="faint" style="font-size:12px;margin-top:18px">WhatsApp e horário de atendimento: [CONFIRMAR]</p>
+  </div>
+</div></section>
+
+<!-- ================= 14. FOOTER ================= -->
+<footer class="foot"><div class="wrap">
+  <div><div class="logo"><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="22" height="22"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/><path d="M12 3.4 12 9.6M12 14.4 12 20.6M3.4 12 9.6 12M14.4 12 20.6 12"/></svg> AXION</div><p style="color:#8792a2;font-size:13.5px;max-width:30ch">Rodas de carbono de alta performance. Certificadas, garantidas e com suporte no Brasil.</p></div>
+  <div><h4>Rodas</h4><a href="#">Disc Brake</a><a href="#">Rim Brake</a><a href="#">Gravel</a><a href="#">MTB</a><a href="#">Triathlon / TT</a></div>
+  <div><h4>Ajuda</h4><a href="#quiz">Guia de compra</a><a href="#comparador">Comparador</a><a href="#">Compatibilidade</a><a href="#faq">FAQ</a><a href="#">Garantia</a></div>
+  <div><h4>Axion</h4><a href="#porque">Sobre</a><a href="#contato">Contato</a><a href="#conteudo">Blog</a><a href="#">Instagram</a></div>
+  <div><h4>Atendimento</h4><a href="#">WhatsApp [CONFIRMAR]</a><a href="#">E-mail [CONFIRMAR]</a><a href="#">Horário [CONFIRMAR]</a></div>
+</div><div class="base">
+  <span>© 2026 Axion Cycle · INMETRO 008991/2025 · CNPJ [CONFIRMAR]</span>
+  <span><a href="#" style="display:inline">Privacidade</a> · <a href="#" style="display:inline">Termos</a> · <a href="#" style="display:inline">Trocas</a> · <a href="#" style="display:inline">Envio</a></span>
+</div></footer>
+
+<!-- floating whatsapp + mobile sticky cta -->
+<a class="wa-float" href="#contato" aria-label="Falar no WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 0 1 0 16 8 8 0 0 1-4.1-1.1l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm4.4 9.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.1-.2 0-.4.1-.5l.4-.5c.1-.2.1-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.9.9-.9 2.2-.1 3.5a9 9 0 0 0 4.6 4c1.4.5 2 .5 2.7.4.4-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1z"/></svg></a>
+<div class="mobile-cta"><a class="btn btn-primary" href="#quiz">Escolher minha roda</a><a class="btn btn-wa btn-sm" href="#contato" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2z"/></svg></a></div>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"Axion Cycle","description":"Rodas de carbono de alta performance com certificação INMETRO, 2 anos de garantia e suporte no Brasil.","brand":"Axion Cycle","slogan":"Seu upgrade começa aqui."}
+</script>
+
+<script>
+/* theme */
+(function(){var r=document.documentElement,b=document.getElementById('themeBtn');
+try{var s=localStorage.getItem('axion-theme');if(s)r.setAttribute('data-theme',s);}catch(e){}
+b&&b.addEventListener('click',function(){var c=r.getAttribute('data-theme');var d=c?c==='dark':matchMedia('(prefers-color-scheme:dark)').matches;var n=d?'light':'dark';r.setAttribute('data-theme',n);try{localStorage.setItem('axion-theme',n);}catch(e){}});})();
+
+/* mobile nav */
+(function(){var bg=document.getElementById('burger'),mn=document.getElementById('mobileNav');
+bg&&bg.addEventListener('click',function(){var open=mn.hidden;mn.hidden=!open;bg.setAttribute('aria-expanded',String(open));});
+mn&&mn.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mn.hidden=true;bg.setAttribute('aria-expanded','false');});});})();
+
+/* wheel SVG (placeholder, drawn at rest) */
+function buildWheel(svg,acc){acc=acc||'#2D86FF';var cx=200,cy=200,tire=188,rimOut=176,rimIn=150,hubR=26,NS='http://www.w3.org/2000/svg';
+function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:tire,fill:'none',stroke:'#04060a','stroke-width':16}));
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:tire-9,fill:'none',stroke:'#0e1219','stroke-width':4}));
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:(rimOut+rimIn)/2,fill:'none',stroke:'#171c26','stroke-width':(rimOut-rimIn)}));
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:rimOut,fill:'none',stroke:acc,'stroke-width':2,'stroke-opacity':.8}));
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:rimIn,fill:'none',stroke:'#2a3140','stroke-width':2}));
+for(var i=0;i<20;i++){var a=(i/20)*Math.PI*2-Math.PI/2;svg.appendChild(el('line',{x1:cx+Math.cos(a)*(hubR+4),y1:cy+Math.sin(a)*(hubR+4),x2:cx+Math.cos(a)*(rimIn-2),y2:cy+Math.sin(a)*(rimIn-2),stroke:'#39414f','stroke-width':i%5===0?2.4:1.4,'stroke-opacity':.9}));}
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:hubR,fill:'#0d1017',stroke:acc,'stroke-width':2.5}));
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:hubR-9,fill:'#161b24'}));
+svg.appendChild(el('circle',{cx:cx,cy:cy,r:3.5,fill:acc}));}
+buildWheel(document.getElementById('heroWheel'));
+
+/* MODELS — names given (Fase 3 §21). NO invented specs: numeric = [CONFIRMAR] */
+var MODELS=[
+ {id:'D50',name:'Axion D50',brake:'Disc',perfil:'50 mm'},
+ {id:'D55',name:'Axion D55',brake:'Disc',perfil:'55 mm'},
+ {id:'D60',name:'Axion D60',brake:'Disc',perfil:'60 mm'},
+ {id:'D5580',name:'Axion D55/80',brake:'Disc',perfil:'55/80 mm'},
+ {id:'WaveD',name:'Axion Wave Disc',brake:'Disc',perfil:'[CONFIRMAR]'},
+ {id:'AeroX',name:'Axion AeroX',brake:'Disc',perfil:'[CONFIRMAR]'},
+ {id:'R50',name:'Axion R50',brake:'Rim',perfil:'50 mm'},
+ {id:'R60',name:'Axion R60',brake:'Rim',perfil:'60 mm'},
+ {id:'R6088',name:'Axion R60/88',brake:'Rim',perfil:'60/88 mm'},
+ {id:'WaveR',name:'Axion Wave Rim',brake:'Rim',perfil:'[CONFIRMAR]'},
+ {id:'AeroXR',name:'Axion AeroX Rim',brake:'Rim',perfil:'[CONFIRMAR]'}
+];
+var CF='<span class="confirm">[CONFIRMAR]</span>';
+
+/* featured cards */
+(function(){var pick=['D50','D60','R50','WaveD'];var host=document.getElementById('featured');
+host.innerHTML=pick.map(function(id){var m=MODELS.filter(function(x){return x.id===id;})[0];
+var brakeCls=m.brake==='Disc'?'pb-disc':'pb-rim';
+return '<article class="p-card"><div class="p-media"><span class="badge badge-inmetro tag-tl" style="font-size:9px">INMETRO</span><span class="pbadge '+brakeCls+' tag-tr">'+m.brake+'</span><svg class="whl fw" viewBox="0 0 400 400"></svg></div>'+
+'<div class="p-body"><div class="p-name">'+m.name+'</div><div class="p-feat">Carbono de alta performance</div>'+
+'<div class="p-attrs"><span class="p-attr">'+m.perfil+'</span><span class="p-attr">'+m.brake+'</span><span class="p-attr">Peso '+ '[CONF.]' +'</span></div>'+
+'<div class="p-price"><div class="now mono">R$ — '+CF+'</div><div class="pay">12x sem juros · <span class="pix">5% OFF no PIX</span></div></div>'+
+'<div class="p-actions"><a class="btn btn-primary btn-sm btn-block" href="#contato">Ver produto</a><button class="btn btn-secondary btn-sm" aria-label="Comparar">+</button></div></div></article>';
+}).join('');
+host.querySelectorAll('.fw').forEach(function(w){buildWheel(w);});})();
+
+/* QUIZ */
+(function(){
+ var steps=document.querySelectorAll('.quiz-step'),i=0,ans={};
+ var next=document.getElementById('quizNext'),back=document.getElementById('quizBack'),
+     label=document.getElementById('stepLabel'),dots=document.querySelectorAll('.steps i'),
+     body=document.querySelector('.quiz-body'),result=document.querySelector('.quiz-result');
+ document.querySelectorAll('.opts').forEach(function(grp){grp.addEventListener('click',function(e){
+   var o=e.target.closest('.opt'); if(!o)return;
+   grp.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel');});
+   o.classList.add('sel'); ans[grp.dataset.key]=o.textContent.trim(); next.disabled=false;
+ });});
+ function show(){steps.forEach(function(s,k){s.classList.toggle('on',k===i);});
+   dots.forEach(function(d,k){d.classList.toggle('on',k<=i);});
+   label.textContent='Etapa '+(i+1)+' de 4'; back.disabled=i===0;
+   var key=steps[i].querySelector('.opts').dataset.key; next.disabled=!ans[key];
+   next.textContent=i===3?'Ver resultado':'Próximo';}
+ next.addEventListener('click',function(){if(i<3){i++;show();}else{finish();}});
+ back.addEventListener('click',function(){if(i>0){i--;show();}});
+ function finish(){body.style.display='none';document.querySelector('.quiz-foot').style.display='none';
+   result.classList.add('on');
+   var fr=ans.freio==='Rim Brake'?'Rim':'Disc';
+   var list=MODELS.filter(function(m){return m.brake===fr;});
+   document.getElementById('resList').innerHTML=list.map(function(m){return '<span class="res-chip">'+m.name+'</span>';}).join('');}
+ document.getElementById('quizRestart').addEventListener('click',function(){i=0;ans={};
+   document.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel');});
+   result.classList.remove('on');body.style.display='';document.querySelector('.quiz-foot').style.display='';show();});
+ show();
+})();
+
+/* COMPARADOR */
+(function(){
+ var picks=[], MAX=3, pickHost=document.getElementById('cmpPick'), tbody=document.querySelector('#cmpTable tbody');
+ var ROWS=[['Preço',function(){return 'R$ — '+CF;}],['Peso',function(){return CF;}],
+   ['Perfil',function(m){return m.perfil;}],['Largura interna',function(){return CF;}],
+   ['Largura externa',function(){return CF;}],['Cubo',function(){return 'Ratchet 36T '+CF;}],
+   ['Freio',function(m){return m.brake;}],['Compatibilidade',function(){return CF;}],
+   ['Modalidade',function(){return CF;}]];
+ pickHost.innerHTML=MODELS.map(function(m){return '<button data-id="'+m.id+'">'+m.name.replace('Axion ','')+'</button>';}).join('');
+ pickHost.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var id=b.dataset.id;
+   var k=picks.indexOf(id);
+   if(k>-1){picks.splice(k,1);}else{if(picks.length>=MAX)return;picks.push(id);}
+   render();});
+ function render(){
+   pickHost.querySelectorAll('button').forEach(function(b){var on=picks.indexOf(b.dataset.id)>-1;
+     b.classList.toggle('sel',on);b.disabled=!on&&picks.length>=MAX;});
+   var models=picks.map(function(id){return MODELS.filter(function(m){return m.id===id;})[0];});
+   if(!models.length){tbody.innerHTML='<tr><td class="rowlab">—</td><td class="val dim" style="padding:22px">Selecione até 3 modelos acima para comparar.</td></tr>';return;}
+   var head='<tr><th class="rowlab"></th>'+models.map(function(m){return '<th>'+m.name.replace('Axion ','')+'</th>';}).join('')+'</tr>';
+   var rows=ROWS.map(function(r){return '<tr><td class="rowlab">'+r[0]+'</td>'+models.map(function(m){return '<td class="val">'+r[1](m)+'</td>';}).join('')+'</tr>';}).join('');
+   tbody.innerHTML=head+rows;
+ }
+ picks=['D50','R50']; render();
+})();
+</script>
