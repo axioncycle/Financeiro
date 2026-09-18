@@ -1,0 +1,676 @@
+<title>Axion Design System</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ============ TOKENS — LIGHT (bare :root = complete light palette) ============ */
+:root{
+  --bg:#FFFFFF;
+  --bg-sunken:#EEF1F6;
+  --surface:#FFFFFF;
+  --surface-2:#F5F7FB;
+  --panel:#FFFFFF;
+  --line:#E1E6EF;
+  --line-strong:#C8D0DC;
+  --text:#0A0D14;
+  --text-muted:#525C6B;
+  --text-faint:#8791A1;
+  --accent:#1466E0;
+  --accent-bright:#2F86FF;
+  --accent-deep:#0B47A6;
+  --on-accent:#FFFFFF;
+  --accent-wash:rgba(20,102,224,.08);
+  --accent-line:rgba(20,102,224,.35);
+  --success:#118A4E;
+  --success-wash:rgba(17,138,78,.10);
+  --danger:#CE2534;
+  --danger-wash:rgba(206,37,52,.09);
+  --warning:#B4791A;
+  --carbon-1:#0A0C11;    /* fixed dark used for hero even in light mode */
+  --carbon-2:#14171F;
+  --shadow-sm:0 1px 2px rgba(11,17,28,.06),0 1px 3px rgba(11,17,28,.05);
+  --shadow-md:0 8px 24px rgba(11,17,28,.10);
+  --shadow-lift:0 16px 40px rgba(11,17,28,.16);
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-pill:999px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --maxw:1140px;
+  color-scheme:light;
+}
+/* ============ TOKENS — DARK (system) ============ */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A0C11;
+    --bg-sunken:#06080D;
+    --surface:#12151C;
+    --surface-2:#171B23;
+    --panel:#14171F;
+    --line:#262C38;
+    --line-strong:#333B49;
+    --text:#F4F7FB;
+    --text-muted:#A2AAB8;
+    --text-faint:#6E7686;
+    --accent:#2D86FF;
+    --accent-bright:#5AA4FF;
+    --accent-deep:#1560C4;
+    --on-accent:#04070D;
+    --accent-wash:rgba(45,134,255,.12);
+    --accent-line:rgba(45,134,255,.42);
+    --success:#31C77F;
+    --success-wash:rgba(49,199,127,.14);
+    --danger:#FF5A66;
+    --danger-wash:rgba(255,90,102,.13);
+    --warning:#E7A93C;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+    --shadow-md:0 10px 30px rgba(0,0,0,.5);
+    --shadow-lift:0 18px 44px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+/* ============ TOKENS — DARK (explicit toggle) ============ */
+:root[data-theme="dark"]{
+  --bg:#0A0C11; --bg-sunken:#06080D; --surface:#12151C; --surface-2:#171B23;
+  --panel:#14171F; --line:#262C38; --line-strong:#333B49;
+  --text:#F4F7FB; --text-muted:#A2AAB8; --text-faint:#6E7686;
+  --accent:#2D86FF; --accent-bright:#5AA4FF; --accent-deep:#1560C4; --on-accent:#04070D;
+  --accent-wash:rgba(45,134,255,.12); --accent-line:rgba(45,134,255,.42);
+  --success:#31C77F; --success-wash:rgba(49,199,127,.14);
+  --danger:#FF5A66; --danger-wash:rgba(255,90,102,.13); --warning:#E7A93C;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 10px 30px rgba(0,0,0,.5); --shadow-lift:0 18px 44px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:"Saira","IBM Plex Sans",system-ui,sans-serif;line-height:1.06;margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+a{color:inherit;text-decoration:none}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:var(--maxw);margin-inline:auto;padding-inline:20px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* eyebrow / labels */
+.eyebrow{font-family:"Saira",sans-serif;font-weight:700;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.dim{color:var(--text-muted)}
+.faint{color:var(--text-faint)}
+
+/* ===== SITE HEADER (component demo) ===== */
+.trustbar{background:var(--carbon-1);color:#C9D2E0;font-size:11.5px;letter-spacing:.04em}
+.trustbar .wrap{display:flex;gap:8px 22px;flex-wrap:wrap;align-items:center;justify-content:center;padding-block:7px}
+.trustbar b{color:#fff;font-weight:600}
+.trustbar span{color:#8a94a6}
+.trustbar b{color:#fff}
+.header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+.header .wrap{display:flex;align-items:center;gap:22px;padding-block:14px}
+.logo{font-family:"Saira",sans-serif;font-weight:800;font-size:21px;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.logo .mk{width:22px;height:22px;color:var(--accent)}
+.nav{display:flex;gap:26px;margin-left:8px}
+.nav a{font-family:"Saira",sans-serif;font-weight:600;font-size:13.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);position:relative;padding-block:6px;transition:color .2s var(--ease)}
+.nav a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:2px;background:var(--accent);transition:right .25s var(--ease)}
+.nav a:hover{color:var(--text)}
+.nav a:hover::after{right:0}
+.header .tools{margin-left:auto;display:flex;align-items:center;gap:10px}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s var(--ease)}
+.icon-btn:hover{border-color:var(--accent-line);color:var(--accent)}
+.icon-btn svg{width:18px;height:18px}
+
+/* ===== SECTION SHELL ===== */
+section.block{padding-block:64px;border-top:1px solid var(--line)}
+.sec-head{display:flex;flex-direction:column;gap:10px;margin-bottom:34px;max-width:66ch}
+.sec-head h2{font-size:clamp(26px,4vw,40px);font-weight:800;text-transform:uppercase;letter-spacing:.01em}
+.sec-num{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:13px;letter-spacing:.1em}
+
+/* ===== HERO (product protagonist) ===== */
+.hero{background:var(--carbon-1);color:#F4F7FB;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(1200px 500px at 78% 18%,rgba(45,134,255,.20),transparent 60%),
+  repeating-linear-gradient(115deg,rgba(255,255,255,.022) 0 2px,transparent 2px 7px);
+  pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:36px;align-items:center;padding-block:72px}
+.hero .kicker{color:var(--accent-bright)}
+.hero h1{font-size:clamp(38px,6vw,66px);font-weight:800;text-transform:uppercase;letter-spacing:-.015em;margin:14px 0 16px}
+.hero h1 em{font-style:normal;color:var(--accent-bright)}
+.hero p.lead{color:#B9C2D2;font-size:17px;max-width:46ch}
+.hero .cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px}
+.hero .specs{display:flex;gap:26px;margin-top:34px;flex-wrap:wrap}
+.hero .specs .s{display:flex;flex-direction:column}
+.hero .specs .v{font-family:"Saira",sans-serif;font-weight:700;font-size:26px}
+.hero .specs .l{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#8790a0}
+.wheel-stage{display:grid;place-items:center;position:relative}
+.wheel-stage .halo{position:absolute;width:78%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(45,134,255,.28),transparent 65%);filter:blur(6px)}
+.wheel-svg{width:min(100%,440px);height:auto;position:relative;filter:drop-shadow(0 24px 50px rgba(0,0,0,.6))}
+.ph-note{position:absolute;bottom:6px;right:8px;font-size:10.5px;letter-spacing:.06em;color:#77808f;background:rgba(0,0,0,.35);padding:3px 8px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,.08)}
+
+/* ===== BUTTONS ===== */
+.btn{font-family:"Saira",sans-serif;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:var(--r-md);border:1px solid transparent;cursor:pointer;
+  transition:transform .18s var(--ease),background .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease);white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:0 6px 18px var(--accent-wash)}
+.btn-primary:hover{background:var(--accent-bright);transform:translateY(-2px);box-shadow:0 12px 26px var(--accent-wash)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:transparent;color:var(--text);border-color:var(--line-strong)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+.hero .btn-secondary{color:#EAF0F8;border-color:rgba(255,255,255,.28)}
+.hero .btn-secondary:hover{color:var(--accent-bright);border-color:var(--accent-bright)}
+.btn-ghost{background:transparent;color:var(--text-muted);padding-inline:8px}
+.btn-ghost:hover{color:var(--accent)}
+.btn-wa{background:#1FA855;color:#fff}
+.btn-wa:hover{background:#25b862;transform:translateY(-2px)}
+.btn-sm{padding:9px 15px;font-size:12.5px}
+.btn[disabled]{opacity:.42;cursor:not-allowed;transform:none!important;box-shadow:none}
+.btn-block{width:100%;justify-content:center}
+
+/* ===== BADGES ===== */
+.badges{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:"Saira",sans-serif;font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:var(--r-pill);border:1px solid var(--line-strong);color:var(--text-muted)}
+.badge svg{width:13px;height:13px}
+.badge-accent{background:var(--accent-wash);border-color:var(--accent-line);color:var(--accent)}
+.badge-inmetro{background:var(--carbon-1);color:#fff;border-color:transparent}
+.badge-success{background:var(--success-wash);border-color:transparent;color:var(--success)}
+.badge-pix{background:var(--success-wash);color:var(--success);border-color:transparent}
+
+/* ===== GRID HELPERS ===== */
+.grid{display:grid;gap:20px}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.g-4{grid-template-columns:repeat(4,1fr)}
+
+/* ===== SWATCHES ===== */
+.sw{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--surface)}
+.sw .chip{height:76px}
+.sw .meta{padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.sw .name{font-family:"Saira",sans-serif;font-weight:600;font-size:13px}
+.sw .hex{font-size:12px}
+.sw .role{font-size:11px;color:var(--text-faint)}
+
+/* ===== TYPE SPECIMEN ===== */
+.type-row{display:flex;align-items:baseline;gap:18px;padding:16px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.type-row .tag{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);min-width:150px}
+.type-row .spec{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--text-faint);margin-left:auto}
+
+/* ===== CARDS ===== */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;transition:border-color .25s var(--ease),transform .25s var(--ease),box-shadow .25s var(--ease)}
+.card:hover{border-color:var(--accent-line);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.card h3{font-size:19px;font-weight:700;margin-bottom:8px}
+
+/* product card */
+.p-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;transition:.25s var(--ease)}
+.p-card:hover{border-color:var(--accent-line);transform:translateY(-4px);box-shadow:var(--shadow-lift)}
+.p-media{position:relative;aspect-ratio:4/3;background:
+  radial-gradient(120% 90% at 70% 20%,#1a1f2b,#0b0e14);display:grid;place-items:center;overflow:hidden}
+.p-media .tag-tl{position:absolute;top:12px;left:12px}
+.p-media .tag-tr{position:absolute;top:12px;right:12px}
+.p-media .whl{width:74%;transition:transform .5s var(--ease)}
+.p-card:hover .whl{transform:rotate(26deg) scale(1.03)}
+.p-body{padding:18px;display:flex;flex-direction:column;gap:12px;flex:1}
+.p-name{font-family:"Saira",sans-serif;font-weight:700;font-size:18px}
+.p-attrs{display:flex;gap:8px;flex-wrap:wrap}
+.p-attr{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--text-muted);border:1px solid var(--line);border-radius:var(--r-sm);padding:3px 7px}
+.p-price{margin-top:auto}
+.p-price .now{font-family:"Saira",sans-serif;font-weight:800;font-size:26px}
+.p-price .pay{font-size:12.5px;color:var(--text-muted)}
+.p-price .pix{color:var(--success);font-weight:600}
+.p-actions{display:flex;gap:10px}
+
+/* ===== SPEC TABLE ===== */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.spec-tbl th,.spec-tbl td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line)}
+.spec-tbl th{font-family:"Saira",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--text-muted);width:40%}
+.spec-tbl td{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.spec-tbl tr:last-child th,.spec-tbl tr:last-child td{border-bottom:0}
+.spec-tbl tr:hover td,.spec-tbl tr:hover th{background:var(--surface-2)}
+
+/* ===== COMPARADOR ===== */
+.cmp{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg)}
+.cmp table{min-width:640px}
+.cmp th,.cmp td{padding:14px 16px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;vertical-align:middle}
+.cmp th:last-child,.cmp td:last-child{border-right:0}
+.cmp thead th{background:var(--surface-2);font-family:"Saira",sans-serif;font-size:15px}
+.cmp thead th.rowlab{background:transparent}
+.cmp .rowlab{font-family:"Saira",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:12px;color:var(--text-muted);width:170px}
+.cmp td.val{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.cmp .best{color:var(--accent);font-weight:600;position:relative}
+.cmp .col-hl{background:var(--accent-wash)}
+.cmp tfoot td{border-bottom:0}
+
+/* ===== FAQ ===== */
+.faq details{border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);margin-bottom:12px;overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:17px 20px;display:flex;align-items:center;gap:14px;font-family:"Saira",sans-serif;font-weight:600;font-size:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .ic{margin-left:auto;color:var(--accent);transition:transform .25s var(--ease);flex:none}
+.faq details[open] summary .ic{transform:rotate(45deg)}
+.faq .ans{padding:0 20px 18px;color:var(--text-muted)}
+
+/* ===== FORMS ===== */
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.field label{font-family:"Saira",sans-serif;font-weight:600;font-size:13px;letter-spacing:.03em}
+.field .hint{font-size:12px;color:var(--text-faint)}
+.input,select.input{width:100%;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);padding:12px 14px;color:var(--text);font-family:inherit;font-size:15px;transition:.2s var(--ease)}
+.input::placeholder{color:var(--text-faint)}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash);outline:none}
+.field.err .input{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-wash)}
+.field.ok .input{border-color:var(--success);box-shadow:0 0 0 3px var(--success-wash)}
+.msg{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500}
+.msg svg{width:14px;height:14px;flex:none}
+.msg.err{color:var(--danger)} .msg.ok{color:var(--success)}
+
+/* ===== STATE DEMO BOXES ===== */
+.state-note{border-left:3px solid var(--accent);background:var(--accent-wash);padding:14px 16px;border-radius:0 var(--r-md) var(--r-md) 0;font-size:13.5px}
+.callout{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;font-size:13.5px}
+
+/* ===== RESPONSIVE FRAMES ===== */
+.frames{display:grid;grid-template-columns:1.6fr 1fr .7fr;gap:20px;align-items:end}
+.frame{border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);overflow:hidden}
+.frame .bar{display:flex;gap:5px;padding:9px 12px;border-bottom:1px solid var(--line);align-items:center}
+.frame .bar i{width:8px;height:8px;border-radius:50%;background:var(--line-strong);display:block}
+.frame .bar span{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text-faint)}
+.frame .canvas{padding:14px;display:flex;flex-direction:column;gap:9px}
+.mini{border-radius:5px;background:var(--panel);border:1px solid var(--line)}
+.mini.h-hd{height:22px} .mini.h-hero{height:64px;background:linear-gradient(135deg,#141a26,#0b0e14)} .mini.h-row{height:38px} .mini.h-cta{height:30px;background:var(--accent);border-color:transparent}
+.mini-grid{display:grid;gap:8px}
+
+/* ===== PRINCIPLES ===== */
+.prin{display:flex;gap:14px;align-items:flex-start}
+.prin .n{font-family:"Saira",sans-serif;font-weight:800;color:var(--accent);font-size:15px;min-width:22px}
+
+/* ===== FOOTER ===== */
+.foot{background:var(--carbon-1);color:#C4CDDB;border-top:1px solid #20262f}
+.foot .wrap{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px;padding-block:48px}
+.foot h4{font-family:"Saira",sans-serif;color:#fff;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.foot a{display:block;color:#9aa6b6;font-size:13.5px;padding:5px 0;transition:color .2s}
+.foot a:hover{color:var(--accent-bright)}
+.foot .logo{color:#fff;margin-bottom:14px}
+.foot .base{border-top:1px solid #20262f;padding-block:18px;font-size:12px;color:#6d7789;text-align:center}
+
+/* index chips */
+.chips{display:flex;gap:9px;flex-wrap:wrap;padding-block:18px}
+.chips a{font-family:"Saira",sans-serif;font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);border:1px solid var(--line);border-radius:var(--r-pill);padding:7px 13px;transition:.2s var(--ease)}
+.chips a:hover{border-color:var(--accent);color:var(--accent)}
+
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;color:var(--text-muted)}
+.legend b{color:var(--accent);font-family:"IBM Plex Mono",monospace}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr;gap:24px}
+  .wheel-stage{order:-1}
+  .g-4{grid-template-columns:repeat(2,1fr)}
+  .g-3{grid-template-columns:repeat(2,1fr)}
+  .foot .wrap{grid-template-columns:1fr 1fr}
+  .frames{grid-template-columns:1fr}
+  .nav{display:none}
+}
+@media (max-width:560px){
+  .g-2,.g-3,.g-4{grid-template-columns:1fr}
+  .foot .wrap{grid-template-columns:1fr}
+  .hero h1{font-size:36px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<!-- ============ SITE HEADER (component demo) ============ -->
+<div class="trustbar"><div class="wrap">
+  <span><b>INMETRO</b> 008991/2025</span><span>·</span>
+  <span><b>2 anos</b> de garantia</span><span>·</span>
+  <span><b>+700</b> rodas entregues</span><span>·</span>
+  <span><b>12x</b> sem juros</span><span>·</span>
+  <span><b>5% OFF</b> no PIX</span>
+</div></div>
+
+<header class="header"><div class="wrap">
+  <a class="logo" href="#top">
+    <svg class="mk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/><path d="M12 3.4 12 9.6M12 14.4 12 20.6M3.4 12 9.6 12M14.4 12 20.6 12"/></svg>
+    AXION
+  </a>
+  <nav class="nav">
+    <a href="#components">Rodas</a>
+    <a href="#guide">Encontre sua roda</a>
+    <a href="#trust">Garantia</a>
+    <a href="#type">Sobre</a>
+    <a href="#footer">Contato</a>
+  </nav>
+  <div class="tools">
+    <button class="icon-btn" aria-label="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></button>
+    <button class="icon-btn" id="themeBtn" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+    <button class="icon-btn" aria-label="Carrinho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h2l2.2 11.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 8H6.5"/><circle cx="10" cy="20" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+    <a class="btn btn-primary btn-sm" href="#" style="text-transform:uppercase">Ver rodas</a>
+  </div>
+</div></header>
+
+<a id="top"></a>
+<!-- ============ HERO (product as protagonist) ============ -->
+<section class="hero"><div class="wrap">
+  <div>
+    <span class="eyebrow kicker">Rodas de carbono · alta performance</span>
+    <h1>Engenharia que você <em>sente</em> em cada pedalada.</h1>
+    <p class="lead">Carbono Toray T700, certificação INMETRO e suporte no Brasil. Rodas feitas para andar forte — com a confiança de quem entende de roda.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#components">Ver rodas <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="btn btn-secondary" href="#guide">Descobrir minha roda</a>
+    </div>
+    <div class="specs">
+      <div class="s"><span class="v mono">T700</span><span class="l">Carbono Toray</span></div>
+      <div class="s"><span class="v mono">36T</span><span class="l">Cubo Ratchet</span></div>
+      <div class="s"><span class="v mono">2 anos</span><span class="l">Garantia</span></div>
+      <div class="s"><span class="v mono">+700</span><span class="l">Rodas entregues</span></div>
+    </div>
+  </div>
+  <div class="wheel-stage">
+    <div class="halo"></div>
+    <svg class="wheel-svg" id="heroWheel" viewBox="0 0 400 400" aria-label="Ilustração de roda de carbono deep-section (placeholder)"></svg>
+    <span class="ph-note">Placeholder — substituir por foto real do produto</span>
+  </div>
+</div></section>
+
+<!-- INDEX -->
+<div class="wrap chips">
+  <a href="#intro">Princípios</a><a href="#color">Cor</a><a href="#type">Tipografia</a>
+  <a href="#buttons">Botões</a><a href="#badges">Badges & Ícones</a><a href="#components">Cards de produto</a>
+  <a href="#specs">Tabela técnica</a><a href="#comparador">Comparador</a><a href="#faq">FAQ</a>
+  <a href="#forms">Formulários & Estados</a><a href="#responsive">Desktop/Tablet/Mobile</a><a href="#trust">Confiança</a>
+</div>
+
+<!-- INTRO / PRINCIPLES -->
+<section class="block" id="intro"><div class="wrap">
+  <div class="sec-head">
+    <span class="sec-num">01 — FILOSOFIA</span>
+    <h2>Cada elemento tem uma função</h2>
+    <p class="dim">Nada existe só porque é bonito. Todo componente deste sistema precisa cumprir pelo menos uma destas funções — este é o filtro de decisão do design.</p>
+  </div>
+  <div class="grid g-4">
+    <div class="card"><div class="prin"><span class="n">→</span><div><h3 style="font-size:16px">Vender</h3><p class="dim" style="font-size:13.5px">Levar o produto e o preço ao centro; CTA sempre claro.</p></div></div></div>
+    <div class="card"><div class="prin"><span class="n">→</span><div><h3 style="font-size:16px">Gerar confiança</h3><p class="dim" style="font-size:13.5px">INMETRO, garantia e prova social visíveis no ticket alto.</p></div></div></div>
+    <div class="card"><div class="prin"><span class="n">→</span><div><h3 style="font-size:16px">Orientar</h3><p class="dim" style="font-size:13.5px">Guia, comparador e hierarquia clara reduzem indecisão.</p></div></div></div>
+    <div class="card"><div class="prin"><span class="n">→</span><div><h3 style="font-size:16px">Reduzir objeção</h3><p class="dim" style="font-size:13.5px">Compatibilidade e WhatsApp tiram o medo de errar.</p></div></div></div>
+  </div>
+  <div class="callout" style="margin-top:20px">
+    <b>Personalidade visual:</b> premium · minimalista · esportiva · tecnológica · sofisticada. O azul é <b>energia estratégica</b> (CTA, dado-chave, estado ativo) — nunca banha a tela. O produto é sempre o protagonista.
+  </div>
+</div></section>
+
+<!-- COLOR -->
+<section class="block" id="color"><div class="wrap">
+  <div class="sec-head">
+    <span class="sec-num">02 — COR</span>
+    <h2>Paleta carbono + azul Axion</h2>
+    <p class="dim">Preto, branco e cinza/carbono formam a base neutra (neutro com leve viés azul, escolhido — não cinza puro). O <b>Azul Axion</b> aparece com parcimônia. Cores semânticas (sucesso/erro) são separadas do acento.</p>
+  </div>
+  <div class="grid g-4">
+    <div class="sw"><div class="chip" style="background:#0A0C11"></div><div class="meta"><span class="name">Carbono</span><span class="hex mono">#0A0C11</span><span class="role">Ground escuro / hero</span></div></div>
+    <div class="sw"><div class="chip" style="background:#14171F"></div><div class="meta"><span class="name">Painel</span><span class="hex mono">#14171F</span><span class="role">Superfície / cards (dark)</span></div></div>
+    <div class="sw"><div class="chip" style="background:#FFFFFF;border-bottom:1px solid #E1E6EF"></div><div class="meta"><span class="name">Branco</span><span class="hex mono">#FFFFFF</span><span class="role">Ground claro / produto</span></div></div>
+    <div class="sw"><div class="chip" style="background:#A2AAB8"></div><div class="meta"><span class="name">Névoa fria</span><span class="hex mono">#A2AAB8</span><span class="role">Neutro / texto muted</span></div></div>
+    <div class="sw"><div class="chip" style="background:#1466E0"></div><div class="meta"><span class="name">Azul Axion</span><span class="hex mono">#1466E0</span><span class="role">Acento / CTA</span></div></div>
+    <div class="sw"><div class="chip" style="background:#2F86FF"></div><div class="meta"><span class="name">Azul glow</span><span class="hex mono">#2F86FF</span><span class="role">Hover / brilho</span></div></div>
+    <div class="sw"><div class="chip" style="background:#118A4E"></div><div class="meta"><span class="name">Sucesso</span><span class="hex mono">#118A4E</span><span class="role">PIX / confirmação</span></div></div>
+    <div class="sw"><div class="chip" style="background:#CE2534"></div><div class="meta"><span class="name">Erro</span><span class="hex mono">#CE2534</span><span class="role">Validação / alerta</span></div></div>
+  </div>
+  <div class="legend">
+    <span>Proporção de uso recomendada — Neutros <b>~85%</b> · Azul Axion <b>~10%</b> · Semânticas <b>~5%</b></span>
+  </div>
+</div></section>
+
+<!-- TYPE -->
+<section class="block" id="type"><div class="wrap">
+  <div class="sec-head">
+    <span class="sec-num">03 — TIPOGRAFIA</span>
+    <h2>Saira · IBM Plex Sans · IBM Plex Mono</h2>
+    <p class="dim"><b>Saira</b> (display técnica/automotiva) nos títulos e números; <b>IBM Plex Sans</b> no corpo (engenharia, legível); <b>IBM Plex Mono</b> em specs, medidas e dados. Caixa-alta com tracking em labels.</p>
+  </div>
+  <div class="type-row"><span class="tag">Display / H1</span><span style="font-family:Saira;font-weight:800;font-size:46px;text-transform:uppercase;letter-spacing:-.015em;line-height:1">Alta performance</span><span class="spec">Saira 800 · 46/1.0 · -1.5%</span></div>
+  <div class="type-row"><span class="tag">Título / H2</span><span style="font-family:Saira;font-weight:700;font-size:30px;text-transform:uppercase">Rodas Disc Brake</span><span class="spec">Saira 700 · 30px · UPPER</span></div>
+  <div class="type-row"><span class="tag">Subtítulo / H3</span><span style="font-family:Saira;font-weight:600;font-size:20px">Perfil e aerodinâmica</span><span class="spec">Saira 600 · 20px</span></div>
+  <div class="type-row"><span class="tag">Corpo</span><span style="font-size:16px;max-width:52ch">Rodas de carbono construídas com fibra Toray T700, para ciclistas que buscam equilíbrio entre leveza, rigidez e segurança.</span><span class="spec">Plex Sans 400 · 16/1.6</span></div>
+  <div class="type-row"><span class="tag">Eyebrow / Label</span><span class="eyebrow">Tecnologia · engenharia</span><span class="spec">Saira 700 · 12px · +18% track</span></div>
+  <div class="type-row"><span class="tag">Dado / Spec</span><span class="mono" style="font-size:18px">1.500 g · 50 mm · 21 mm</span><span class="spec">Plex Mono · tabular-nums</span></div>
+</div></section>
+
+<!-- BUTTONS -->
+<section class="block" id="buttons"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">04 — BOTÕES & CTAs</span><h2>Hierarquia de ação</h2>
+  <p class="dim">Primário para a ação principal (comprar/avançar); secundário para alternativa; WhatsApp para atendimento; ghost para ações discretas. Passe o mouse para ver os estados <b>hover</b>.</p></div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-primary">Comprar agora <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button class="btn btn-secondary">Ver detalhes</button>
+    <button class="btn btn-wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 0 1 0 16 8 8 0 0 1-4.1-1.1l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm4.4 9.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.1-.2 0-.4.1-.5l.4-.5c.1-.2.1-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.9.9-.9 2.2-.1 3.5a9 9 0 0 0 4.6 4c1.4.5 2 .5 2.7.4.4-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1z"/></svg> Falar no WhatsApp</button>
+    <button class="btn btn-ghost">Adicionar ao comparador +</button>
+    <button class="btn btn-primary" disabled>Indisponível</button>
+  </div>
+  <div class="legend">
+    <span><b>Default</b> → repouso</span><span><b>Hover</b> → sobe 2px + azul glow</span><span><b>Focus</b> → anel de foco azul (Tab)</span><span><b>Disabled</b> → 42% opacidade</span>
+  </div>
+</div></section>
+
+<!-- BADGES & ICONS -->
+<section class="block" id="badges"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">05 — BADGES & ÍCONES</span><h2>Selos de confiança e ícones minimalistas</h2>
+  <p class="dim">Badges comunicam prova e vantagem sem virar "banner de promoção". Ícones em linha (stroke), 1.8px, cantos consistentes.</p></div>
+  <div class="badges" style="margin-bottom:24px">
+    <span class="badge badge-inmetro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg> INMETRO 008991/2025</span>
+    <span class="badge badge-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg> 2 anos de garantia</span>
+    <span class="badge badge-accent">Toray T700</span>
+    <span class="badge badge-pix">5% OFF no PIX</span>
+    <span class="badge">12x sem juros</span>
+    <span class="badge badge-accent">Tubeless Ready</span>
+    <span class="badge">Suporte no Brasil</span>
+  </div>
+  <div class="grid g-4">
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg><div class="faint" style="font-size:12px">Roda / perfil</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/></svg><div class="faint" style="font-size:12px">Garantia / segurança</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M4 7h16M4 12h16M4 17h10"/></svg><div class="faint" style="font-size:12px">Comparar</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5z"/></svg><div class="faint" style="font-size:12px">WhatsApp / suporte</div></div>
+  </div>
+</div></section>
+
+<!-- PRODUCT CARDS -->
+<section class="block" id="components"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">06 — CARDS DE PRODUTO</span><h2>O produto é o protagonista</h2>
+  <p class="dim">Imagem grande, nome, atributos essenciais, preço com pagamento e dois caminhos (comprar / comparar). Passe o mouse: a roda gira sutilmente.</p></div>
+  <div class="grid g-3">
+    <article class="p-card">
+      <div class="p-media"><span class="badge badge-inmetro tag-tl" style="font-size:10px">INMETRO</span><span class="badge badge-accent tag-tr" style="font-size:10px">Disc</span><svg class="whl prodwheel" viewBox="0 0 400 400"></svg></div>
+      <div class="p-body">
+        <div class="p-name">Axion Aero 50 Disc</div>
+        <div class="p-attrs"><span class="p-attr">50 mm</span><span class="p-attr">~1.520 g</span><span class="p-attr">Tubeless</span></div>
+        <div class="p-price"><div class="now mono">R$ 4.349</div><div class="pay">12x sem juros · <span class="pix">5% OFF no PIX</span></div></div>
+        <div class="p-actions"><a class="btn btn-primary btn-sm btn-block" href="#">Comprar</a><button class="btn btn-secondary btn-sm" aria-label="Comparar">+</button></div>
+      </div>
+    </article>
+    <article class="p-card">
+      <div class="p-media"><span class="badge badge-inmetro tag-tl" style="font-size:10px">INMETRO</span><span class="badge tag-tr" style="font-size:10px;background:var(--carbon-2);color:#fff;border:0">Rim</span><svg class="whl prodwheel" viewBox="0 0 400 400"></svg></div>
+      <div class="p-body">
+        <div class="p-name">Axion TT 88 Rim</div>
+        <div class="p-attrs"><span class="p-attr">88 mm</span><span class="p-attr">~1.640 g</span><span class="p-attr">Aero</span></div>
+        <div class="p-price"><div class="now mono">R$ 9.499</div><div class="pay">12x sem juros · <span class="pix">5% OFF no PIX</span></div></div>
+        <div class="p-actions"><a class="btn btn-primary btn-sm btn-block" href="#">Comprar</a><button class="btn btn-secondary btn-sm" aria-label="Comparar">+</button></div>
+      </div>
+    </article>
+    <article class="p-card">
+      <div class="p-media"><span class="badge badge-accent tag-tl" style="font-size:10px">Gravel</span><span class="badge tag-tr" style="font-size:10px;background:var(--carbon-2);color:#fff;border:0">Disc</span><svg class="whl prodwheel" viewBox="0 0 400 400"></svg></div>
+      <div class="p-body">
+        <div class="p-name">Axion Gravel 40 Disc</div>
+        <div class="p-attrs"><span class="p-attr">40 mm</span><span class="p-attr">~1.500 g</span><span class="p-attr">Tubeless</span></div>
+        <div class="p-price"><div class="now mono">R$ 4.349</div><div class="pay">12x sem juros · <span class="pix">5% OFF no PIX</span></div></div>
+        <div class="p-actions"><a class="btn btn-primary btn-sm btn-block" href="#">Comprar</a><button class="btn btn-secondary btn-sm" aria-label="Comparar">+</button></div>
+      </div>
+    </article>
+  </div>
+  <p class="faint" style="font-size:12px;margin-top:16px">* Nomes, preços e specs são <b>ilustrativos</b> — pendentes de confirmação na Fase 1 [CONFIRMAR].</p>
+</div></section>
+
+<!-- SPEC TABLE -->
+<section class="block" id="specs"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">07 — FICHA TÉCNICA</span><h2>Tabela de especificações</h2>
+  <p class="dim">Legível, monoespaçada nos valores, com hover de linha. Responde rápido às perguntas de decisão da página de produto.</p></div>
+  <div class="tbl-wrap"><table class="spec-tbl">
+    <tr><th>Material</th><td>Carbono Toray T700</td></tr>
+    <tr><th>Perfil do aro</th><td>50 mm</td></tr>
+    <tr><th>Largura interna</th><td>21 mm <span class="faint">[CONFIRMAR]</span></td></tr>
+    <tr><th>Peso do par</th><td>~1.520 g <span class="faint">[CONFIRMAR]</span></td></tr>
+    <tr><th>Cubo</th><td>Ratchet 36T · rolamentos cerâmicos híbridos</td></tr>
+    <tr><th>Sistema de freio</th><td>Disc Brake · Center Lock <span class="faint">[CONFIRMAR]</span></td></tr>
+    <tr><th>Freehub</th><td>Shimano HG / SRAM XDR <span class="faint">[CONFIRMAR]</span></td></tr>
+    <tr><th>Pneu</th><td>Clincher / Tubeless Ready</td></tr>
+    <tr><th>Peso máx. suportado</th><td>125 kg (ciclista + equipamento)</td></tr>
+    <tr><th>Garantia</th><td>2 anos contra defeito de fabricação</td></tr>
+  </table></div>
+</div></section>
+
+<!-- COMPARADOR -->
+<section class="block" id="comparador"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">08 — COMPARADOR</span><h2>Até 3 modelos lado a lado</h2>
+  <p class="dim">Atributos curados para decisão. A melhor métrica de cada linha recebe destaque azul; a coluna recomendada fica realçada. Em mobile, rola horizontalmente.</p></div>
+  <div class="cmp"><table>
+    <thead><tr><th class="rowlab"></th><th class="col-hl">Aero 50 Disc</th><th>TT 88 Rim</th><th>Gravel 40 Disc</th></tr></thead>
+    <tbody>
+      <tr><td class="rowlab">Preço</td><td class="val col-hl best">R$ 4.349</td><td class="val">R$ 9.499</td><td class="val">R$ 4.349</td></tr>
+      <tr><td class="rowlab">Peso do par</td><td class="val col-hl">1.520 g</td><td class="val">1.640 g</td><td class="val best">1.500 g</td></tr>
+      <tr><td class="rowlab">Perfil</td><td class="val col-hl">50 mm</td><td class="val">88 mm</td><td class="val">40 mm</td></tr>
+      <tr><td class="rowlab">Freio</td><td class="val col-hl">Disc</td><td class="val">Rim</td><td class="val">Disc</td></tr>
+      <tr><td class="rowlab">Modalidade</td><td class="val col-hl">Road</td><td class="val">Triathlon / TT</td><td class="val">Gravel</td></tr>
+      <tr><td class="rowlab">Tubeless</td><td class="val col-hl">Sim</td><td class="val">Sim</td><td class="val">Sim</td></tr>
+      <tr><td class="rowlab">Garantia</td><td class="val col-hl">2 anos</td><td class="val">2 anos</td><td class="val">2 anos</td></tr>
+    </tbody>
+    <tfoot><tr>
+      <td class="rowlab"></td>
+      <td class="col-hl"><a class="btn btn-primary btn-sm btn-block" href="#">Comprar</a></td>
+      <td><a class="btn btn-secondary btn-sm btn-block" href="#">Comprar</a></td>
+      <td><a class="btn btn-secondary btn-sm btn-block" href="#">Comprar</a></td>
+    </tr></tfoot>
+  </table></div>
+  <p class="faint" style="font-size:12px;margin-top:14px">* Valores ilustrativos [CONFIRMAR].</p>
+</div></section>
+
+<!-- FAQ -->
+<section class="block" id="faq"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">09 — FAQ</span><h2>Acordeão de dúvidas</h2>
+  <p class="dim">Remove objeções de fundo de funil (pagamento, compatibilidade, garantia). Uma dúvida por vez; ícone gira ao abrir.</p></div>
+  <div class="faq">
+    <details open><summary>Como funciona o pagamento? <svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">12x sem juros no cartão e 5% de desconto no PIX. Condições e valor mínimo [CONFIRMAR].</div></details>
+    <details><summary>A roda serve na minha bike? <svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">Use a verificação de compatibilidade (freio, eixo, freehub, velocidades). Em caso de dúvida, fale com um especialista no WhatsApp.</div></details>
+    <details><summary>Qual a garantia? <svg class="ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary><div class="ans">2 anos contra defeitos de fabricação, com suporte no Brasil. Cobertura detalhada [CONFIRMAR].</div></details>
+  </div>
+</div></section>
+
+<!-- FORMS & STATES -->
+<section class="block" id="forms"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">10 — FORMULÁRIOS & ESTADOS</span><h2>Entrada de dados + erro/sucesso</h2>
+  <p class="dim">Campos claros, foco azul, mensagens que explicam o que fazer. Estados de erro e sucesso demonstrados abaixo.</p></div>
+  <div class="grid g-2">
+    <div>
+      <div class="field"><label for="f-nome">Nome</label><input class="input" id="f-nome" placeholder="Seu nome" value="Pedro"></div>
+      <div class="field err"><label for="f-email">E-mail</label><input class="input" id="f-email" value="pedro@" aria-invalid="true"><span class="msg err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg> E-mail inválido — verifique o endereço.</span></div>
+      <div class="field ok"><label for="f-cep">CEP (frete e prazo)</label><input class="input" id="f-cep" value="70000-000"><span class="msg ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Entrega estimada calculada.</span></div>
+    </div>
+    <div>
+      <div class="field"><label for="f-mod">Modalidade (Guia)</label>
+        <select class="input" id="f-mod"><option>Road</option><option>Triathlon</option><option>Contra-relógio</option><option>Gravel</option><option>MTB</option></select>
+      </div>
+      <div class="field"><label for="f-freio">Sistema de freio</label>
+        <select class="input" id="f-freio"><option>Disc Brake</option><option>Rim Brake</option></select>
+      </div>
+      <div class="state-note"><b>Estado de sucesso global:</b> após enviar → toast "Recebemos sua mensagem" + CTA WhatsApp. <b>Estado de erro global:</b> resumo no topo do formulário apontando o campo.</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- RESPONSIVE -->
+<section class="block" id="responsive"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">11 — DESKTOP / TABLET / MOBILE</span><h2>Direção responsiva (mobile-first)</h2>
+  <p class="dim">Mesmo sistema, três densidades. No mobile: menu hambúrguer, WhatsApp flutuante, barra de compra fixa na página de produto, comparador em scroll horizontal.</p></div>
+  <div class="frames">
+    <div class="frame"><div class="bar"><i></i><i></i><i></i><span>Desktop · 1140</span></div><div class="canvas">
+      <div class="mini h-hd"></div><div class="mini h-hero"></div>
+      <div class="mini-grid" style="grid-template-columns:repeat(3,1fr)"><div class="mini h-row"></div><div class="mini h-row"></div><div class="mini h-row"></div></div>
+      <div class="mini h-cta" style="width:40%"></div>
+    </div></div>
+    <div class="frame"><div class="bar"><i></i><i></i><i></i><span>Tablet · 768</span></div><div class="canvas">
+      <div class="mini h-hd"></div><div class="mini h-hero"></div>
+      <div class="mini-grid" style="grid-template-columns:repeat(2,1fr)"><div class="mini h-row"></div><div class="mini h-row"></div></div>
+      <div class="mini h-cta" style="width:55%"></div>
+    </div></div>
+    <div class="frame"><div class="bar"><i></i><i></i><i></i><span>Mobile · 390</span></div><div class="canvas">
+      <div class="mini h-hd"></div><div class="mini h-hero"></div>
+      <div class="mini h-row"></div><div class="mini h-row"></div>
+      <div class="mini h-cta"></div>
+    </div></div>
+  </div>
+  <div class="grid g-3" style="margin-top:22px">
+    <div class="callout"><b>Desktop</b> — megamenu, comparador em tabela completa, hero em 2 colunas com produto grande.</div>
+    <div class="callout"><b>Tablet</b> — grid 2 colunas, megamenu em acordeão, filtros em painel lateral colapsável.</div>
+    <div class="callout"><b>Mobile</b> — 1 coluna, hambúrguer, <b>WhatsApp flutuante</b>, CTA de compra fixo no rodapé, specs/FAQ em acordeão.</div>
+  </div>
+</div></section>
+
+<!-- TRUST -->
+<section class="block" id="trust"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">12 — CONFIANÇA</span><h2>Prova para um ticket alto</h2>
+  <p class="dim">Onde o carbono assusta, a confiança vende. Estes blocos aparecem na Home, na página de produto e no checkout.</p></div>
+  <div class="grid g-4">
+    <div class="card"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg><h3 style="font-size:16px;margin-top:10px">INMETRO 008991/2025</h3><p class="dim" style="font-size:13.5px">Certificação ativa — diferencial raro no mercado nacional.</p></div>
+    <div class="card"><span class="mono" style="font-family:Saira;font-weight:800;font-size:30px;color:var(--accent)">2</span><h3 style="font-size:16px;margin-top:6px">Anos de garantia</h3><p class="dim" style="font-size:13.5px">Cobertura contra defeito de fabricação, com suporte no Brasil.</p></div>
+    <div class="card"><span class="mono" style="font-family:Saira;font-weight:800;font-size:30px;color:var(--accent)">+700</span><h3 style="font-size:16px;margin-top:6px">Rodas entregues</h3><p class="dim" style="font-size:13.5px">Base real de clientes — prova social e recompra.</p></div>
+    <div class="card"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5z"/></svg><h3 style="font-size:16px;margin-top:10px">Suporte no Brasil</h3><p class="dim" style="font-size:13.5px">Atendimento consultivo via WhatsApp — não é marketplace.</p></div>
+  </div>
+</div></section>
+
+<!-- FOOTER -->
+<footer class="foot" id="footer"><div class="wrap">
+  <div>
+    <div class="logo"><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="22" height="22"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/><path d="M12 3.4 12 9.6M12 14.4 12 20.6M3.4 12 9.6 12M14.4 12 20.6 12"/></svg> AXION</div>
+    <p style="color:#8792a2;font-size:13.5px;max-width:34ch">Rodas de carbono de alta performance. Certificadas, garantidas e com suporte no Brasil.</p>
+  </div>
+  <div><h4>Rodas</h4><a href="#">Disc Brake</a><a href="#">Rim Brake</a><a href="#">Gravel</a><a href="#">MTB</a><a href="#">Triathlon / TT</a></div>
+  <div><h4>Ajuda</h4><a href="#">Guia de compra</a><a href="#">Comparador</a><a href="#">Compatibilidade</a><a href="#">Garantia</a><a href="#">Contato</a></div>
+  <div><h4>Axion</h4><a href="#">Sobre</a><a href="#">Blog</a><a href="#">INMETRO 008991/2025</a><a href="#">Pagamento & frete</a></div>
+</div><div class="base">Sistema visual — Fase 2 (Direção de Arte). Ilustrações de roda são placeholders. Dados de produto ilustrativos [CONFIRMAR].</div></footer>
+
+<script>
+/* theme toggle — per-viewer convenience */
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  try{var s=localStorage.getItem('axion-theme'); if(s)root.setAttribute('data-theme',s);}catch(e){}
+  btn && btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    var dark=cur? cur==='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+    var next=dark?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('axion-theme',next);}catch(e){}
+  });
+})();
+
+/* build carbon deep-section wheel SVG (placeholder art, drawn at rest) */
+function buildWheel(svg,opts){
+  opts=opts||{};
+  var cx=200,cy=200, tire=188, rimOut=176, rimIn=150, hubR=26, ns=NS='http://www.w3.org/2000/svg';
+  var acc=opts.accent||'#2D86FF';
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  // tire
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:tire,fill:'none',stroke:'#04060a','stroke-width':16}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:tire-9,fill:'none',stroke:'#0e1219','stroke-width':4}));
+  // deep section rim (carbon)
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:(rimOut+rimIn)/2,fill:'none',stroke:'#171c26','stroke-width':(rimOut-rimIn)}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:rimOut,fill:'none',stroke:acc,'stroke-width':2,'stroke-opacity':.8}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:rimIn,fill:'none',stroke:'#2a3140','stroke-width':2}));
+  // spokes (bladed)
+  var N=20;
+  for(var i=0;i<N;i++){
+    var a=(i/N)*Math.PI*2 - Math.PI/2;
+    var x1=cx+Math.cos(a)*(hubR+4), y1=cy+Math.sin(a)*(hubR+4);
+    var x2=cx+Math.cos(a)*(rimIn-2), y2=cy+Math.sin(a)*(rimIn-2);
+    svg.appendChild(el('line',{x1:x1,y1:y1,x2:x2,y2:y2,stroke:'#39414f','stroke-width':i%5===0?2.4:1.4,'stroke-opacity':.9}));
+  }
+  // hub
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:hubR,fill:'#0d1017',stroke:acc,'stroke-width':2.5}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:hubR-9,fill:'#161b24'}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:3.5,fill:acc}));
+  // highlight arc
+  var hl=el('path',{d:'M '+(cx+Math.cos(-2.3)*rimOut)+' '+(cy+Math.sin(-2.3)*rimOut)+' A '+rimOut+' '+rimOut+' 0 0 1 '+(cx+Math.cos(-0.9)*rimOut)+' '+(cy+Math.sin(-0.9)*rimOut),fill:'none',stroke:'#ffffff','stroke-width':2,'stroke-opacity':.28,'stroke-linecap':'round'});
+  svg.appendChild(hl);
+}
+buildWheel(document.getElementById('heroWheel'),{accent:'#2D86FF'});
+document.querySelectorAll('.prodwheel').forEach(function(w){buildWheel(w,{accent:'#2D86FF'});});
+</script>
