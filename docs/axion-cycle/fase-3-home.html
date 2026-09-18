@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -537,6 +538,8 @@ section.block{padding-block:72px}
 /* analytics stub (GA4 dataLayer) */
 window.dataLayer=window.dataLayer||[];function track(ev,d){try{window.dataLayer.push(Object.assign({event:ev},d||{}));}catch(e){}}
 track('page_view',{page:'home'});
+var WA='';/* [CONFIRMAR] numero oficial WhatsApp */
+function waLink(m){return (WA?'https://wa.me/'+WA:'https://wa.me/')+'?text='+encodeURIComponent(m);}
 /* theme */
 (function(){var r=document.documentElement,b=document.getElementById('themeBtn');
 try{var s=localStorage.getItem('axion-theme');if(s)r.setAttribute('data-theme',s);}catch(e){}
@@ -641,6 +644,14 @@ return '<article class="p-card"><div class="p-media"><span class="badge badge-in
  }
  picks=['D50','R50']; render();
 })();
-/* whatsapp events */
-document.querySelectorAll('.btn-wa,.wa-float').forEach(function(a){a.addEventListener('click',function(){track('whatsapp_click',{});});});
+/* whatsapp contextual routing */
+(function(){
+ var GEN='Olá! Quero ajuda para escolher minha roda de carbono Axion.';
+ var COMPAT='Olá! Quero verificar a compatibilidade da minha bike com uma roda de carbono Axion (freio, eixo, freehub, velocidades).';
+ var CMP='Olá! Quero comparar modelos de roda de carbono Axion.';
+ function setWa(a,msg){if(!a||a.__wa)return;a.__wa=1;if(a.tagName==='A'){a.href=waLink(msg);a.target='_blank';a.rel='noopener';}a.addEventListener('click',function(e){if(a.tagName!=='A'){e.preventDefault();window.open(waLink(msg),'_blank');}track('whatsapp_click',{page_type:'home'});});}
+ document.querySelectorAll('#comparador .btn-wa').forEach(function(a){setWa(a,CMP);});
+ document.querySelectorAll('.banner').forEach(function(b){if(/serve na minha bike/i.test(b.textContent)){b.querySelectorAll('.btn-wa').forEach(function(a){setWa(a,COMPAT);});var p=b.querySelector('.btn-primary');if(p&&!p.__wa){p.__wa=1;p.addEventListener('click',function(e){e.preventDefault();track('compatibility_click',{});window.open(waLink(COMPAT),'_blank');});}}});
+ document.querySelectorAll('.btn-wa,.wa-float').forEach(function(a){setWa(a,GEN);});
+})();
 </script>

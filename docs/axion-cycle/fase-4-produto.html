@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -62,6 +63,9 @@ p{margin:0}a{color:inherit;text-decoration:none}img{max-width:100%}
 .tools{margin-left:auto;display:flex;gap:9px;align-items:center}
 .icon-btn{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);color:var(--text);cursor:pointer}
 .icon-btn:hover{border-color:var(--accent-line);color:var(--accent)}.icon-btn svg{width:17px;height:17px}
+.burger{display:none}
+.mnav{display:none;border-bottom:1px solid var(--line);background:var(--bg)}
+.mnav a{display:block;font-family:"Saira",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:14px;padding:13px 20px;border-top:1px solid var(--line)}
 
 /* model switcher (demo do template) */
 .switcher{background:var(--surface-2);border-bottom:1px solid var(--line)}
@@ -181,7 +185,7 @@ section.blk{padding-block:44px;border-top:1px solid var(--line)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 @media (max-width:960px){
-  .nav{display:none}
+  .nav{display:none}.burger{display:grid}
   .pdp-grid{grid-template-columns:1fr;gap:24px}.gallery{position:static}
   .specs{grid-template-columns:1fr}.g-4{grid-template-columns:repeat(2,1fr)}.g-3{grid-template-columns:1fr 1fr}
   .foot .wrap{grid-template-columns:1fr 1fr}
@@ -222,8 +226,11 @@ section.blk{padding-block:44px;border-top:1px solid var(--line)}
   <div class="tools">
     <button class="icon-btn" id="themeBtn" aria-label="Tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
     <button class="icon-btn" aria-label="Carrinho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h2l2.2 11.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 8H6.5"/><circle cx="10" cy="20" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+    <button class="icon-btn burger" id="burger" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   </div>
-</div></header>
+</div>
+<nav class="mnav" id="mnav" hidden><a href="#">Rodas</a><a href="#">Encontre sua roda</a><a href="#">Comparador</a><a href="#">Garantia</a><a href="#">Contato</a></nav>
+</header>
 
 <!-- MODEL SWITCHER (demonstra o template aplicado a cada produto) -->
 <div class="switcher"><div class="wrap" id="switcher"><span class="lbl">Template aplicado a:</span></div></div>
@@ -266,6 +273,8 @@ svg.appendChild(el('circle',{cx:cx,cy:cy,r:3.5,fill:acc}));}
 window.dataLayer=window.dataLayer||[];
 function track(ev,data){try{window.dataLayer.push(Object.assign({event:ev},data||{}));}catch(e){}}
 track('page_view',{page:'product'});
+var WA='';/* [CONFIRMAR] numero oficial WhatsApp, ex 55DDDNUMERO */
+function waLink(msg){return (WA?'https://wa.me/'+WA:'https://wa.me/')+'?text='+encodeURIComponent(msg);}
 function slug(x){return x.toLowerCase().replace(/\//g,'-').replace(/\s+/g,'');}
 function updateLD(p){
   var seg=p.brake==='Disc'?'disc':'rim';
@@ -498,13 +507,14 @@ function wireProduct(p){
   gm.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
   gm.addEventListener('touchend',function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)setView(vi+(dx<0?1:-1));x0=null;},{passive:true});
   /* buy + specialist + compat events */
-  function buy(){track('add_to_cart',{item_id:p.id,item_name:p.name});track('begin_checkout',{item_id:p.id});toast('Fluxo de compra: integração de checkout/gateway na próxima fase [CONFIRMAR].');}
+  function buy(e){if(e)e.preventDefault();track('add_to_cart',{item_id:p.id,item_name:p.name,category:p.category,currency:'BRL',quantity:1,page_type:'product'});track('begin_checkout',{item_id:p.id,item_name:p.name,page_type:'product'});track('whatsapp_click',{item_id:p.id,ctx:'buy'});window.open(waLink('Olá! Quero comprar a '+p.name+'. Pode me ajudar com preço, condições e frete?'),'_blank');if(!WA)toast('Checkout online em breve — finalize pelo WhatsApp. Número oficial [CONFIRMAR].');}
   document.getElementById('buyNow').onclick=buy;
   var b2=document.getElementById('buyNow2');if(b2)b2.onclick=buy;
-  document.getElementById('mbuyCta').onclick=function(e){e.preventDefault();buy();};
-  ['specWa','compatWa','finalWa'].forEach(function(idw){var el=document.getElementById(idw);if(el)el.onclick=function(e){e.preventDefault();track('whatsapp_click',{item_id:p.id,ctx:idw});toast('WhatsApp do especialista: número oficial [CONFIRMAR].');};});
-  document.getElementById('waFloat').onclick=function(e){e.preventDefault();track('whatsapp_click',{item_id:p.id,ctx:'float'});toast('WhatsApp do especialista: número oficial [CONFIRMAR].');};
-  document.getElementById('checkCompat').onclick=function(){track('compatibility_click',{item_id:p.id});toast('Verificador de compatibilidade: fluxo a integrar [CONFIRMAR].');};
+  document.getElementById('mbuyCta').onclick=buy;
+  var waMsgs={specWa:'Olá! Tenho uma dúvida sobre a '+p.name+'.',compatWa:'Olá! Quero verificar a compatibilidade da '+p.name+' com a minha bike.',finalWa:'Olá! Tenho interesse na '+p.name+' e gostaria de falar com um especialista.'};
+  ['specWa','compatWa','finalWa'].forEach(function(idw){var el=document.getElementById(idw);if(el){el.href=waLink(waMsgs[idw]);el.target='_blank';el.rel='noopener';el.addEventListener('click',function(){track('whatsapp_click',{item_id:p.id,ctx:idw});if(!WA)toast('Número oficial do WhatsApp [CONFIRMAR].');});}});
+  var wf=document.getElementById('waFloat');wf.href=waLink('Olá! Tenho uma dúvida sobre a '+p.name+'.');wf.target='_blank';wf.rel='noopener';wf.addEventListener('click',function(){track('whatsapp_click',{item_id:p.id,ctx:'float'});});
+  document.getElementById('checkCompat').onclick=function(){track('compatibility_click',{item_id:p.id});window.open(waLink('Olá! Quero verificar a compatibilidade da '+p.name+' com a minha bike (freio, eixo, freehub, velocidades).'),'_blank');if(!WA)toast('Verificador guiado em breve — confirme pelo WhatsApp. Número [CONFIRMAR].');};
   /* related switch */
   document.querySelectorAll('.rel').forEach(function(r){r.onclick=function(){track('select_item',{item_id:r.dataset.id});select(r.dataset.id);};});
   /* faq open */
@@ -515,5 +525,6 @@ function wireProduct(p){
 document.getElementById('lbClose').onclick=function(){document.getElementById('lightbox').classList.remove('on');};
 document.getElementById('lightbox').addEventListener('click',function(e){if(e.target.id==='lightbox')this.classList.remove('on');});
 
+(function(){var bg=document.getElementById('burger'),mn=document.getElementById('mnav');if(bg&&mn){bg.addEventListener('click',function(){var o=mn.hidden;mn.hidden=!o;bg.setAttribute('aria-expanded',String(o));});mn.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mn.hidden=true;bg.setAttribute('aria-expanded','false');});});}})();
 select('D55'); /* abre num modelo de "atenção especial" (§28) */
 </script>
