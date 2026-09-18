@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Axion Cycle — sitemap (URLs conforme arquitetura da Fase 1). Domínio final [CONFIRMAR]. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.axioncycle.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <!-- Categorias -->
+  <url><loc>https://www.axioncycle.com/rodas</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/disc-brake</loc><priority>0.9</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/rim-brake</loc><priority>0.9</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/gravel</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/mtb</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/triathlon-tt</loc><priority>0.8</priority></url>
+  <!-- Produtos Disc -->
+  <url><loc>https://www.axioncycle.com/rodas/disc/d50</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/disc/d55</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/disc/d60</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/disc/d55-80</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/disc/wave-disc</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/disc/aerox-disc</loc><priority>0.8</priority></url>
+  <!-- Produtos Rim -->
+  <url><loc>https://www.axioncycle.com/rodas/rim/r50</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/rim/r60</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/rim/r60-88</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/rim/wave-rim</loc><priority>0.8</priority></url>
+  <url><loc>https://www.axioncycle.com/rodas/rim/aerox-rim</loc><priority>0.8</priority></url>
+  <!-- Encontre sua roda -->
+  <url><loc>https://www.axioncycle.com/encontre-sua-roda/guia</loc><priority>0.7</priority></url>
+  <url><loc>https://www.axioncycle.com/comparador</loc><priority>0.7</priority></url>
+  <url><loc>https://www.axioncycle.com/compatibilidade</loc><priority>0.7</priority></url>
+  <!-- Institucional / conteúdo -->
+  <url><loc>https://www.axioncycle.com/sobre</loc><priority>0.6</priority></url>
+  <url><loc>https://www.axioncycle.com/garantia</loc><priority>0.6</priority></url>
+  <url><loc>https://www.axioncycle.com/blog</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.axioncycle.com/contato</loc><priority>0.5</priority></url>
+  <url><loc>https://www.axioncycle.com/pagamento-e-frete</loc><priority>0.4</priority></url>
+  <url><loc>https://www.axioncycle.com/trocas-e-devolucoes</loc><priority>0.4</priority></url>
+  <url><loc>https://www.axioncycle.com/politica-privacidade</loc><priority>0.3</priority></url>
+</urlset>

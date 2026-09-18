@@ -1,0 +1,12 @@
+# Axion Cycle — robots.txt
+User-agent: *
+Allow: /
+# Não indexar áreas transacionais/privadas
+Disallow: /carrinho
+Disallow: /checkout
+Disallow: /conta
+Disallow: /*?ordenar=
+Disallow: /*?filtro=
+# CSS, JS e imagens liberados para renderização
+Allow: /assets/
+Sitemap: https://www.axioncycle.com/sitemap.xml
