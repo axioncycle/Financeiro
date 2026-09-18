@@ -308,6 +308,54 @@ table{border-collapse:collapse;width:100%;font-size:14px}
   .foot .wrap{grid-template-columns:1fr}
   .hero h1{font-size:36px}
 }
+/* =================== v2 ADDITIONS (Fase 2 completa) =================== */
+:root{
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;
+  --secondary:#525C6B;
+}
+/* product badges */
+.pbadge{font-family:"Saira",sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:var(--r-sm);display:inline-flex;align-items:center;gap:5px}
+.pb-novo{background:var(--accent);color:var(--on-accent)}
+.pb-destaque{background:var(--carbon-1);color:#fff}
+.pb-prevenda{background:var(--warning);color:#1a1200}
+.pb-ultimas{background:var(--danger);color:#fff}
+.pb-esgotado{background:var(--line-strong);color:var(--text-muted)}
+/* button loading + active */
+.btn.loading{pointer-events:none;position:relative;color:transparent!important}
+.btn.loading::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+.btn-primary.loading::after{border-color:var(--on-accent);border-top-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* engineering spec grid */
+.eng-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.eng-cell{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:3px}
+.eng-cell .k{font-family:"Saira",sans-serif;font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint)}
+.eng-cell .v{font-family:"IBM Plex Mono",monospace;font-size:21px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.eng-cell .v small{font-size:12px;color:var(--text-muted);font-weight:400}
+/* form controls */
+.check,.radio{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;padding:7px 0}
+.check input,.radio input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+textarea.input{min-height:92px;resize:vertical;font-family:inherit;line-height:1.5}
+/* interface state chips */
+.states{display:flex;flex-wrap:wrap;gap:10px}
+.st{border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;font-family:"Saira",sans-serif;font-weight:600;font-size:13px;display:flex;gap:9px;align-items:center;background:var(--surface)}
+.st .dot{width:9px;height:9px;border-radius:50%;flex:none}
+/* empty + soldout */
+.empty{border:1px dashed var(--line-strong);border-radius:var(--r-lg);padding:38px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-muted)}
+.p-card.soldout .p-media{filter:grayscale(1) brightness(.7)}
+.p-card.soldout .now{color:var(--text-faint)}
+/* section catalog + token table */
+.cat{display:flex;gap:14px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel)}
+.cat .tk{width:66px;height:44px;border-radius:6px;flex:none;background:var(--surface-2);border:1px solid var(--line)}
+.cat .tk.dark{background:linear-gradient(135deg,#141a26,#0b0e14)}
+.cat h4{font-family:"Saira",sans-serif;font-size:15px;font-weight:600}
+.cat p{font-size:12.5px;color:var(--text-muted)}
+/* spacing scale bars */
+.sp-row{display:flex;align-items:center;gap:14px;padding:6px 0}
+.sp-row .bar{height:14px;background:var(--accent);border-radius:3px}
+.sp-row .lab{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--text-muted);min-width:120px}
+.tok-tbl td,.tok-tbl th{padding:11px 14px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
+.tok-tbl th{font-family:"Saira",sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:11.5px;color:var(--text-muted)}
+.tok-tbl td:first-child{font-family:"IBM Plex Mono",monospace;color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -369,8 +417,10 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 <div class="wrap chips">
   <a href="#intro">Princípios</a><a href="#color">Cor</a><a href="#type">Tipografia</a>
   <a href="#buttons">Botões</a><a href="#badges">Badges & Ícones</a><a href="#components">Cards de produto</a>
-  <a href="#specs">Tabela técnica</a><a href="#comparador">Comparador</a><a href="#faq">FAQ</a>
-  <a href="#forms">Formulários & Estados</a><a href="#responsive">Desktop/Tablet/Mobile</a><a href="#trust">Confiança</a>
+  <a href="#specs">Specs técnicas</a><a href="#comparador">Comparador</a><a href="#faq">FAQ</a>
+  <a href="#forms">Formulários</a><a href="#responsive">Desktop/Tablet/Mobile</a><a href="#trust">Confiança</a>
+  <a href="#states">Estados</a><a href="#sections">Seções</a><a href="#grid">Grid & Breakpoints</a>
+  <a href="#tokens">Tokens</a><a href="#foto">Fotografia</a><a href="#regras">Regras</a>
 </div>
 
 <!-- INTRO / PRINCIPLES -->
@@ -437,10 +487,12 @@ table{border-collapse:collapse;width:100%;font-size:14px}
     <button class="btn btn-secondary">Ver detalhes</button>
     <button class="btn btn-wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 0 1 0 16 8 8 0 0 1-4.1-1.1l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm4.4 9.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.1-.2 0-.4.1-.5l.4-.5c.1-.2.1-.3 0-.5l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.5.1-.7.3-.9.9-.9 2.2-.1 3.5a9 9 0 0 0 4.6 4c1.4.5 2 .5 2.7.4.4-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1z"/></svg> Falar no WhatsApp</button>
     <button class="btn btn-ghost">Adicionar ao comparador +</button>
+    <button class="btn btn-primary loading">Comprar agora</button>
     <button class="btn btn-primary" disabled>Indisponível</button>
   </div>
+  <p class="dim" style="font-size:13px;margin-top:16px">Rótulos objetivos e específicos — <b>Comprar agora</b>, <b>Encontrar minha roda</b>, <b>Comparar modelos</b>, <b>Falar com um especialista</b>, <b>Ver especificações</b>. Evitar "Saiba mais" quando existe ação concreta.</p>
   <div class="legend">
-    <span><b>Default</b> → repouso</span><span><b>Hover</b> → sobe 2px + azul glow</span><span><b>Focus</b> → anel de foco azul (Tab)</span><span><b>Disabled</b> → 42% opacidade</span>
+    <span><b>Normal</b> → repouso</span><span><b>Hover</b> → sobe 2px + azul glow</span><span><b>Active</b> → volta ao nível (translateY 0)</span><span><b>Focus</b> → anel de foco azul (Tab)</span><span><b>Loading</b> → spinner, sem clique</span><span><b>Disabled</b> → 42% opacidade</span>
   </div>
 </div></section>
 
@@ -448,7 +500,8 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 <section class="block" id="badges"><div class="wrap">
   <div class="sec-head"><span class="sec-num">05 — BADGES & ÍCONES</span><h2>Selos de confiança e ícones minimalistas</h2>
   <p class="dim">Badges comunicam prova e vantagem sem virar "banner de promoção". Ícones em linha (stroke), 1.8px, cantos consistentes.</p></div>
-  <div class="badges" style="margin-bottom:24px">
+  <p class="eyebrow" style="margin-bottom:10px">Selos de confiança</p>
+  <div class="badges" style="margin-bottom:26px">
     <span class="badge badge-inmetro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg> INMETRO 008991/2025</span>
     <span class="badge badge-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg> 2 anos de garantia</span>
     <span class="badge badge-accent">Toray T700</span>
@@ -457,11 +510,29 @@ table{border-collapse:collapse;width:100%;font-size:14px}
     <span class="badge badge-accent">Tubeless Ready</span>
     <span class="badge">Suporte no Brasil</span>
   </div>
-  <div class="grid g-4">
-    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg><div class="faint" style="font-size:12px">Roda / perfil</div></div>
-    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/></svg><div class="faint" style="font-size:12px">Garantia / segurança</div></div>
+  <p class="eyebrow" style="margin-bottom:10px">Badges de produto</p>
+  <div class="badges" style="margin-bottom:14px">
+    <span class="pbadge pb-novo">Novo</span>
+    <span class="pbadge pb-destaque">Destaque</span>
+    <span class="pbadge pb-prevenda">Pré-venda</span>
+    <span class="pbadge pb-ultimas">Últimas unidades</span>
+    <span class="pbadge pb-esgotado">Esgotado</span>
+  </div>
+  <div class="state-note" style="margin-bottom:26px;border-left-color:var(--danger);background:var(--danger-wash)"><b>Regra anti-escassez:</b> "Últimas unidades" e "Esgotado" só aparecem quando forem <b>verdadeiros</b> (ligados ao estoque real). Nunca usar escassez artificial — quebra a confiança premium.</div>
+  <p class="eyebrow" style="margin-bottom:10px">Linguagem de ícones — minimalista, traço 1.6px, aparência técnica</p>
+  <div class="grid g-4" style="gap:14px">
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg><div class="faint" style="font-size:12px">INMETRO</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/></svg><div class="faint" style="font-size:12px">Garantia</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="17" r="1.6"/><circle cx="17.5" cy="17" r="1.6"/></svg><div class="faint" style="font-size:12px">Envio / frete</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M4 12a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-2v-5h4M4 12v4a2 2 0 0 0 2 2h2v-5H4"/></svg><div class="faint" style="font-size:12px">Suporte</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/></svg><div class="faint" style="font-size:12px">Tubeless</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><div class="faint" style="font-size:12px">Ratchet 36T</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M6 4h12l-1.5 6.5a5 5 0 0 1-9 0z"/><path d="M9 20h6M12 16v4"/></svg><div class="faint" style="font-size:12px">Peso</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M3 8h13a3 3 0 1 0-3-3M3 13h16a3 3 0 1 1-3 3M3 18h9"/></svg><div class="faint" style="font-size:12px">Aerodinâmica</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M4 12a4 4 0 0 1 4-4h3v2H8a2 2 0 1 0 0 4h3v2H8a4 4 0 0 1-4-4zM13 8h3a4 4 0 0 1 0 8h-3v-2h3a2 2 0 1 0 0-4h-3z"/></svg><div class="faint" style="font-size:12px">Compatibilidade</div></div>
     <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M4 7h16M4 12h16M4 17h10"/></svg><div class="faint" style="font-size:12px">Comparar</div></div>
-    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5z"/></svg><div class="faint" style="font-size:12px">WhatsApp / suporte</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5z"/></svg><div class="faint" style="font-size:12px">WhatsApp</div></div>
+    <div class="card" style="text-align:center"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="1.6" style="margin-bottom:8px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg><div class="faint" style="font-size:12px">Roda / perfil</div></div>
   </div>
 </div></section>
 
@@ -504,7 +575,19 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 <!-- SPEC TABLE -->
 <section class="block" id="specs"><div class="wrap">
   <div class="sec-head"><span class="sec-num">07 — FICHA TÉCNICA</span><h2>Tabela de especificações</h2>
-  <p class="dim">Legível, monoespaçada nos valores, com hover de linha. Responde rápido às perguntas de decisão da página de produto.</p></div>
+  <p class="dim">A informação técnica deve parecer <b>engenharia</b>, não tabela de marketplace. Dois formatos: blocos rótulo/valor (destaque) e tabela completa (detalhe).</p></div>
+  <p class="eyebrow" style="margin-bottom:12px">Blocos de especificação (estilo engenharia)</p>
+  <div class="eng-grid" style="margin-bottom:30px">
+    <div class="eng-cell"><span class="k">Perfil</span><span class="v">55 <small>mm</small></span></div>
+    <div class="eng-cell"><span class="k">Largura interna</span><span class="v">21 <small>mm</small></span></div>
+    <div class="eng-cell"><span class="k">Largura externa</span><span class="v">28 <small>mm</small></span></div>
+    <div class="eng-cell"><span class="k">Peso do par</span><span class="v">1.520 <small>g</small></span></div>
+    <div class="eng-cell"><span class="k">Sistema</span><span class="v">Ratchet <small>36T</small></span></div>
+    <div class="eng-cell"><span class="k">Freio</span><span class="v">Disc</span></div>
+    <div class="eng-cell"><span class="k">Carbono</span><span class="v">Toray <small>T700</small></span></div>
+    <div class="eng-cell"><span class="k">Máx.</span><span class="v">125 <small>kg</small></span></div>
+  </div>
+  <p class="eyebrow" style="margin-bottom:12px">Tabela completa</p>
   <div class="tbl-wrap"><table class="spec-tbl">
     <tr><th>Material</th><td>Carbono Toray T700</td></tr>
     <tr><th>Perfil do aro</th><td>50 mm</td></tr>
@@ -572,7 +655,22 @@ table{border-collapse:collapse;width:100%;font-size:14px}
       <div class="field"><label for="f-freio">Sistema de freio</label>
         <select class="input" id="f-freio"><option>Disc Brake</option><option>Rim Brake</option></select>
       </div>
-      <div class="state-note"><b>Estado de sucesso global:</b> após enviar → toast "Recebemos sua mensagem" + CTA WhatsApp. <b>Estado de erro global:</b> resumo no topo do formulário apontando o campo.</div>
+      <div class="field"><label>Modalidade preferida</label>
+        <label class="radio"><input type="radio" name="mod2" checked> Estrada / Speed</label>
+        <label class="radio"><input type="radio" name="mod2"> Gravel</label>
+        <label class="radio"><input type="radio" name="mod2"> MTB</label>
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" checked> Aceito receber a estimativa de entrega</label>
+        <label class="check"><input type="checkbox"> Quero novidades da Axion</label>
+      </div>
+    </div>
+  </div>
+  <div class="grid g-2" style="margin-top:6px">
+    <div class="field"><label for="f-msg">Mensagem (dúvida de compatibilidade)</label><textarea class="input" id="f-msg" placeholder="Ex.: minha bike é disc, eixo 12x142, cassete Shimano 11v…"></textarea></div>
+    <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:12px">
+      <div class="state-note"><b>Sucesso global:</b> toast "Recebemos sua mensagem" + CTA WhatsApp. <b>Erro global:</b> resumo no topo apontando o campo. <b>Loading:</b> botão de envio entra no estado spinner.</div>
+      <button class="btn btn-primary loading btn-block">Enviar</button>
     </div>
   </div>
 </div></section>
@@ -614,6 +712,132 @@ table{border-collapse:collapse;width:100%;font-size:14px}
     <div class="card"><span class="mono" style="font-family:Saira;font-weight:800;font-size:30px;color:var(--accent)">2</span><h3 style="font-size:16px;margin-top:6px">Anos de garantia</h3><p class="dim" style="font-size:13.5px">Cobertura contra defeito de fabricação, com suporte no Brasil.</p></div>
     <div class="card"><span class="mono" style="font-family:Saira;font-weight:800;font-size:30px;color:var(--accent)">+700</span><h3 style="font-size:16px;margin-top:6px">Rodas entregues</h3><p class="dim" style="font-size:13.5px">Base real de clientes — prova social e recompra.</p></div>
     <div class="card"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.8A8.5 8.5 0 1 1 21 11.5z"/></svg><h3 style="font-size:16px;margin-top:10px">Suporte no Brasil</h3><p class="dim" style="font-size:13.5px">Atendimento consultivo via WhatsApp — não é marketplace.</p></div>
+  </div>
+</div></section>
+
+<!-- INTERFACE STATES -->
+<section class="block" id="states"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">13 — ESTADOS DA INTERFACE</span><h2>Consistentes em todo o site</h2>
+  <p class="dim">Todo componente interativo compartilha a mesma gramática de estados.</p></div>
+  <div class="states" style="margin-bottom:24px">
+    <span class="st"><span class="dot" style="background:var(--text-faint)"></span>Normal</span>
+    <span class="st"><span class="dot" style="background:var(--accent)"></span>Hover</span>
+    <span class="st"><span class="dot" style="background:var(--accent-deep)"></span>Active</span>
+    <span class="st"><span class="dot" style="background:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)"></span>Focus</span>
+    <span class="st"><span class="dot" style="background:var(--accent);animation:spin .7s linear infinite;border:2px solid var(--accent);border-top-color:transparent;background:transparent"></span>Loading</span>
+    <span class="st"><span class="dot" style="background:var(--success)"></span>Success</span>
+    <span class="st"><span class="dot" style="background:var(--danger)"></span>Error</span>
+    <span class="st" style="opacity:.45"><span class="dot" style="background:var(--text-faint)"></span>Disabled</span>
+    <span class="st"><span class="dot" style="background:var(--line-strong)"></span>Empty</span>
+    <span class="st"><span class="dot" style="background:var(--danger)"></span>Sold out</span>
+  </div>
+  <div class="grid g-2">
+    <div class="empty">
+      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="var(--text-faint)" stroke-width="1.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+      <div><b style="font-family:Saira">Nenhum resultado</b><br><span style="font-size:13.5px">Ajuste os filtros ou use o Guia para encontrar sua roda.</span></div>
+      <a class="btn btn-secondary btn-sm" href="#guide">Encontrar minha roda</a>
+    </div>
+    <article class="p-card soldout">
+      <div class="p-media"><span class="pbadge pb-esgotado tag-tl">Esgotado</span><svg class="whl prodwheel" viewBox="0 0 400 400"></svg></div>
+      <div class="p-body">
+        <div class="p-name">Axion Aero 60 Disc</div>
+        <div class="p-attrs"><span class="p-attr">60 mm</span><span class="p-attr">~1.560 g</span></div>
+        <div class="p-price"><div class="now mono">R$ 4.749</div><div class="pay">Estado <b>sold out</b> real — nunca artificial</div></div>
+        <div class="p-actions"><button class="btn btn-primary btn-sm btn-block" disabled>Esgotado</button><button class="btn btn-secondary btn-sm">Avise-me</button></div>
+      </div>
+    </article>
+  </div>
+</div></section>
+
+<!-- SECTIONS CATALOG -->
+<section class="block" id="sections"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">14 — CATÁLOGO DE SEÇÕES</span><h2>Blocos da mesma marca</h2>
+  <p class="dim">Todas as seções do site são montadas com estes blocos padronizados — garantia de que qualquer página futura pareça Axion.</p></div>
+  <div class="grid g-2">
+    <div class="cat"><div class="tk dark"></div><div><h4>Hero</h4><p>Produto protagonista sobre carbono, headline + 2 CTAs.</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>Trust bar</h4><p>Faixa de selos (INMETRO · garantia · +700 · 12x · PIX).</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>Product grid</h4><p>Cards de produto em 3–4 colunas com filtros.</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>Category cards</h4><p>Escolha por freio e por uso (atalhos do hub).</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>Comparison</h4><p>Comparador até 3 modelos, destaque de diferenças.</p></div></div>
+    <div class="cat"><div class="tk dark"></div><div><h4>Feature / Technical</h4><p>Tecnologia (T700, Ratchet) + blocos de engenharia.</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>Testimonials</h4><p>Prova social real (quando confirmada) — sem exagero.</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>FAQ</h4><p>Acordeão de objeções de fundo de funil.</p></div></div>
+    <div class="cat"><div class="tk"></div><div><h4>Blog</h4><p>3 posts recentes, autoridade/SEO.</p></div></div>
+    <div class="cat"><div class="tk dark"></div><div><h4>CTA banner</h4><p>Fechamento: "Pronto para andar mais forte?" + CTA.</p></div></div>
+  </div>
+</div></section>
+
+<!-- GRID / SPACING / BREAKPOINTS -->
+<section class="block" id="grid"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">15 — GRID · ESPAÇAMENTO · BREAKPOINTS</span><h2>O layout respira</h2></div>
+  <div class="grid g-2">
+    <div>
+      <p class="eyebrow" style="margin-bottom:12px">Escala de espaçamento (base 4px)</p>
+      <div class="sp-row"><span class="lab">sp-1 · 4px</span><span class="bar" style="width:4px"></span></div>
+      <div class="sp-row"><span class="lab">sp-2 · 8px</span><span class="bar" style="width:8px"></span></div>
+      <div class="sp-row"><span class="lab">sp-3 · 12px</span><span class="bar" style="width:12px"></span></div>
+      <div class="sp-row"><span class="lab">sp-4 · 16px</span><span class="bar" style="width:16px"></span></div>
+      <div class="sp-row"><span class="lab">sp-5 · 24px</span><span class="bar" style="width:24px"></span></div>
+      <div class="sp-row"><span class="lab">sp-6 · 32px</span><span class="bar" style="width:32px"></span></div>
+      <div class="sp-row"><span class="lab">sp-7 · 48px</span><span class="bar" style="width:48px"></span></div>
+      <div class="sp-row"><span class="lab">sp-8 · 64px</span><span class="bar" style="width:64px"></span></div>
+      <div class="sp-row"><span class="lab">sp-9 · 96px</span><span class="bar" style="width:96px"></span></div>
+    </div>
+    <div>
+      <p class="eyebrow" style="margin-bottom:12px">Grid & container</p>
+      <div class="callout" style="margin-bottom:10px">Container máx. <b>1140px</b> · gutter lateral <b>≥16px</b> (20px desktop) · grid <b>12 colunas</b> · gap padrão <b>20–24px</b>.</div>
+      <div class="callout" style="margin-bottom:10px">Espaço entre seções <b>64px</b> (mobile) → <b>96px</b> (desktop) · padding interno de card <b>18–22px</b> · raios <b>6 / 10 / 16px</b>.</div>
+      <p class="eyebrow" style="margin:18px 0 12px">Breakpoints</p>
+      <div class="tbl-wrap"><table class="tok-tbl">
+        <tr><th>Nome</th><th>Largura</th><th>Muda estrutura</th></tr>
+        <tr><td>xs (mobile pequeno)</td><td>&lt; 380px</td><td>1 col · CTA compacto</td></tr>
+        <tr><td>sm (mobile)</td><td>380–639px</td><td>1 col · hambúrguer · WhatsApp flutuante</td></tr>
+        <tr><td>md (tablet)</td><td>640–1023px</td><td>2 col · megamenu acordeão</td></tr>
+        <tr><td>lg (desktop)</td><td>1024–1439px</td><td>3–4 col · megamenu</td></tr>
+        <tr><td>xl (desktop grande)</td><td>≥ 1440px</td><td>container centrado, mais respiro</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- DESIGN TOKENS -->
+<section class="block" id="tokens"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">16 — DESIGN TOKENS</span><h2>Um sistema, alterável de um ponto</h2>
+  <p class="dim">Tokens implementados como CSS variables (ver <code>:root</code> do arquivo). Trocar um valor propaga para todo o site sem reconstruir componentes.</p></div>
+  <div class="tbl-wrap"><table class="tok-tbl">
+    <tr><th>Grupo</th><th>Tokens</th></tr>
+    <tr><td>Cor</td><td>--carbon · --bg · --surface · --surface-2 · --panel · --line · --text · --text-muted · --accent · --success · --warning · --danger</td></tr>
+    <tr><td>Tipografia</td><td>Saira · IBM Plex Sans · IBM Plex Mono · escala H1–caption · price · button</td></tr>
+    <tr><td>Espaçamento</td><td>--sp-1 … --sp-9 (4 → 96px)</td></tr>
+    <tr><td>Raio</td><td>--r-sm 6 · --r-md 10 · --r-lg 16 · --r-pill 999</td></tr>
+    <tr><td>Sombra</td><td>--shadow-sm · --shadow-md · --shadow-lift</td></tr>
+    <tr><td>Botões</td><td>.btn + variantes primary/secondary/ghost/wa + estados</td></tr>
+    <tr><td>Inputs</td><td>.input · .field (err/ok) · check · radio · textarea</td></tr>
+    <tr><td>Cards</td><td>.card · .p-card (+ soldout)</td></tr>
+    <tr><td>Grid</td><td>--maxw 1140 · .grid g-2/g-3/g-4</td></tr>
+    <tr><td>Breakpoints</td><td>xs / sm / md / lg / xl</td></tr>
+    <tr><td>Animações</td><td>--ease · transições .18–.5s · @keyframes spin · prefers-reduced-motion</td></tr>
+  </table></div>
+</div></section>
+
+<!-- FOTOGRAFIA + REGRAS -->
+<section class="block" id="foto"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">17 — FOTOGRAFIA & DIREÇÃO DE IMAGEM</span><h2>Produto profissional e consistente</h2>
+  <p class="dim">O item de maior impacto visual do site. As ilustrações aqui são <b>placeholders</b> [CONFIRMAR foto real].</p></div>
+  <div class="grid g-2">
+    <div class="callout"><b>Product shots</b> — fundo limpo (carbono/neutro), fibra de carbono visível, foco em cubo, perfil e acabamento, iluminação controlada, ângulos consistentes, sombra suave. Sem fundos poluídos.</div>
+    <div class="callout"><b>Lifestyle / performance</b> — roda instalada, uso real (estrada/gravel/pista), movimento e luz cinematográfica, ambiente escuro. Reforça performance sem esconder o produto.</div>
+  </div>
+  <div class="callout" style="margin-top:14px"><b>Equilíbrio:</b> product shots dominam nas páginas de produto e grid; lifestyle abre Hero e feature sections. Toda imagem otimizada (WebP/AVIF, lazy-load) e com <code>alt</code> descritivo.</div>
+</div></section>
+
+<section class="block" id="regras"><div class="wrap">
+  <div class="sec-head"><span class="sec-num">18 — WHATSAPP · MICROINTERAÇÕES · ACESSIBILIDADE · PERFORMANCE</span><h2>Regras do sistema</h2></div>
+  <div class="grid g-4">
+    <div class="card"><h3 style="font-size:16px">WhatsApp</h3><p class="dim" style="font-size:13.5px">Canal de suporte e conversão, coerente com a marca — não domina a tela. Aparece em dúvida de compatibilidade, escolha de modelo, compra e suporte. Botão flutuante no mobile.</p></div>
+    <div class="card"><h3 style="font-size:16px">Microinterações</h3><p class="dim" style="font-size:13.5px">Hover, entrada suave, troca de imagem, abrir FAQ, filtros. Transmitem precisão + velocidade + tecnologia. Nunca sacrificar performance. Respeita <code>prefers-reduced-motion</code>.</p></div>
+    <div class="card"><h3 style="font-size:16px">Acessibilidade</h3><p class="dim" style="font-size:13.5px">Contraste AA, texto mínimo 14px, foco visível, navegação por teclado, alvos ≥44px, hierarquia semântica (h1→h4), alt em imagens.</p></div>
+    <div class="card"><h3 style="font-size:16px">Performance</h3><p class="dim" style="font-size:13.5px">Sem vídeos pesados desnecessários, imagens otimizadas, poucas fontes (3 famílias), CSS enxuto, animações leves. Premium sem ficar lento.</p></div>
   </div>
 </div></section>
 
