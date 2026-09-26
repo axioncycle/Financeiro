@@ -396,7 +396,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <div class="kpi"><div class="klbl">Custos</div><div class="kval rd" id="kc">R$ 0</div><div class="kmom" id="mom-cus"></div></div>
   </div>
   <div class="kgrid">
-    <div class="kpi"><div class="klbl">Qtd de Vendas</div><div class="kval" id="kq">0</div><div class="kmom" id="mom-qtd"></div></div>
+    <div class="kpi"><div class="klbl">Qtd de Vendas</div><div class="kval" id="kq">0</div><div id="kq-roda" style="font-size:10px;color:var(--text3);font-weight:700;margin-top:1px;white-space:nowrap;"></div><div class="kmom" id="mom-qtd"></div></div>
     <div class="kpi"><div class="klbl">Ticket Medio</div><div class="kval" id="kt">R$ 0</div></div>
   </div>
   <div class="kgrid">
@@ -1146,7 +1146,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09s (Devolucoes: filtro 'Devolvido' na lista de vendas + linha de devolucoes do mes no Resultado (qtd, taxa % e custo total))</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09t (Dashboard: card Qtd de Vendas ganha sub-contagem pequena so das rodas de carbono (RIM/DISC/GRAVEL/MTB); total permanece igual)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -3052,6 +3052,13 @@ function renderDash(){
   var _hl=document.getElementById('hero-liq');if(_hl){_hl.textContent=fmt(lucro);_hl.style.color=lucro>=0?'#22c55e':'#ef4444';}
   var _hm=document.getElementById('hero-marg');if(_hm){_hm.textContent=margem.toFixed(1)+'%';_hm.style.color=margem>=0?'#22c55e':'#ef4444';}
   animateKPI('kq',fv.length,false);
+  // Sub-contagem: só rodas de carbono (categorias RIM/DISC/GRAVEL/MTB) — exclui Peças, bicicletas, vestuário
+  (function(){
+    var cat={}; try{(getAllSKUs()||[]).forEach(function(s){cat[String(s.id)]=String(s.cat||'').toUpperCase();});}catch(e){}
+    var RODA={RIM:1,DISC:1,GRAVEL:1,MTB:1},qr=0;
+    for(var qi=0;qi<fv.length;qi++){ if(RODA[cat[String(fv[qi].prodId)]]) qr++; }
+    var el=document.getElementById('kq-roda'); if(el) el.textContent='🛞 '+qr+' roda'+(qr!==1?'s':'')+' de carbono';
+  })();
   if(fv.length) animateKPI('kt',fat/fv.length,true);
   else document.getElementById('kt').textContent='R$ 0';
 
