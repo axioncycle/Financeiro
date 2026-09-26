@@ -1146,7 +1146,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09u (Dashboard: sub-contagem de rodas so o numero; categoria ARO reconhecida (agrupa no estoque) e excluida da contagem de rodas)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09v (Editar todos: campo Categoria por SKU (com datalist incl. Aro) — troque a categoria de varios de uma vez; salvo junto no batch)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -8449,11 +8449,17 @@ function skcBulkHTML(filtered){
     +'<div style="font-size:10px;color:var(--text3);line-height:1.4;">Edite os campos de cada SKU e salve tudo de uma vez. Mostrando <b>'+filtered.length+'</b> SKU'+(filtered.length!==1?'s':'')+' (conforme o filtro).</div>'
     +'<button onclick="skcBulkSaveAll()" style="padding:8px 16px;border-radius:8px;border:none;background:#22c55e;color:#04120a;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;">💾 Salvar tudo</button>'
     +'</div>';
-  var inp=function(id,val,ph,w){return '<input id="'+id+'" value="'+String(val==null?'':val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" style="width:'+w+';box-sizing:border-box;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 7px;color:var(--text);font-size:11px;outline:none;">';};
+  var inp=function(id,val,ph,w,extra){return '<input id="'+id+'" value="'+String(val==null?'':val).replace(/"/g,'&quot;')+'" placeholder="'+ph+'" '+(extra||'')+' style="width:'+w+';box-sizing:border-box;background:var(--input);border:1px solid var(--input-border);border-radius:5px;padding:5px 7px;color:var(--text);font-size:11px;outline:none;">';};
+  // datalist com as categorias existentes + as conhecidas (Aro, RIM, DISC, ...)
+  var catSet={}; try{getAllCustoSKUs().forEach(function(x){if(x.cat)catSet[x.cat]=1;});}catch(e){}
+  (_CAT_ORDER||[]).forEach(function(c){catSet[(_catMeta?_catMeta(c).label:c)]=1;catSet[c]=1;});
+  var catList='<datalist id="skb-catlist">'+Object.keys(catSet).sort().map(function(c){return '<option value="'+esc(c)+'">';}).join('')+'</datalist>';
+  h=catList+h;
   filtered.forEach(function(s){
     h+='<div style="border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin-bottom:6px;background:var(--bg2);">'
-      +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;white-space:normal;word-break:break-word;line-height:1.25;">'+esc(s.nome)+' <span style="font-size:9px;color:var(--text3);font-weight:600;">'+esc(s.cat||'—')+(s.custom?' · custom':'')+'</span></div>'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;white-space:normal;word-break:break-word;line-height:1.25;">'+esc(s.nome)+(s.custom?' <span style="font-size:9px;color:var(--text3);font-weight:600;">custom</span>':'')+'</div>'
       +'<div style="display:flex;gap:5px;flex-wrap:wrap;">'
+        +'<div style="flex:1;min-width:100px;"><div style="font-size:8px;color:#a855f7;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Categoria</div>'+inp('skb-cat-'+s.id,s.cat,'Aro, RIM...','100%','list="skb-catlist"')+'</div>'
         +'<div style="flex:1;min-width:120px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">EAN</div>'+inp('skb-ean-'+s.id,s.ean,'7891234567890','100%')+'</div>'
         +'<div style="flex:1;min-width:90px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">NCM</div>'+inp('skb-ncm-'+s.id,s.ncm,'8714.99.90','100%')+'</div>'
         +'<div style="flex:1;min-width:110px;"><div style="font-size:8px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Código SKU</div>'+inp('skb-codigo-'+s.id,s.codigo,'ZR50C-25-UD','100%')+'</div>'
@@ -8474,13 +8480,14 @@ function skcBulkSaveAll(){
   var g=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():null;};
   var n=0;
   filtered.forEach(function(s){
-    var ean=g('skb-ean-'+s.id),ncm=g('skb-ncm-'+s.id),codigo=g('skb-codigo-'+s.id),caixa=g('skb-caixa-'+s.id),peso=g('skb-peso-'+s.id),usdR=g('skb-usd-'+s.id);
-    if(ean===null&&ncm===null&&codigo===null&&caixa===null&&peso===null&&usdR===null) return; // inputs não presentes
+    var catR=g('skb-cat-'+s.id),ean=g('skb-ean-'+s.id),ncm=g('skb-ncm-'+s.id),codigo=g('skb-codigo-'+s.id),caixa=g('skb-caixa-'+s.id),peso=g('skb-peso-'+s.id),usdR=g('skb-usd-'+s.id);
+    if(catR===null&&ean===null&&ncm===null&&codigo===null&&caixa===null&&peso===null&&usdR===null) return; // inputs não presentes
     var usd=parseFloat(String(usdR==null?(s.usd||0):usdR).replace(',','.'))||0;
+    var cat=(catR!=null&&catR!=='')?catR:s.cat;
     if(s.custom){
-      for(var i=0;i<custom.length;i++){if(String(custom[i].id)===String(s.id)){custom[i].ean=ean;custom[i].ncm=ncm;custom[i].codigo=codigo;custom[i].caixa=caixa;custom[i].peso=peso;custom[i].usd=usd;break;}}
+      for(var i=0;i<custom.length;i++){if(String(custom[i].id)===String(s.id)){custom[i].cat=cat;custom[i].ean=ean;custom[i].ncm=ncm;custom[i].codigo=codigo;custom[i].caixa=caixa;custom[i].peso=peso;custom[i].usd=usd;break;}}
     }else{
-      over[s.id]={nome:s.nome,cat:s.cat,usd:usd,ean:ean,ncm:ncm,codigo:codigo,caixa:caixa,peso:peso,pix:0,custo:0};
+      over[s.id]={nome:s.nome,cat:cat,usd:usd,ean:ean,ncm:ncm,codigo:codigo,caixa:caixa,peso:peso,pix:0,custo:0};
     }
     n++;
   });
