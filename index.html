@@ -1146,7 +1146,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09t (Dashboard: card Qtd de Vendas ganha sub-contagem pequena so das rodas de carbono (RIM/DISC/GRAVEL/MTB); total permanece igual)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09u (Dashboard: sub-contagem de rodas so o numero; categoria ARO reconhecida (agrupa no estoque) e excluida da contagem de rodas)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -3052,12 +3052,12 @@ function renderDash(){
   var _hl=document.getElementById('hero-liq');if(_hl){_hl.textContent=fmt(lucro);_hl.style.color=lucro>=0?'#22c55e':'#ef4444';}
   var _hm=document.getElementById('hero-marg');if(_hm){_hm.textContent=margem.toFixed(1)+'%';_hm.style.color=margem>=0?'#22c55e':'#ef4444';}
   animateKPI('kq',fv.length,false);
-  // Sub-contagem: só rodas de carbono (categorias RIM/DISC/GRAVEL/MTB) — exclui Peças, bicicletas, vestuário
+  // Sub-contagem: só rodas de carbono (RIM/DISC/GRAVEL/MTB) — exclui Aro, Peças, bicicletas, vestuário
   (function(){
     var cat={}; try{(getAllSKUs()||[]).forEach(function(s){cat[String(s.id)]=String(s.cat||'').toUpperCase();});}catch(e){}
     var RODA={RIM:1,DISC:1,GRAVEL:1,MTB:1},qr=0;
     for(var qi=0;qi<fv.length;qi++){ if(RODA[cat[String(fv[qi].prodId)]]) qr++; }
-    var el=document.getElementById('kq-roda'); if(el) el.textContent='🛞 '+qr+' roda'+(qr!==1?'s':'')+' de carbono';
+    var el=document.getElementById('kq-roda'); if(el) el.textContent=qr;
   })();
   if(fv.length) animateKPI('kt',fat/fv.length,true);
   else document.getElementById('kt').textContent='R$ 0';
@@ -5105,8 +5105,8 @@ function removerSkuEstoque(skuId,nome){
 // ── Estoque Geral agrupado por CATEGORIA (chips + busca + seções recolhíveis) ──
 var estGeralCat='__all__';       // categoria selecionada nos chips
 var estGeralCollapse={};         // categorias recolhidas
-var _CAT_META={RIM:{label:'Rim brake',cor:'#1E90FF'},DISC:{label:'Disc brake',cor:'#22c55e'},GRAVEL:{label:'Gravel',cor:'#f59e0b'},MTB:{label:'MTB',cor:'#a855f7'}};
-var _CAT_ORDER=['RIM','DISC','GRAVEL','MTB'];
+var _CAT_META={RIM:{label:'Rim brake',cor:'#1E90FF'},DISC:{label:'Disc brake',cor:'#22c55e'},GRAVEL:{label:'Gravel',cor:'#f59e0b'},MTB:{label:'MTB',cor:'#a855f7'},ARO:{label:'Aro',cor:'#e879a6'}};
+var _CAT_ORDER=['RIM','DISC','GRAVEL','MTB','ARO'];
 function _catMeta(c){return _CAT_META[c]||{label:(c||'Outros'),cor:'#8b93a1'};}
 function setEstGeralCat(c){estGeralCat=c;renderEstGeralList();}
 function toggleEstGeralCat(c){var cur=(estGeralCollapse[c]===undefined)?true:estGeralCollapse[c];estGeralCollapse[c]=!cur;renderEstGeralList();}
