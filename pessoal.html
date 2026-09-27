@@ -1242,50 +1242,76 @@ function exportViagemPDF(destId){
   var dateStr=new Date().toLocaleDateString('pt-BR');
   function e2(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function rows(list){return list.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');}).map(function(g){
-    var info=vgInfo(g);var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' a '+fmtData(info.fim):'');var usd=+g.qtd||0;
-    var tr='<tr'+(info.pg?' class="pg"':'')+'><td>'+e2(g.categoria||'')+'</td><td>'+e2(g.nome||'')+'</td><td>'+e2(info.local||'')+'</td><td class="c">'+per+'</td><td class="num">'+fmt(g.valor)+'</td><td class="num">'+(usd>0?'US$ '+fmtN(usd):'')+'</td><td class="c">'+(info.pg?'✔':'')+'</td></tr>';
-    if(info.split&&info.split.length)tr+='<tr class="sp"><td colspan="7">👥 '+info.split.map(function(p){return e2(p.nome||'—')+' '+fmt(p.valor)+(p.pg?' ✔':'');}).join(' · ')+'</td></tr>';
-    return tr;
+    var info=vgInfo(g);
+    var per=fmtData(g.data)+(info.fim&&info.fim!==(g.data||'').slice(0,10)?' – '+fmtData(info.fim):'');
+    var usd=+g.qtd||0;
+    var split=(info.split||[]).filter(function(p){return (p.nome||'').trim()||(+p.valor>0);});
+    var subline=split.length?'<div class="who">'+split.map(function(p){return '<span class="'+(p.pg?'ok':'due')+'">'+e2(p.nome||'—')+' '+fmt(p.valor)+(p.pg?' ✓':'')+'</span>';}).join('')+'</div>':'';
+    var catL=e2(g.categoria||'');
+    return '<tr>'
+      +'<td><div class="nm">'+e2(g.nome||'—')+'</div>'+(catL?'<div class="cat">'+catL+'</div>':'')+subline+'</td>'
+      +'<td class="c muted">'+e2(info.local||'—')+'</td>'
+      +'<td class="c muted">'+per+'</td>'
+      +'<td class="num">'+fmt(g.valor)+'</td>'
+      +'<td class="num usd">'+(usd>0?'US$ '+fmtN(usd):'—')+'</td>'
+      +'<td class="c">'+(info.pg?'<span class="paid">PG</span>':'<span class="unpaid">—</span>')+'</td>'
+    +'</tr>';
   }).join('');}
   // Totais por pessoa (divisões)
   var splitTot={},splitOrder=[];
   allG.forEach(function(g){var info=vgInfo(g);(info.split||[]).forEach(function(p){var nm=(p.nome||'').trim();if(!nm)return;if(!splitTot[nm]){splitTot[nm]={total:0,pago:0};splitOrder.push(nm);}splitTot[nm].total+=(+p.valor||0);if(p.pg)splitTot[nm].pago+=(+p.valor||0);});});
-  var splitHtml=splitOrder.length?'<div class="split"><div class="sh">👥 Divisão por pessoa</div><table><thead><tr><th>Pessoa</th><th class="num">Total</th><th class="num">Pago</th><th class="num">A pagar</th></tr></thead><tbody>'+splitOrder.map(function(nm){var t=splitTot[nm];return '<tr><td>'+e2(nm)+'</td><td class="num">'+fmt(t.total)+'</td><td class="num">'+fmt(t.pago)+'</td><td class="num">'+fmt(t.total-t.pago)+'</td></tr>';}).join('')+'</tbody></table></div>':'';
+  var splitHtml=splitOrder.length?'<div class="persons"><div class="ph">👥 Divisão por pessoa</div><table><thead><tr><th>Pessoa</th><th class="num">Total</th><th class="num">Pago</th><th class="num">A pagar</th></tr></thead><tbody>'+splitOrder.map(function(nm){var t=splitTot[nm];var rem=t.total-t.pago;return '<tr><td class="pnm">'+e2(nm)+'</td><td class="num">'+fmt(t.total)+'</td><td class="num ok">'+fmt(t.pago)+'</td><td class="num '+(rem>0.005?'due':'ok')+'">'+fmt(rem)+'</td></tr>';}).join('')+'</tbody></table></div>':'';
   function block(nome,per,list,ct,cu){
-    return '<div class="city"><div class="chd"><div><span class="cn">📍 '+e2(nome)+'</span>'+(per?' <span class="cp">'+per+'</span>':'')+'</div><div class="ct">'+fmt(ct)+(cu>0?' · US$ '+fmtN(cu):'')+'</div></div>'+
-      (list.length?'<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Local</th><th>Período</th><th class="num">R$</th><th class="num">US$</th><th class="c">Pago</th></tr></thead><tbody>'+rows(list)+'</tbody></table>':'<p class="none">Sem gastos</p>')+'</div>';
+    return '<div class="sec"><div class="sec-h"><div class="sec-t">'+e2(nome)+(per?'<span class="sec-p">'+per+'</span>':'')+'</div><div class="sec-v">'+fmt(ct)+(cu>0?'<span class="sec-u">US$ '+fmtN(cu)+'</span>':'')+'</div></div>'+
+      (list.length?'<table><thead><tr><th>Item</th><th class="c">Local</th><th class="c">Período</th><th class="num">R$</th><th class="num">US$</th><th class="c">Pago</th></tr></thead><tbody>'+rows(list)+'</tbody></table>':'<p class="none">Sem gastos</p>')+'</div>';
   }
   var sections='';
   var legacy=allG.filter(function(g){return String(g.meta)===String(destId);});
-  if(legacy.length)sections+=block('Sem cidade','',legacy,legacy.reduce(function(s,g){return s+(+g.valor||0);},0),legacy.reduce(function(s,g){return s+(+g.qtd||0);},0));
+  if(legacy.length)sections+=block('Geral','',legacy,legacy.reduce(function(s,g){return s+(+g.valor||0);},0),legacy.reduce(function(s,g){return s+(+g.qtd||0);},0));
   cidades.forEach(function(ci){
     var cg=allG.filter(function(g){return String(g.meta)===String(ci.id);});
     var cIni=(ci.data||'').slice(0,10),cFim=(ci.obs||'').slice(0,10);
-    var perC=cIni?fmtData(cIni)+(cFim&&cFim!==cIni?' a '+fmtData(cFim):''):'';
+    var perC=cIni?fmtData(cIni)+(cFim&&cFim!==cIni?' – '+fmtData(cFim):''):'';
     sections+=block(ci.nome||'Cidade',perC,cg,cg.reduce(function(s,g){return s+(+g.valor||0);},0),cg.reduce(function(s,g){return s+(+g.qtd||0);},0));
   });
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Viagem '+e2(dest.nome)+'</title><style>'+
-    '*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;color:#111;background:#fff;padding:20px 22px;font-size:12px;}'+
-    'h1{font-size:22px;color:#5b21b6;}.sub{font-size:11px;color:#555;margin:2px 0 10px;}'+
-    '.tot{font-size:15px;font-weight:800;color:#5b21b6;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 14px;margin-bottom:16px;}'+
-    '.city{margin-bottom:18px;page-break-inside:avoid;}'+
-    '.chd{display:flex;justify-content:space-between;align-items:center;background:#1a1a2e;color:#fff;border-radius:8px 8px 0 0;padding:8px 12px;}'+
-    '.cn{font-size:14px;font-weight:800;}.cp{font-size:11px;color:#c4b5fd;margin-left:6px;}.ct{font-size:14px;font-weight:800;}'+
-    'table{width:100%;border-collapse:collapse;}th{background:#ede9fe;color:#4c1d95;font-size:9px;font-weight:700;text-align:left;padding:5px 7px;}'+
+    '*{box-sizing:border-box;margin:0;padding:0;}'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#1f2937;background:#fff;padding:24px 26px;font-size:12px;-webkit-font-smoothing:antialiased;}'+
+    'h1{font-size:23px;font-weight:800;color:#111827;letter-spacing:-.01em;}'+
+    '.sub{font-size:11px;color:#6b7280;margin:3px 0 16px;}'+
+    '.total{display:flex;justify-content:space-between;align-items:center;background:#f5f3ff;border:1px solid #e9e5fb;border-left:4px solid #6d28d9;border-radius:10px;padding:12px 16px;margin-bottom:18px;}'+
+    '.total .lb{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6d28d9;}'+
+    '.total .v{font-size:20px;font-weight:800;color:#111827;}.total .u{font-size:12px;font-weight:700;color:#6b7280;margin-left:10px;}'+
+    '.persons{margin-bottom:20px;page-break-inside:avoid;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;}'+
+    '.ph{font-size:11px;font-weight:800;letter-spacing:.03em;color:#4c1d95;background:#ede9fe;padding:9px 14px;}'+
+    '.persons td.pnm{font-weight:700;color:#111827;}'+
+    '.sec{margin-bottom:16px;page-break-inside:avoid;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;}'+
+    '.sec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#111827;color:#fff;padding:9px 14px;}'+
+    '.sec-t{font-size:14px;font-weight:800;}.sec-p{font-size:10px;font-weight:600;color:#c4b5fd;margin-left:8px;}'+
+    '.sec-v{font-size:14px;font-weight:800;white-space:nowrap;}.sec-u{font-size:10px;font-weight:600;color:#a5b4fc;margin-left:8px;}'+
+    'table{width:100%;border-collapse:collapse;}'+
+    'th{background:#f9fafb;color:#6b7280;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:7px 10px;border-bottom:1px solid #e5e7eb;}'+
     'th.num,td.num{text-align:right;white-space:nowrap;}th.c,td.c{text-align:center;}'+
-    'td{padding:5px 7px;border-bottom:1px solid #eee;font-size:11px;}tr:nth-child(even) td{background:#faf9ff;}tr.pg td{color:#166534;}'+
-    '.none{font-size:11px;color:#888;padding:8px 12px;border:1px solid #eee;border-top:none;}'+
-    'tr.sp td{background:#f5f3ff!important;color:#5b21b6;font-size:10px;font-weight:600;border-bottom:1px solid #eee;}'+
-    '.split{margin-bottom:16px;page-break-inside:avoid;}.sh{font-size:12px;font-weight:800;color:#5b21b6;background:#ede9fe;border-radius:8px 8px 0 0;padding:7px 12px;}'+
-    '@media print{body{padding:8px;}}'+
+    'td{padding:8px 10px;border-bottom:1px solid #f1f1f4;font-size:11px;vertical-align:top;}'+
+    'tbody tr:last-child td{border-bottom:none;}tbody tr:nth-child(even) td{background:#fbfaff;}'+
+    'td .nm{font-size:11.5px;font-weight:700;color:#111827;line-height:1.25;}'+
+    'td .cat{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;margin-top:1px;}'+
+    'td .who{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;font-size:9.5px;}'+
+    'td .who span{white-space:nowrap;}td .who .ok{color:#15803d;font-weight:700;}td .who .due{color:#6b7280;}'+
+    'td.muted{color:#6b7280;font-size:10px;}td.usd{color:#15803d;font-weight:600;}'+
+    'td.num{font-weight:700;color:#111827;font-variant-numeric:tabular-nums;}.num.ok{color:#15803d;}.num.due{color:#b91c1c;}'+
+    '.paid{display:inline-block;font-size:8.5px;font-weight:800;color:#15803d;background:#dcfce7;border-radius:5px;padding:2px 6px;}'+
+    '.unpaid{color:#d1d5db;}'+
+    '.none{font-size:11px;color:#9ca3af;padding:10px 14px;}'+
+    '@media print{body{padding:10px;}.noprint{display:none;}}'+
     '</style></head><body>'+
     '<h1>✈️ '+e2(dest.nome)+'</h1>'+
-    '<div class="sub">Período geral: '+perGeral+' · Gerado em '+dateStr+'</div>'+
-    '<div class="tot">Total da viagem: '+fmt(tot)+(totUsd>0?' &nbsp;·&nbsp; US$ '+fmtN(totUsd):'')+'</div>'+
+    '<div class="sub">Período: '+perGeral+' &nbsp;·&nbsp; Gerado em '+dateStr+'</div>'+
+    '<div class="total"><div><div class="lb">Total da viagem</div></div><div><span class="v">'+fmt(tot)+'</span>'+(totUsd>0?'<span class="u">US$ '+fmtN(totUsd)+'</span>':'')+'</div></div>'+
     splitHtml+
     sections+
-    '<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;">'+
-    '<button onclick="window.print()" style="background:#5b21b6;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
+    '<div class="noprint" style="position:fixed;bottom:16px;right:16px;display:flex;gap:8px;">'+
+    '<button onclick="window.print()" style="background:#6d28d9;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Salvar como PDF</button>'+
     '<button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">Fechar</button>'+
     '</div></body></html>';
   var win=window.open('','_blank');
