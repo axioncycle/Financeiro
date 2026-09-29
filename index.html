@@ -1090,6 +1090,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     <button id="srch-pend" onclick="toggleSrchPend()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #ef444455;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">⏳ Aguardando envio</button>
     <button id="srch-imp0" onclick="toggleSrchImp0()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #f59e0b55;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">🧾 Imposto zerado</button>
     <button id="srch-dev" onclick="toggleSrchDev()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #ef444455;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">↩️ Devolvido</button>
+    <button id="srch-baixa" onclick="toggleSrchBaixa()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #ef444455;background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;">↘️ Baixa</button>
     <button id="srch-pdf" onclick="exportVendasPDF()" style="flex-shrink:0;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #1E90FF55;background:#1E90FF18;color:#1E90FF;cursor:pointer;white-space:nowrap;">📄 Exportar PDF</button>
   </div>
   <div id="srch-info" style="font-size:10px;color:var(--text3);margin-bottom:6px;display:none;"></div>
@@ -1146,7 +1147,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09v (Editar todos: campo Categoria por SKU (com datalist incl. Aro) — troque a categoria de varios de uma vez; salvo junto no batch)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09w (Baixa de estoque: botao no Estoque Geral (garantia/doacao/reparo...) com motivo, valor arrecadado e local; baixa estoque+conteiner, entra na lista de vendas (nao como venda), resultado=arrecadado-custo no lucro/DRE/Dashboard; filtro Baixa e linha Baixas do mes no Resultado)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -1241,6 +1242,38 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
     </div>
     <div id="ver-v-body" style="margin-top:8px;"></div>
     <button class="btn btn-s" onclick="closeModal('m-ver-venda')" style="margin-top:10px;width:100%;">Fechar</button>
+  </div>
+</div>
+
+<!-- BAIXA DE ESTOQUE (garantia/doação/reparo/...) -->
+<div class="ovl" id="m-baixa">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <div class="mhdl"></div>
+    <div class="mtitle" style="margin:0;">↘️ Dar baixa no estoque</div>
+    <div id="bx-sku" style="font-size:13px;font-weight:800;color:var(--text);margin:8px 0 2px;"></div>
+    <div id="bx-disp" style="font-size:11px;color:var(--text3);margin-bottom:10px;"></div>
+    <div class="fg"><label class="fl">Motivo</label>
+      <select class="fs" id="bx-motivo" onchange="var o=document.getElementById('bx-motivo-outro');if(o)o.style.display=this.value==='Outro'?'block':'none';">
+        <option value="Garantia">Garantia</option>
+        <option value="Doação">Doação</option>
+        <option value="Reparo">Reparo</option>
+        <option value="Perda/avaria">Perda/avaria</option>
+        <option value="Amostra/brinde">Amostra/brinde</option>
+        <option value="Uso interno">Uso interno</option>
+        <option value="Outro">Outro</option>
+      </select>
+      <input class="fi" id="bx-motivo-outro" placeholder="Descreva o motivo" style="display:none;margin-top:6px;">
+    </div>
+    <div class="fg"><label class="fl">Observação (opcional)</label><input class="fi" id="bx-obs" placeholder="Detalhe do que ocorreu"></div>
+    <div class="r2">
+      <div class="fg"><label class="fl">Local de saída</label><select class="fs" id="bx-local"></select></div>
+      <div class="fg"><label class="fl">Valor arrecadado (R$)</label><input class="fi" id="bx-arrec" inputmode="decimal" placeholder="0,00" oninput="maskBRL(this);bxCalc()"></div>
+    </div>
+    <div id="bx-result" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:4px 0 12px;font-size:12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" style="flex:1;" onclick="confirmarBaixa()">✓ Confirmar baixa</button>
+      <button class="btn btn-s" onclick="closeModal('m-baixa')">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -1898,7 +1931,7 @@ function loadVendasDB(cb){
 function saveVendaDB(v){
   // Venda devolvida guarda o efeito zerado em memória — mas no banco gravamos SEMPRE
   // os valores ORIGINAIS (de v._devO), para nunca perder os dados reais da venda.
-  var fv=(v.devolvido&&v._devO)?v._devO:v;
+  var fv=((v.devolvido||v.baixa)&&v._devO)?v._devO:v;
   var row={
     id:v.id,date:(v.date||'').slice(0,10),cliente:v.cliente,canal:v.canal,produto:v.produto,
     prod_id:v.prodId,origem:v.origem,container_id:v.containerId,
@@ -2257,6 +2290,8 @@ function initDB(cb){
   loadVendaGarantia(function(){if(typeof renderHist==='function'&&curPage==='vend')renderHist();});
   // Devoluções por venda (sincronizadas entre aparelhos)
   loadVendaDevol(function(){if(typeof refreshApp==='function'){}if(typeof renderHist==='function'&&curPage==='vend')renderHist();});
+  // Baixas de estoque (sincronizadas entre aparelhos)
+  loadVendaBaixa(function(){if(typeof renderHist==='function'&&curPage==='vend')renderHist();if(typeof renderEst==='function'&&curPage==='est')renderEst();});
   dbGet('configuracoes','chave=eq.dash_filter').then(function(rows){
     if(Array.isArray(rows)&&rows.length&&rows[0].valor){selMonth=rows[0].valor;}
   }).catch(function(){});
@@ -2298,6 +2333,16 @@ function loadVendaDevol(cb){
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
+// Baixa de estoque (garantia/doação/reparo/...) — {idVenda:{baixa:true,motivo,arrecadado}}.
+// NÃO é venda: faturamento e qtd excluem; o resultado (arrecadado − custo) entra no lucro (Opção A).
+var _vendaBaixa=(function(){try{return JSON.parse(localStorage.getItem('ax_venda_baixa')||'{}')||{};}catch(e){return {};}})();
+function loadVendaBaixa(cb){
+  if(typeof dbGet!=='function'){if(cb)cb();return;}
+  dbGet('configuracoes','chave=eq.venda_baixa').then(function(rows){
+    try{if(Array.isArray(rows)&&rows[0]&&rows[0].valor){_vendaBaixa=JSON.parse(rows[0].valor)||{};localStorage.setItem('ax_venda_baixa',JSON.stringify(_vendaBaixa));}}catch(e){}
+    if(cb)cb();
+  }).catch(function(){if(cb)cb();});
+}
 function loadVendas(){
   var arr=DB_READY?DB_VENDAS:(sg("ax_v6_vendas",[]));
   try{for(var i=0;i<arr.length;i++){
@@ -2305,12 +2350,19 @@ function loadVendas(){
     v.garantia=+(_vendaGarantia[String(v.id)])||0;
     // Snapshot dos valores originais (uma vez) para poder restaurar/exibir e proteger o banco
     if(v._devO===undefined) v._devO={venda:+v.venda||0,custo:+v.custo||0,taxa:+v.taxa||0,com:+v.com||0,frete:+v.frete||0,imp:+v.imp||0,lucroSI:+v.lucroSI||0,lucroLL:+v.lucroLL||0};
-    var dv=_vendaDevol[String(v.id)], o=v._devO;
-    v.devolvido=!!(dv&&dv.dev); v.devCusto=v.devolvido?(+dv.custo||0):0;
-    if(v.devolvido){
+    var bx=_vendaBaixa[String(v.id)], dv=_vendaDevol[String(v.id)], o=v._devO;
+    if(bx&&bx.baixa){
+      // Baixa: venda 0 (não fatura); custo líquido = custo − arrecadado, para o lucro = arrecadado − custo
+      v.baixa=true; v.baixaMotivo=bx.motivo||''; v.baixaArrec=+bx.arrecadado||0; v.devolvido=false; v.devCusto=0;
+      v.venda=0;v.taxa=0;v.com=0;v.frete=0;v.imp=0;
+      v.custo=Math.round((o.custo-v.baixaArrec)*100)/100;
+      v.lucroSI=Math.round((v.baixaArrec-o.custo)*100)/100; v.lucroLL=v.lucroSI;
+    }else if(dv&&dv.dev){
+      v.baixa=false; v.devolvido=true; v.devCusto=+dv.custo||0;
       v.venda=0;v.custo=0;v.taxa=0;v.com=0;v.frete=0;v.imp=0;
       v.lucroSI=-(v.devCusto);v.lucroLL=-(v.devCusto);
     }else{
+      v.baixa=false; v.devolvido=false; v.devCusto=0;
       v.venda=o.venda;v.custo=o.custo;v.taxa=o.taxa;v.com=o.com;v.frete=o.frete;v.imp=o.imp;v.lucroSI=o.lucroSI;v.lucroLL=o.lucroLL;
     }
   }}catch(e){}
@@ -3051,15 +3103,16 @@ function renderDash(){
   var _hf=document.getElementById('hero-fat');if(_hf)_hf.textContent=fmt(fat);
   var _hl=document.getElementById('hero-liq');if(_hl){_hl.textContent=fmt(lucro);_hl.style.color=lucro>=0?'#22c55e':'#ef4444';}
   var _hm=document.getElementById('hero-marg');if(_hm){_hm.textContent=margem.toFixed(1)+'%';_hm.style.color=margem>=0?'#22c55e':'#ef4444';}
-  animateKPI('kq',fv.length,false);
-  // Sub-contagem: só rodas de carbono (RIM/DISC/GRAVEL/MTB) — exclui Aro, Peças, bicicletas, vestuário
+  var qVend=0; for(var _qv=0;_qv<fv.length;_qv++){ if(!fv[_qv].baixa) qVend++; } // baixas não contam como venda
+  animateKPI('kq',qVend,false);
+  // Sub-contagem: só rodas de carbono (RIM/DISC/GRAVEL/MTB) — exclui Aro, Peças, bicicletas, vestuário, baixas
   (function(){
     var cat={}; try{(getAllSKUs()||[]).forEach(function(s){cat[String(s.id)]=String(s.cat||'').toUpperCase();});}catch(e){}
     var RODA={RIM:1,DISC:1,GRAVEL:1,MTB:1},qr=0;
-    for(var qi=0;qi<fv.length;qi++){ if(RODA[cat[String(fv[qi].prodId)]]) qr++; }
+    for(var qi=0;qi<fv.length;qi++){ if(!fv[qi].baixa&&RODA[cat[String(fv[qi].prodId)]]) qr++; }
     var el=document.getElementById('kq-roda'); if(el) el.textContent=qr;
   })();
-  if(fv.length) animateKPI('kt',fat/fv.length,true);
+  if(qVend) animateKPI('kt',fat/qVend,true);
   else document.getElementById('kt').textContent='R$ 0';
 
   // ── MoM: Comparativo com mês anterior ────────────────────────
@@ -4249,8 +4302,14 @@ function _sumInvestItems(md){var s=0,a=(md&&md.investItems)||[],i;for(i=0;i<a.le
 // Devoluções do mês: quantidade, custo total (prejuízo) e taxa sobre o total de vendas do mês.
 function mesDevol(mk){
   var vendas=(typeof loadVendas==='function')?loadVendas():[],qtd=0,custo=0,tot=0,i;
-  for(i=0;i<vendas.length;i++){ if(mkey(vendas[i].date)!==mk) continue; tot++; if(vendas[i].devolvido){qtd++;custo+=(+vendas[i].devCusto||0);} }
+  for(i=0;i<vendas.length;i++){ if(vendas[i].baixa) continue; if(mkey(vendas[i].date)!==mk) continue; tot++; if(vendas[i].devolvido){qtd++;custo+=(+vendas[i].devCusto||0);} }
   return {qtd:qtd,custo:custo,tot:tot,taxa:tot>0?(qtd/tot*100):0};
+}
+// Baixas do mês (garantia/doação/reparo/...): qtd, arrecadado e resultado (arrecadado − custo).
+function mesBaixa(mk){
+  var vendas=(typeof loadVendas==='function')?loadVendas():[],qtd=0,arrec=0,res=0,i;
+  for(i=0;i<vendas.length;i++){ if(!vendas[i].baixa) continue; if(mkey(vendas[i].date)!==mk) continue; qtd++; arrec+=(+vendas[i].baixaArrec||0); res+=(+vendas[i].lucroLL||0); }
+  return {qtd:qtd,arrec:arrec,res:res};
 }
 // DRE resumido do mês: fat → EBITDA → Lucro Líquido → GCM (caixa gerado)
 // GCM = Lucro − Investimentos (compra de contêiner/estoque). Investimento é capex:
@@ -4615,6 +4674,12 @@ function toggleSrchDev(){
   if(b){if(window._srchDev){b.style.background='#ef4444';b.style.color='#fff';b.style.borderColor='#ef4444';}else{b.style.background='var(--bg2)';b.style.color='var(--text2)';b.style.borderColor='#ef444455';}}
   renderHist();
 }
+function toggleSrchBaixa(){
+  window._srchBaixa=!window._srchBaixa;
+  var b=document.getElementById('srch-baixa');
+  if(b){if(window._srchBaixa){b.style.background='#ef4444';b.style.color='#fff';b.style.borderColor='#ef4444';}else{b.style.background='var(--bg2)';b.style.color='var(--text2)';b.style.borderColor='#ef444455';}}
+  renderHist();
+}
 // Filtro compartilhado da lista de vendas — usado pela tela E pela exportação de PDF,
 // garantindo que o PDF exporte exatamente o que está sendo mostrado com o filtro.
 function getHistFiltered(){
@@ -4641,6 +4706,7 @@ function getHistFiltered(){
     if(window._srchPend&&!v.pendente) continue;
     if(window._srchImp0&&(+v.imp||0)!==0) continue;
     if(window._srchDev&&!v.devolvido) continue;
+    if(window._srchBaixa&&!v.baixa) continue;
     fv.push(v);
   }
   var ordem=((document.getElementById('srch-ordem')||{}).value)||'data';
@@ -4657,6 +4723,7 @@ function getHistFiltered(){
   if(window._srchPend)parts.push('Aguardando envio');
   if(window._srchImp0)parts.push('Imposto zerado');
   if(window._srchDev)parts.push('Devolvido');
+  if(window._srchBaixa)parts.push('Baixa');
   return {fv:fv,total:vendas.length,label:parts.length?parts.join(' · '):'Todas as vendas',hasFilter:parts.length>0};
 }
 function renderHist(){
@@ -4688,8 +4755,9 @@ function renderHist(){
     if(v.pendente) pendInfo='<div style="margin-top:4px;font-size:10px;color:#ef4444;font-weight:700;border:1.5px solid #ef4444;border-radius:8px;padding:3px 8px;display:inline-block;background:#ef444414;">⏳ Aguardando envio'+(v.pendenteMotivo?': '+esc(v.pendenteMotivo):'')+'</div>';
     var devInfo='';
     if(v.devolvido) devInfo='<div style="margin-top:4px;font-size:10px;color:#ef4444;font-weight:700;border:1.5px solid #ef4444;border-radius:8px;padding:3px 8px;display:inline-block;background:#ef444414;">↩️ Devolvido'+((v.devCusto||0)>0?' · custo '+fmt(v.devCusto):'')+'</div>';
-    var vendaDisp=(v.devolvido&&v._devO)?'<span style="text-decoration:line-through;color:var(--text3);">'+fmt(v._devO.venda)+'</span>':fmt(v.venda);
-    var vProd=v.produto||'—';html+='<div class="li"'+((v.pendente||v.devolvido)?' style="border-left:2px solid #ef4444;"':'')+'><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div>'+pendInfo+devInfo+'<div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+vendaDisp+'</div></div></div>';
+    else if(v.baixa) devInfo='<div style="margin-top:4px;font-size:10px;color:#ef4444;font-weight:700;border:1.5px solid #ef4444;border-radius:8px;padding:3px 8px;display:inline-block;background:#ef444414;">↘️ Baixa: '+esc(v.baixaMotivo||'—')+' · arrec. '+fmt(v.baixaArrec||0)+'</div>';
+    var vendaDisp=(v.devolvido&&v._devO)?'<span style="text-decoration:line-through;color:var(--text3);">'+fmt(v._devO.venda)+'</span>':(v.baixa?'<span style="color:var(--text3);font-size:10px;">baixa</span>':fmt(v.venda));
+    var vProd=v.produto||'—';html+='<div class="li"'+((v.pendente||v.devolvido||v.baixa)?' style="border-left:2px solid #ef4444;"':'')+'><div class="li-l"><div class="li-nm">'+esc(v.cliente||'—')+(v.vendedor?' <span style="font-size:9px;color:var(--text3);font-weight:400;">· '+esc(v.vendedor)+'</span>':'')+'</div><div class="li-sb">'+esc(vProd.length>26?vProd.slice(0,26)+'...':vProd)+(v.origem?' - '+esc(v.origem):'')+'</div><div style="margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">'+badgeCanal(v.canal)+'<span style="font-size:9px;color:var(--text3);">'+fmtDate(v.date)+'</span>'+pagInfo+'</div>'+pendInfo+devInfo+'<div class="ebtns"><button class="ebtn" onclick="verVenda(\''+v.id+'\')" style="background:#1E90FF22;color:#1E90FF;border:1px solid #1E90FF33;">Ver</button><button class="ebtn ebtn-e" onclick="editarVenda(\''+v.id+'\')">Editar</button><button class="ebtn ebtn-d" onclick="abrirDelVenda(\''+v.id+'\')">Apagar</button></div></div><div class="li-r"><div class="li-v '+(v.lucroLL>=0?'gr':'rd')+'">'+fmt(v.lucroLL)+'</div><div class="li-d">'+vendaDisp+'</div></div></div>';
   }
   el.innerHTML=html;
 }
@@ -5160,7 +5228,9 @@ function renderEstGeralList(){
       var dotEl=document.createElement('div');dotEl.style.cssText='width:8px;height:8px;border-radius:50%;background:'+dot+';flex-shrink:0;';
       var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';nm.textContent=s.nome;
       var badge=document.createElement('div');badge.style.cssText='background:#1E90FF22;border:1px solid #1E90FF44;border-radius:6px;padding:2px 10px;font-size:14px;font-weight:800;color:#1E90FF;';badge.textContent=totS;
-      hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(badge);
+      var bxBtn=document.createElement('button');bxBtn.textContent='↘️';bxBtn.title='Dar baixa (garantia/doação/reparo...)';bxBtn.style.cssText='background:#ef444418;border:1px solid #ef444440;color:#ef4444;border-radius:7px;font-size:12px;cursor:pointer;padding:4px 8px;flex-shrink:0;line-height:1;';
+      bxBtn.onclick=(function(sid){return function(e){e.stopPropagation();openBaixa(sid);};})(s.id);
+      hrow.appendChild(dotEl);hrow.appendChild(nm);hrow.appendChild(badge);hrow.appendChild(bxBtn);
       var bd=document.createElement('div');bd.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;';
       x.per.forEach(function(p){var sp=document.createElement('span');sp.style.cssText='font-size:9px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--text2);';sp.textContent=p.local+': '+p.q;bd.appendChild(sp);});
       item.appendChild(hrow);if(bd.children.length) item.appendChild(bd);
@@ -6615,6 +6685,7 @@ function renderRes(){
         '</div>'+
         '<div style="height:3px;background:var(--bg3);"><div style="height:100%;width:'+Math.min(100,Math.max(0,mg/META_MARG_LIQ*100)).toFixed(1)+'%;background:'+rc+';transition:width .4s;"></div></div>'+
         (function(){var dv=mesDevol(mk);return dv.qtd>0?'<div style="padding:7px 16px;background:#ef444410;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;"><span style="color:#ef4444;font-weight:700;">↩️ '+dv.qtd+' devoluç'+(dv.qtd>1?'ões':'ão')+' · '+dv.taxa.toFixed(1)+'% das vendas</span><span style="color:#ef4444;font-weight:800;white-space:nowrap;">custo − '+fmt(dv.custo)+'</span></div>':'';})()+
+        (function(){var bx=mesBaixa(mk);return bx.qtd>0?'<div style="padding:7px 16px;background:#ef444410;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;"><span style="color:#ef4444;font-weight:700;">↘️ '+bx.qtd+' baixa'+(bx.qtd>1?'s':'')+' · arrecadado '+fmt(bx.arrec)+'</span><span style="font-weight:800;white-space:nowrap;color:'+(bx.res>=0?'#22c55e':'#ef4444')+';">resultado '+fmt(bx.res)+'</span></div>':'';})()+
         '<div style="display:flex;border-top:1px solid var(--border);">'+
           '<div style="flex:1;padding:11px 14px;border-right:1px solid var(--border);">'+
             '<div style="font-size:8.5px;font-weight:700;color:#0ea5e9;text-transform:uppercase;letter-spacing:.6px;">💧 GCM · Geração de caixa <span onclick="kpiHelp(\'gcm\')" style="cursor:pointer;">?</span></div>'+
@@ -12819,6 +12890,69 @@ function salvarVerDevCusto(rawVal){
 function _persistDevol(){
   try{localStorage.setItem('ax_venda_devol',JSON.stringify(_vendaDevol));}catch(e){}
   if(typeof dbUpsert==='function'){try{dbUpsert('configuracoes',{chave:'venda_devol',valor:JSON.stringify(_vendaDevol)});}catch(e){}}
+}
+// ── BAIXA DE ESTOQUE (garantia/doação/reparo/...) ────────────────────────
+var _baixaCtx=null;
+function _persistBaixa(){
+  try{localStorage.setItem('ax_venda_baixa',JSON.stringify(_vendaBaixa));}catch(e){}
+  if(typeof dbUpsert==='function'){try{dbUpsert('configuracoes',{chave:'venda_baixa',valor:JSON.stringify(_vendaBaixa)});}catch(e){}}
+}
+// Contêiner (mais antigo) que tem unidade desse SKU no local — de onde a baixa sai.
+function _baixaSource(local,skuId){
+  var cs=loadContainers().slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+  for(var i=0;i<cs.length;i++){var sk=cs[i].skus[skuId];if(sk&&sk.un&&(sk.un[local]||0)>0)return {cid:cs[i].id,custo:+sk.custo||0};}
+  return null;
+}
+function openBaixa(skuId){
+  var all=getAllSKUs(),nome='SKU',i;
+  for(i=0;i<all.length;i++){if(String(all[i].id)===String(skuId)){nome=all[i].nome;break;}}
+  _baixaCtx={skuId:skuId,nome:nome};
+  document.getElementById('bx-sku').textContent=nome;
+  // Locais com estoque
+  var locais=loadLocais(),sel=document.getElementById('bx-local');sel.innerHTML='';var tot=0;
+  for(i=0;i<locais.length;i++){var q=getQtyLocal(locais[i],skuId);if(q>0){var o=document.createElement('option');o.value=locais[i];o.textContent=locais[i]+' ('+q+' disp.)';sel.appendChild(o);tot+=q;}}
+  document.getElementById('bx-disp').textContent=tot>0?('Disponível em estoque: '+tot+' un'):'⚠️ Sem estoque disponível para este SKU';
+  var mo=document.getElementById('bx-motivo');if(mo)mo.value='Garantia';var oo=document.getElementById('bx-motivo-outro');if(oo){oo.style.display='none';oo.value='';}
+  var ob=document.getElementById('bx-obs');if(ob)ob.value='';var ar=document.getElementById('bx-arrec');if(ar)ar.value='';
+  bxCalc();
+  openModal('m-baixa');
+}
+function bxCalc(){
+  if(!_baixaCtx)return;
+  var local=(document.getElementById('bx-local')||{}).value||'';
+  var arrec=parseBRL((document.getElementById('bx-arrec')||{value:''}).value)||0;
+  var src=_baixaSource(local,_baixaCtx.skuId);
+  var custo=src?src.custo:0;
+  var res=arrec-custo;
+  var el=document.getElementById('bx-result');if(!el)return;
+  el.innerHTML='<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="color:var(--text3);">Custo do produto</span><span style="font-weight:700;color:#ef4444;">'+fmt(custo)+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span style="color:var(--text3);">Valor arrecadado</span><span style="font-weight:700;color:#22c55e;">'+fmt(arrec)+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:5px 0 0;border-top:1px solid var(--border);margin-top:4px;"><span style="font-weight:800;">Resultado</span><span style="font-weight:800;color:'+(res>=0?'#22c55e':'#ef4444')+';">'+fmt(res)+' '+(res>=0?'(ganho)':'(prejuízo)')+'</span></div>';
+}
+function confirmarBaixa(){
+  if(!_baixaCtx){closeModal('m-baixa');return;}
+  var skuId=_baixaCtx.skuId, nome=_baixaCtx.nome;
+  var local=(document.getElementById('bx-local')||{}).value||'';
+  if(!local){toast('Sem estoque disponível',true);return;}
+  var src=_baixaSource(local,skuId);
+  if(!src){toast('Sem estoque nesse local',true);return;}
+  var mot=(document.getElementById('bx-motivo')||{}).value||'Baixa';
+  if(mot==='Outro'){mot=((document.getElementById('bx-motivo-outro')||{value:''}).value||'').trim()||'Outro';}
+  var obs=((document.getElementById('bx-obs')||{value:''}).value||'').trim();
+  var motivoFull=mot+(obs?(' — '+obs):'');
+  var arrec=parseBRL((document.getElementById('bx-arrec')||{value:''}).value)||0;
+  var id=Math.floor(Date.now()/1000)*1000+Math.floor(Math.random()*999);
+  var rec={id:id,date:new Date().toISOString().slice(0,10)+'T12:00:00Z',cliente:mot,canal:'Baixa',produto:nome,prodId:skuId,origem:local,containerId:src.cid,
+    venda:0,custo:src.custo,taxaPct:0,taxa:0,impPct:0,imp:0,comPct:0,com:0,frete:0,lucroSI:arrec-src.custo,lucroLL:arrec-src.custo,duplo:false,createdAt:Date.now()};
+  _vendaBaixa[String(id)]={baixa:true,motivo:motivoFull,arrecadado:arrec};
+  _persistBaixa();
+  // baixa no estoque físico
+  if(typeof consumeFIFO==='function') consumeFIFO(local,skuId,1);
+  var vendas=loadVendas(); vendas.push(rec); saveVendas(vendas,rec);
+  closeModal('m-baixa');
+  if(typeof refreshAfterVendaEdit==='function') refreshAfterVendaEdit();
+  if(typeof renderEst==='function'&&curPage==='est') renderEst();
+  toast('Baixa registrada: '+nome+' ('+mot+')');
 }
 function toggleVerPendente(){
   if(!_verVendaId) return;
