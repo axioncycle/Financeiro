@@ -1147,7 +1147,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09x (Baixa: corrige aviso 'id nao localizada no banco' — registro criado com id=null faz INSERT (Supabase gera o id), como a Nova Venda; baixa fica vinculada ao id final)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09y (Baixa: corrige cruzamento de dados entre baixas — motivo/arrecadado agora ficam no proprio registro (canal=Baixa, arrec no campo venda, motivo em pendente_motivo), sem mapa lateral que desincronizava com a troca de id)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -2350,13 +2350,18 @@ function loadVendas(){
     v.garantia=+(_vendaGarantia[String(v.id)])||0;
     // Snapshot dos valores originais (uma vez) para poder restaurar/exibir e proteger o banco
     if(v._devO===undefined) v._devO={venda:+v.venda||0,custo:+v.custo||0,taxa:+v.taxa||0,com:+v.com||0,frete:+v.frete||0,imp:+v.imp||0,lucroSI:+v.lucroSI||0,lucroLL:+v.lucroLL||0};
-    var bx=_vendaBaixa[String(v.id)], dv=_vendaDevol[String(v.id)], o=v._devO;
-    if(bx&&bx.baixa){
-      // Baixa: venda 0 (não fatura); custo líquido = custo − arrecadado, para o lucro = arrecadado − custo
-      v.baixa=true; v.baixaMotivo=bx.motivo||''; v.baixaArrec=+bx.arrecadado||0; v.devolvido=false; v.devCusto=0;
+    var bxMap=_vendaBaixa[String(v.id)], dv=_vendaDevol[String(v.id)], o=v._devO;
+    // Baixa identificada pelo próprio registro (canal='Baixa') — arrecadado no campo venda,
+    // motivo em pendente_motivo. Fallback ao mapa antigo (baixas criadas antes desta versão).
+    var isBaixa=(v.canal==='Baixa')||!!(bxMap&&bxMap.baixa);
+    if(isBaixa){
+      var arrec=(bxMap&&bxMap.arrecadado!=null)?(+bxMap.arrecadado||0):(+o.venda||0);
+      var motivo=(bxMap&&bxMap.motivo)?bxMap.motivo:(v.pendenteMotivo||v.cliente||'—');
+      var custoO=+o.custo||0;
+      v.baixa=true; v.baixaMotivo=motivo; v.baixaArrec=arrec; v.devolvido=false; v.devCusto=0;
       v.venda=0;v.taxa=0;v.com=0;v.frete=0;v.imp=0;
-      v.custo=Math.round((o.custo-v.baixaArrec)*100)/100;
-      v.lucroSI=Math.round((v.baixaArrec-o.custo)*100)/100; v.lucroLL=v.lucroSI;
+      v.custo=Math.round((custoO-arrec)*100)/100;
+      v.lucroSI=Math.round((arrec-custoO)*100)/100; v.lucroLL=v.lucroSI;
     }else if(dv&&dv.dev){
       v.baixa=false; v.devolvido=true; v.devCusto=+dv.custo||0;
       v.venda=0;v.custo=0;v.taxa=0;v.com=0;v.frete=0;v.imp=0;
@@ -12941,16 +12946,15 @@ function confirmarBaixa(){
   var obs=((document.getElementById('bx-obs')||{value:''}).value||'').trim();
   var motivoFull=mot+(obs?(' — '+obs):'');
   var arrec=parseBRL((document.getElementById('bx-arrec')||{value:''}).value)||0;
-  // id=null → saveVendaDB faz INSERT (Supabase gera o id); mesma lógica da Nova Venda
+  // Tudo no próprio registro (sem mapa lateral): canal='Baixa', arrecadado no campo venda,
+  // motivo completo em pendente_motivo. id=null → INSERT (Supabase gera o id), como a Nova Venda.
   var rec={id:null,date:new Date().toISOString().slice(0,10)+'T12:00:00Z',cliente:mot,canal:'Baixa',produto:nome,prodId:skuId,origem:local,containerId:src.cid,
-    venda:0,custo:src.custo,taxaPct:0,taxa:0,impPct:0,imp:0,comPct:0,com:0,frete:0,lucroSI:arrec-src.custo,lucroLL:arrec-src.custo,duplo:false,createdAt:Date.now()};
+    venda:arrec,custo:src.custo,taxaPct:0,taxa:0,impPct:0,imp:0,comPct:0,com:0,frete:0,lucroSI:arrec-src.custo,lucroLL:arrec-src.custo,duplo:false,pendente:false,pendenteMotivo:motivoFull,createdAt:Date.now()};
   // baixa no estoque físico
   if(typeof consumeFIFO==='function') consumeFIFO(local,skuId,1);
   closeModal('m-baixa');
   var finalize=function(finalId){
     rec.id=finalId;
-    _vendaBaixa[String(finalId)]={baixa:true,motivo:motivoFull,arrecadado:arrec};
-    _persistBaixa();
     DB_VENDAS.unshift(rec);
     if(typeof refreshAfterVendaEdit==='function') refreshAfterVendaEdit();
     if(typeof renderEst==='function'&&curPage==='est') renderEst();
