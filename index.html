@@ -1147,7 +1147,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09y (Baixa: corrige cruzamento de dados entre baixas — motivo/arrecadado agora ficam no proprio registro (canal=Baixa, arrec no campo venda, motivo em pendente_motivo), sem mapa lateral que desincronizava com a troca de id)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09z (DRE Analise: baixas viram linha propria (outras receitas/despesas) — saem do CMV e da contagem de vendas; CMV/qtd/margem limpos, lucro liquido inalterado)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -10244,14 +10244,16 @@ function getExtras(vendas){
 }
 
 function calcDRE(vendas){
-  // 1. Faturamento (Receita Bruta)
-  var fat=0,taxas=0,custo=0,frete=0,imp=0,qtd=vendas.length;
+  // 1. Faturamento (Receita Bruta) — baixas ficam FORA (linha própria, não sujam CMV nem contagem)
+  var fat=0,taxas=0,custo=0,frete=0,imp=0,qtd=0,baixasRes=0,baixasQtd=0;
   vendas.forEach(function(v){
+    if(v.baixa){ baixasRes+=(+v.lucroLL||0); baixasQtd++; return; }
     fat+=v.venda||0;
     taxas+=(v.taxa||0)+(v.com||0);
     custo+=v.custo||0;
     frete+=v.frete||0;
     imp+=v.imp||0;
+    qtd++;
   });
   // Sum financeiro from DB_DESP
   var months2={};
@@ -10281,10 +10283,10 @@ function calcDRE(vendas){
     proLab2+=mdI.prolabore||0; distr2+=mdI.distribuicao||0;
   }
   var regime=hasSimples&&hasPresumido?'misto':(hasPresumido?'presumido':'simples');
-  var lucroLiq=ebitda+totFin2-impTot2;
+  var lucroLiq=ebitda+totFin2+baixasRes-impTot2;   // baixas (garantia/doação/...) como outras receitas/despesas
   var gcm2=lucroLiq-invest2-proLab2;   // Geração de caixa
   var sobra2=gcm2-distr2;              // Sobra após retiradas
-  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:impTot2,impVenda:impVenda2,impLucro:impLucro2,regime:regime,lucroLiq:lucroLiq,qtd:qtd,prolabore:proLab2,distribuicao:distr2,invest:invest2,gcm:gcm2,sobra:sobra2};
+  return {fat:fat,taxas:taxas,recLiq:recLiq,custo:custo,lucroBruto:lucroBruto,despVar:despVar,margContrib:margContrib,fixas:fixas,ebitda:ebitda,totFin2:totFin2,imp:impTot2,impVenda:impVenda2,impLucro:impLucro2,regime:regime,lucroLiq:lucroLiq,qtd:qtd,prolabore:proLab2,distribuicao:distr2,invest:invest2,gcm:gcm2,sobra:sobra2,baixasRes:baixasRes,baixasQtd:baixasQtd};
 }
 
 function fmtPct(num,den){
@@ -10316,6 +10318,7 @@ function _dreRows(dre){
   rows.push({label:'   − Custos fixos',val:-dre.fixas,pct:fmtPct(-dre.fixas,dre.fat),color:'#ef4444'});
   rows.push({label:'⚡ EBITDA',val:ebitda,pct:fmtPct(ebitda,dre.fat),color:'#f59e0b',bold:true,anchor:true});
   rows.push({label:'   ± Resultado Financeiro',val:dre.totFin2||0,pct:fmtPct(dre.totFin2||0,dre.fat),color:(dre.totFin2||0)>=0?'#22c55e':'#ef4444'});
+  if((dre.baixasQtd||0)>0) rows.push({label:'   ↘️ Baixas ('+dre.baixasQtd+') · garantia/doação/...',val:dre.baixasRes||0,pct:fmtPct(dre.baixasRes||0,dre.fat),color:(dre.baixasRes||0)>=0?'#22c55e':'#ef4444'});
   if(pres) rows.push({label:'   − IRPJ + CSLL (sobre o lucro)',val:-impL,pct:fmtPct(-impL,dre.fat),color:'#ef4444'});
   else rows.push({label:'   − Impostos (DAS)',val:-dre.imp,pct:fmtPct(-dre.imp,dre.fat),color:'#ef4444'});
   rows.push({label:'✅ Lucro Líquido',val:dre.lucroLiq,pct:fmtPct(dre.lucroLiq,dre.fat),color:dre.lucroLiq>=0?'#22c55e':'#ef4444',bold:true,big:true,anchor:true});
