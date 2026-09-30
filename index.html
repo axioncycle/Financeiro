@@ -2353,7 +2353,7 @@ function loadVendas(){
     var bxMap=_vendaBaixa[String(v.id)], dv=_vendaDevol[String(v.id)], o=v._devO;
     // Baixa identificada pelo próprio registro (canal='Baixa') — arrecadado no campo venda,
     // motivo em pendente_motivo. Fallback ao mapa antigo (baixas criadas antes desta versão).
-    var isBaixa=(v.canal==='Baixa')||!!(bxMap&&bxMap.baixa);
+    var isBaixa=(String(v.canal||'').trim().toLowerCase()==='baixa')||!!(bxMap&&bxMap.baixa);
     if(isBaixa){
       var arrec=(bxMap&&bxMap.arrecadado!=null)?(+bxMap.arrecadado||0):(+o.venda||0);
       var motivo=(bxMap&&bxMap.motivo)?bxMap.motivo:(v.pendenteMotivo||v.cliente||'—');
