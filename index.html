@@ -1147,7 +1147,7 @@ tr:hover td{background:var(--row-hover,rgba(59,130,246,0.04));}
         <div class="fg"><label class="fl">IPI s/ venda (%)</label><input class="fi" id="cfg-ipi" inputmode="decimal" placeholder="6,5"></div>
       </div>
       <div style="font-size:9px;color:var(--text3);margin:2px 0 10px;line-height:1.4;">ICMS = origem efetivo (1,5%) + DIFAL médio. IRPJ/CSLL (1,2%+1,08%) são fixos por lei. IPI: débito na venda, creditando a importação.</div>
-      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09w (Baixa de estoque: botao no Estoque Geral (garantia/doacao/reparo...) com motivo, valor arrecadado e local; baixa estoque+conteiner, entra na lista de vendas (nao como venda), resultado=arrecadado-custo no lucro/DRE/Dashboard; filtro Baixa e linha Baixas do mes no Resultado)</div>
+      <div style="font-size:9px;color:#22c55e;font-weight:700;margin-bottom:8px;">✅ versão IMPOSTOS-2026-09x (Baixa: corrige aviso 'id nao localizada no banco' — registro criado com id=null faz INSERT (Supabase gera o id), como a Nova Venda; baixa fica vinculada ao id final)</div>
       <button class="btn" onclick="saveTaxCfg()" style="width:100%;">Salvar alíquotas</button>
     </div>
   </div>
@@ -12941,18 +12941,25 @@ function confirmarBaixa(){
   var obs=((document.getElementById('bx-obs')||{value:''}).value||'').trim();
   var motivoFull=mot+(obs?(' — '+obs):'');
   var arrec=parseBRL((document.getElementById('bx-arrec')||{value:''}).value)||0;
-  var id=Math.floor(Date.now()/1000)*1000+Math.floor(Math.random()*999);
-  var rec={id:id,date:new Date().toISOString().slice(0,10)+'T12:00:00Z',cliente:mot,canal:'Baixa',produto:nome,prodId:skuId,origem:local,containerId:src.cid,
+  // id=null → saveVendaDB faz INSERT (Supabase gera o id); mesma lógica da Nova Venda
+  var rec={id:null,date:new Date().toISOString().slice(0,10)+'T12:00:00Z',cliente:mot,canal:'Baixa',produto:nome,prodId:skuId,origem:local,containerId:src.cid,
     venda:0,custo:src.custo,taxaPct:0,taxa:0,impPct:0,imp:0,comPct:0,com:0,frete:0,lucroSI:arrec-src.custo,lucroLL:arrec-src.custo,duplo:false,createdAt:Date.now()};
-  _vendaBaixa[String(id)]={baixa:true,motivo:motivoFull,arrecadado:arrec};
-  _persistBaixa();
   // baixa no estoque físico
   if(typeof consumeFIFO==='function') consumeFIFO(local,skuId,1);
-  var vendas=loadVendas(); vendas.push(rec); saveVendas(vendas,rec);
   closeModal('m-baixa');
-  if(typeof refreshAfterVendaEdit==='function') refreshAfterVendaEdit();
-  if(typeof renderEst==='function'&&curPage==='est') renderEst();
-  toast('Baixa registrada: '+nome+' ('+mot+')');
+  var finalize=function(finalId){
+    rec.id=finalId;
+    _vendaBaixa[String(finalId)]={baixa:true,motivo:motivoFull,arrecadado:arrec};
+    _persistBaixa();
+    DB_VENDAS.unshift(rec);
+    if(typeof refreshAfterVendaEdit==='function') refreshAfterVendaEdit();
+    if(typeof renderEst==='function'&&curPage==='est') renderEst();
+    toast('Baixa registrada: '+nome+' ('+mot+')');
+  };
+  saveVendaDB(rec).then(function(res){
+    var fid=(Array.isArray(res)&&res.length&&res[0].id)?String(res[0].id):(Math.floor(Date.now()/1000)*1000+Math.floor(Math.random()*999));
+    finalize(fid);
+  }).catch(function(){ finalize(Math.floor(Date.now()/1000)*1000+Math.floor(Math.random()*999)); });
 }
 function toggleVerPendente(){
   if(!_verVendaId) return;
